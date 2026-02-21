@@ -51,6 +51,7 @@ Return ONLY valid JSON. Start with '{' end with '}'.
       "description": "What you can DO when Phase 1 is done",
       "targetDate": "YYYY-MM-DD",
       "coachNote": "2-3 sentences. Direct, personal.",
+      "futureLook": "A vivid, second-person picture of the learner's life after completing this goal — improved version of themselves, like seeing in the mirror after X months (2-3 sentences)",
       "topics": [
         {
           "id": "t1",

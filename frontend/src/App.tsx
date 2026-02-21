@@ -38,6 +38,7 @@ export default function App() {
         login(mapBackendUserToUser(user));
         // Fetch user's goals from backend (RBAC-scoped)
         useAppStore.getState().fetchGoalsFromBackend();
+        useAppStore.getState().fetchReadingInsightsFromBackend();
         // Start auto token refresh (every 50 min, token expires in 60)
         setupTokenRefresh((newToken) => setAccessToken(newToken));
       })

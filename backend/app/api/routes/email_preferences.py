@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.deps import CurrentUser, SessionDep
+from app.api.deps import CurrentUser, UserServiceDep
 from app.models import UserUpdateMe
 
 router = APIRouter(prefix="/email-preferences", tags=["email-preferences"])
@@ -23,25 +23,10 @@ def get_email_preferences(current_user: CurrentUser) -> dict:
 @router.put("", response_model=dict)
 def update_email_preferences(
     *,
-    session: SessionDep,
+    user_service: UserServiceDep,
     current_user: CurrentUser,
     user_in: UserUpdateMe,
 ) -> dict:
     """Update email preferences. Only provided fields are updated."""
-    update_data = user_in.model_dump(exclude_unset=True)
-    allowed = {
-        "email_daily_plan_enabled",
-        "email_morning_time",
-        "email_afternoon_time",
-        "email_evening_time",
-        "timezone",
-        "greeting_preference",
-        "status_message",
-    }
-    filtered = {k: v for k, v in update_data.items() if k in allowed}
-    if filtered:
-        current_user.sqlmodel_update(filtered)
-        session.add(current_user)
-        session.commit()
-        session.refresh(current_user)
-    return get_email_preferences(current_user)
+    updated_user = user_service.update_me(db_user=current_user, user_in=user_in)
+    return get_email_preferences(updated_user)

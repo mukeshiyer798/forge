@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Trash2, Check, Timer, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trash2, Check, Timer, Lock, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import type { Goal, GoalTopic } from '@/types';
 import { cn, formatDueDate } from '@/lib/utils';
@@ -18,12 +18,14 @@ const STATUS_DOT: Record<Goal['status'], string> = {
   'on-track': 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]',
   'at-risk': 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]',
   behind: 'bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]',
+  paused: 'bg-gray-400 shadow-[0_0_8px_rgba(156,163,175,0.6)]',
 };
 
 const STATUS_LABEL: Record<Goal['status'], string> = {
   'on-track': '✓ On Track',
   'at-risk': '⚠ At Risk',
   behind: '✗ Behind',
+  paused: '⏸ Paused',
 };
 
 const PHASE_SIZE = 5;
@@ -75,7 +77,7 @@ function TopicSection({ goalId, topic, isLocked }: { goalId: string; topic: Goal
 }
 
 export default function GoalCard({ goal, index }: GoalCardProps) {
-  const { deleteGoal, toggleCapstoneCompleted, startPomodoro, activePomodoro } = useAppStore();
+  const { deleteGoal, toggleCapstoneCompleted, startPomodoro, activePomodoro, togglePauseGoal } = useAppStore();
   const typeStyle = TYPE_STYLES[goal.type];
   const hasFullStructure = goal.topics && goal.topics.length > 0;
   const sortedTopics = hasFullStructure ? [...goal.topics!].sort((a, b) => a.taskNumber - b.taskNumber) : [];
@@ -149,7 +151,7 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
           </div>
           <div className="flex items-center gap-2">
             <div className={cn('w-2 h-2 rounded-full', STATUS_DOT[goal.status])} />
-            {!activePomodoro && (
+            {!activePomodoro && goal.status !== 'paused' && (
               <button
                 onClick={() => startPomodoro({ goalId: goal.id })}
                 className="opacity-0 group-hover:opacity-100 transition-opacity text-forge-muted hover:text-forge-amber"
@@ -158,6 +160,13 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
                 <Timer size={13} />
               </button>
             )}
+            <button
+              onClick={() => togglePauseGoal(goal.id)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity text-forge-muted hover:text-amber-400 ml-1"
+              title={goal.status === 'paused' ? 'Resume Goal' : 'Pause Goal'}
+            >
+              {goal.status === 'paused' ? <Play size={13} /> : <Pause size={13} />}
+            </button>
             {confirmingDelete ? (
               <div className="flex items-center gap-1.5">
                 <span className="font-mono text-[11px] text-red-400 uppercase tracking-wider">Delete?</span>
@@ -204,7 +213,7 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
           <span className="font-mono text-xs uppercase tracking-wider text-forge-dim">{formatDueDate(goal.targetDate)}</span>
           <span className={cn(
             'font-mono text-xs uppercase tracking-wider flex items-center gap-1.5',
-            goal.status === 'on-track' ? 'text-green-400' : goal.status === 'at-risk' ? 'text-amber-400' : 'text-red-400'
+            goal.status === 'on-track' ? 'text-green-400' : goal.status === 'at-risk' ? 'text-amber-400' : goal.status === 'behind' ? 'text-red-400' : 'text-gray-400'
           )}>
             <span className={cn('w-1.5 h-1.5 rounded-full', STATUS_DOT[goal.status])} />
             {STATUS_LABEL[goal.status]}

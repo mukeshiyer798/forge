@@ -101,9 +101,9 @@ def _check_and_send_emails() -> None:
             user_id = str(user.id)
             local_now = _get_user_local_time(user)
 
-            morning_h, morning_m = _parse_time(user.email_morning_time or "07:00")
-            afternoon_h, afternoon_m = _parse_time(user.email_afternoon_time or "14:00")
-            evening_h, evening_m = _parse_time(user.email_evening_time or "20:00")
+            morning_h, morning_m = _parse_time(user.email_morning_time or settings.DEFAULT_EMAIL_MORNING_TIME)
+            afternoon_h, afternoon_m = _parse_time(user.email_afternoon_time or settings.DEFAULT_EMAIL_AFTERNOON_TIME)
+            evening_h, evening_m = _parse_time(user.email_evening_time or settings.DEFAULT_EMAIL_EVENING_TIME)
 
             # Morning email
             morning_key = _get_sent_key(user_id, "morning")

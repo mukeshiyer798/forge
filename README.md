@@ -1,4 +1,4 @@
-# FORGE - AI-Powered Learning Roadmap & Goal Tracker
+# FORGE - AI-Powered Personalized Learning Roadmap & Goal Tracker
 
 FORGE is a comprehensive goal-tracking and learning application designed to help users define, structure, and achieve their objectives. It leverages AI to generate customized, actionable learning roadmaps focused on depth, practical projects, and interview preparation. 
 

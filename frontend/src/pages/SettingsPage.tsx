@@ -16,17 +16,20 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
 
   // AI API key (OpenRouter)
-  const [geminiKey, setGeminiKey] = useState(getGeminiApiKey() || '');
+  const [geminiKey, setGeminiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [geminiTesting, setGeminiTesting] = useState(false);
-  const [geminiStatus, setGeminiStatus] = useState<'idle' | 'ok' | 'fail'>('idle');
-
-  // Goal settings
-  const [dailyTaskTarget, setDailyTaskTarget] = useState(3);
+  const [geminiStatus, setGeminiStatus] = useState<'idle' | 'ok' | 'fail'>(
+    user?.hasOpenrouterKey ? 'ok' : 'idle'
+  );
 
   // Email test
   const [testingEmail, setTestingEmail] = useState(false);
   const [emailTestResult, setEmailTestResult] = useState<'idle' | 'sent' | 'fail'>('idle');
+
+  // Goal settings
+  const [dailyTaskTarget, setDailyTaskTarget] = useState(3);
+
 
   useEffect(() => {
     if (user?.greetingPreference) setGreeting(user.greetingPreference);
@@ -70,8 +73,16 @@ export default function SettingsPage() {
         }),
       });
 
+      // Update basic user properties and API key
+      await apiRequest('/users/me', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          openrouter_api_key: geminiKey || undefined,
+        })
+      });
+
       const updatedUser = await getCurrentUser();
-      login(mapBackendUserToUser(updatedUser));
+      useAppStore.getState().updateUser(mapBackendUserToUser(updatedUser));
 
       // Update daily task requirement on all goals
       const { goals: currentGoals, updateGoalProgress } = useAppStore.getState();
@@ -98,23 +109,26 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSaveGeminiKey = () => {
-    if (geminiKey.trim()) {
-      setGeminiApiKey(geminiKey.trim());
-      setGeminiStatus('idle');
-    } else {
-      clearGeminiApiKey();
-      setGeminiStatus('idle');
-    }
-  };
-
   const handleTestGemini = async () => {
-    handleSaveGeminiKey();
     setGeminiTesting(true);
     setGeminiStatus('idle');
-    const ok = await testGeminiConnection();
-    setGeminiStatus(ok ? 'ok' : 'fail');
-    setGeminiTesting(false);
+    try {
+      if (geminiKey.trim()) {
+        await apiRequest('/users/me', {
+          method: 'PATCH',
+          body: JSON.stringify({ openrouter_api_key: geminiKey.trim() })
+        });
+        const updatedUser = await getCurrentUser();
+        useAppStore.getState().updateUser(mapBackendUserToUser(updatedUser));
+      }
+
+      const ok = await testGeminiConnection();
+      setGeminiStatus(ok ? 'ok' : 'fail');
+    } catch {
+      setGeminiStatus('fail');
+    } finally {
+      setGeminiTesting(false);
+    }
   };
 
   const handleTestEmail = async () => {
@@ -217,8 +231,7 @@ export default function SettingsPage() {
                 type={showKey ? 'text' : 'password'}
                 value={geminiKey}
                 onChange={(e) => setGeminiKey(e.target.value)}
-                onBlur={handleSaveGeminiKey}
-                placeholder="sk-or-..."
+                placeholder={user?.hasOpenrouterKey ? "•••••••••••••••• (API Key Active)" : "sk-or-..."}
                 className="w-full px-4 py-2.5 pr-10 bg-forge-surface2 border border-forge-border rounded text-forge-text font-mono text-sm placeholder:text-forge-muted focus:border-forge-amber focus:outline-none"
               />
               <button
@@ -231,22 +244,36 @@ export default function SettingsPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={handleTestGemini}
-                disabled={!geminiKey.trim() || geminiTesting}
+                disabled={(!geminiKey.trim() && !user?.hasOpenrouterKey) || geminiTesting}
                 className="font-mono text-xs uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-1.5 hover:bg-forge-amber/10 transition-colors disabled:opacity-40"
               >
-                {geminiTesting ? 'Testing...' : 'Test Connection'}
+                {geminiTesting ? 'Testing...' : (user?.hasOpenrouterKey && !geminiKey.trim() ? 'Test Existing Key' : 'Save & Test Key')}
               </button>
               <button
-                onClick={() => { setGeminiKey(''); clearGeminiApiKey(); setGeminiStatus('idle'); }}
+                onClick={async () => {
+                  setGeminiKey('');
+                  setGeminiStatus('idle');
+                  try {
+                    await apiRequest('/users/me', {
+                      method: 'PATCH',
+                      body: JSON.stringify({ openrouter_api_key: null })
+                    });
+                    const updatedUser = await getCurrentUser();
+                    useAppStore.getState().updateUser(mapBackendUserToUser(updatedUser));
+                  } catch { }
+                }}
                 className="font-mono text-xs uppercase tracking-wider text-forge-dim border border-forge-border px-3 py-1.5 hover:text-red-400 hover:border-red-500/30 transition-colors"
               >
-                Clear
+                Clear Context
               </button>
               {geminiStatus === 'ok' && (
-                <span className="font-mono text-xs text-green-400">✓ Connected</span>
+                <span className="font-mono text-xs text-green-400">✓ Connected Server</span>
               )}
               {geminiStatus === 'fail' && (
                 <span className="font-mono text-xs text-red-400">✗ Failed — check key</span>
+              )}
+              {geminiStatus === 'idle' && user?.hasOpenrouterKey && !geminiKey.trim() && (
+                <span className="font-mono text-xs text-forge-dim">✓ API Key securely stored on server</span>
               )}
             </div>
             <a

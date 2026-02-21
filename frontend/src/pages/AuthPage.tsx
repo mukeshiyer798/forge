@@ -44,6 +44,7 @@ export default function AuthPage() {
       login(mapBackendUserToUser(userRes));
       // Fetch user's goals from backend (RBAC-scoped)
       useAppStore.getState().fetchGoalsFromBackend();
+      useAppStore.getState().fetchReadingInsightsFromBackend();
       // Start auto token refresh
       setupTokenRefresh((newToken) => setAccessToken(newToken));
     } catch (err: unknown) {
@@ -81,6 +82,7 @@ export default function AuthPage() {
       login(mapBackendUserToUser(userRes));
       // Fetch goals (will be empty for new users — RBAC enforced)
       useAppStore.getState().fetchGoalsFromBackend();
+      useAppStore.getState().fetchReadingInsightsFromBackend();
       // Start auto token refresh
       setupTokenRefresh((newToken) => setAccessToken(newToken));
     } catch (err: unknown) {
