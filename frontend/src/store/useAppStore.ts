@@ -1,0 +1,695 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import type { User, Goal, GoalStatus, GoalType, PomodoroSession, SubTopic, GoalTopic, GoalCapstone } from '@/types';
+import { generateId, getTodayIndex, calcGoalProgress } from '@/lib/utils';
+import { clearAccessToken } from '@/lib/auth';
+import {
+  fetchGoals,
+  createGoalApi,
+  updateGoalApi,
+  deleteGoalApi,
+  clearTokenRefresh,
+  createPomodoroSessionApi,
+  fetchPomodoroSessions,
+  updatePomodoroSessionApi,
+  type GoalPublicBackend,
+} from '@/lib/api';
+
+export type ViewId = 'dashboard' | 'goals' | 'reading' | 'executive' | 'settings';
+
+export function mapBackendUserToUser(backend: {
+  id: string;
+  email: string;
+  full_name: string | null;
+  nudge_preference?: string;
+  greeting_preference?: string | null;
+  status_message?: string | null;
+}): User {
+  const name = backend.full_name || backend.email.split('@')[0] || 'User';
+  const displayName = name.charAt(0).toUpperCase() + name.slice(1);
+  const nudge = (backend.nudge_preference || 'daily') as User['nudgePreference'];
+  return {
+    id: String(backend.id),
+    name: displayName,
+    email: backend.email,
+    nudgePreference: nudge === 'daily' || nudge === 'weekly' || nudge === 'off' ? nudge : 'daily',
+    avatarInitial: displayName.charAt(0).toUpperCase(),
+    greetingPreference: backend.greeting_preference ?? null,
+    statusMessage: backend.status_message ?? null,
+  };
+}
+
+/** Convert a backend GoalPublicBackend to our frontend Goal type */
+function mapBackendGoalToGoal(bg: GoalPublicBackend): Goal {
+  let subtopics: SubTopic[] = [];
+  let resources: string[] = [];
+  let topics: GoalTopic[] | undefined;
+  let capstone: GoalCapstone | undefined;
+
+  try { subtopics = bg.subtopics ? JSON.parse(bg.subtopics) : []; } catch { subtopics = []; }
+  try { resources = bg.resources ? JSON.parse(bg.resources) : []; } catch { resources = []; }
+  try { topics = bg.topics ? JSON.parse(bg.topics) : undefined; } catch { topics = undefined; }
+  try { capstone = bg.capstone ? JSON.parse(bg.capstone) : undefined; } catch { capstone = undefined; }
+
+  return {
+    id: bg.id,
+    name: bg.name,
+    type: (bg.type || 'learn') as GoalType,
+    description: bg.description || '',
+    subtopics: Array.isArray(subtopics) ? subtopics : [],
+    resources: Array.isArray(resources) ? resources : [],
+    progress: bg.progress || 0,
+    targetDate: bg.target_date || '',
+    status: (bg.status || 'on-track') as GoalStatus,
+    createdAt: bg.created_at?.split('T')[0] || '',
+    lastLoggedAt: bg.last_logged_at?.split('T')[0] || '',
+    priority: bg.priority ?? undefined,
+    topics: topics && Array.isArray(topics) && topics.length > 0 ? topics : undefined,
+    capstone,
+    dailyTaskRequirement: bg.daily_task_requirement ?? undefined,
+    userId: bg.owner_id,
+  };
+}
+
+/** Convert frontend Goal to backend create/update payload */
+function goalToBackendPayload(goal: Omit<Goal, 'id' | 'createdAt' | 'lastLoggedAt' | 'progress'> & { progress?: number }) {
+  return {
+    name: goal.name,
+    type: goal.type,
+    description: goal.description || goal.name,
+    target_date: goal.targetDate || undefined,
+    status: goal.status || 'on-track',
+    priority: goal.priority ?? undefined,
+    daily_task_requirement: goal.dailyTaskRequirement ?? undefined,
+    progress: goal.progress ?? 0,
+    subtopics: goal.subtopics?.length ? JSON.stringify(goal.subtopics) : undefined,
+    resources: goal.resources?.length ? JSON.stringify(goal.resources) : undefined,
+    topics: goal.topics?.length ? JSON.stringify(goal.topics) : undefined,
+    capstone: goal.capstone ? JSON.stringify(goal.capstone) : undefined,
+  };
+}
+
+interface WeekData {
+  days: boolean[]; // 7 days Mon-Sun
+  weekStart: string; // ISO date of Monday
+}
+
+interface AppState {
+  // Auth
+  user: User | null;
+  isAuthenticated: boolean;
+
+  // Goals
+  goals: Goal[];
+  goalsLoaded: boolean;
+  goalsPage: number;
+  goalsTotalCount: number;
+
+  // Streak
+  streak: number;
+  weekData: WeekData;
+
+  // Pomodoro
+  pomodoroSessions: PomodoroSession[];
+  activePomodoro: PomodoroSession | null;
+
+  // UI
+  activeView: ViewId;
+  mobileNavOpen: boolean;
+  celebrateVisible: boolean;
+  nudgeDismissed: boolean;
+
+  // Actions
+  login: (user: User) => void;
+  logout: () => void;
+  signup: (name: string, email: string, nudge: User['nudgePreference']) => void;
+
+  // Goal actions (sync to backend)
+  fetchGoalsFromBackend: (page?: number) => Promise<void>;
+  addGoal: (goal: Omit<Goal, 'id' | 'createdAt' | 'lastLoggedAt' | 'progress'>) => void;
+  addGoals: (goals: Omit<Goal, 'id' | 'createdAt' | 'lastLoggedAt' | 'progress'>[]) => void;
+  updateGoalProgress: (goalId: string, progress: number) => void;
+  toggleSubtopic: (goalId: string, subtopicId: string) => void;
+  toggleTopicSubtopic: (goalId: string, topicId: string, subtopicId: string) => void;
+  toggleTopicBuild: (goalId: string, topicId: string) => void;
+  toggleCapstoneCompleted: (goalId: string) => void;
+  toggleTopicCompleted: (goalId: string, topicId: string) => void;
+  addTopicsToGoal: (goalId: string, topics: GoalTopic[]) => void;
+  deleteGoal: (goalId: string) => void;
+
+  toggleDay: (dayIndex: number) => void;
+  resetStreak: () => void;
+  checkDailyTaskCompletion: () => { met: boolean; completed: number; required: number };
+  markDayCompleteFromTasks: () => void;
+
+  setActiveView: (view: ViewId) => void;
+  setMobileNavOpen: (val: boolean) => void;
+  setCelebrate: (val: boolean) => void;
+  dismissNudge: () => void;
+  logProgressNudge: () => void;
+
+  startPomodoro: (opts?: { goalId?: string; topicId?: string; duration?: number }) => void;
+  pausePomodoro: () => void;
+  completePomodoro: () => void;
+  cancelPomodoro: () => void;
+}
+
+function getCurrentWeekStart(): string {
+  const now = new Date();
+  const day = now.getDay();
+  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(now.setDate(diff));
+  return monday.toISOString().split('T')[0];
+}
+
+const GOALS_PER_PAGE = 20;
+
+const INITIAL_WEEK_DATA: WeekData = {
+  days: [false, false, false, false, false, false, false],
+  weekStart: getCurrentWeekStart(),
+};
+
+/** Sync a goal update to the backend (fire-and-forget, log errors) */
+async function syncGoalToBackend(goal: Goal): Promise<void> {
+  try {
+    const payload: Record<string, unknown> = {
+      name: goal.name,
+      type: goal.type,
+      description: goal.description,
+      target_date: goal.targetDate,
+      status: goal.status,
+      priority: goal.priority ?? null,
+      daily_task_requirement: goal.dailyTaskRequirement ?? null,
+      progress: goal.progress,
+      subtopics: goal.subtopics?.length ? JSON.stringify(goal.subtopics) : null,
+      resources: goal.resources?.length ? JSON.stringify(goal.resources) : null,
+      topics: goal.topics?.length ? JSON.stringify(goal.topics) : null,
+      capstone: goal.capstone ? JSON.stringify(goal.capstone) : null,
+    };
+    await updateGoalApi(goal.id, payload);
+  } catch (err) {
+    console.error('Failed to sync goal to backend:', err);
+  }
+}
+
+export const useAppStore = create<AppState>()(
+  persist(
+    (set, get) => ({
+      user: null,
+      isAuthenticated: false,
+      // CRITICAL FIX: Start with empty goals, not DEMO_GOALS.
+      // Goals are fetched from the backend after login.
+      goals: [],
+      goalsLoaded: false,
+      goalsPage: 0,
+      goalsTotalCount: 0,
+      streak: 0,
+      weekData: { ...INITIAL_WEEK_DATA },
+      pomodoroSessions: [],
+      activePomodoro: null,
+      activeView: 'dashboard' as ViewId,
+      mobileNavOpen: false,
+      celebrateVisible: false,
+      nudgeDismissed: false,
+
+      // CRITICAL FIX: Login clears all previous user-specific state
+      // before setting the new user. This prevents RBAC leaks where
+      // a new user would see the old user's persisted goals.
+      login: (user) => set({
+        user,
+        isAuthenticated: true,
+        // Clear user-specific data — will be fetched from backend
+        goals: [],
+        goalsLoaded: false,
+        goalsPage: 0,
+        goalsTotalCount: 0,
+        streak: 0,
+        weekData: { ...INITIAL_WEEK_DATA, weekStart: getCurrentWeekStart() },
+        pomodoroSessions: [],
+        activePomodoro: null,
+        nudgeDismissed: false,
+        celebrateVisible: false,
+      }),
+
+      // CRITICAL FIX: Logout clears ALL user-specific state
+      logout: () => {
+        clearTokenRefresh();
+        clearAccessToken();
+        set({
+          user: null,
+          isAuthenticated: false,
+          goals: [],
+          goalsLoaded: false,
+          goalsPage: 0,
+          goalsTotalCount: 0,
+          streak: 0,
+          weekData: { ...INITIAL_WEEK_DATA, weekStart: getCurrentWeekStart() },
+          pomodoroSessions: [],
+          activePomodoro: null,
+          nudgeDismissed: false,
+          celebrateVisible: false,
+          activeView: 'dashboard',
+        });
+      },
+
+      signup: (name, email, nudge) => {
+        const user: User = {
+          id: generateId(),
+          name,
+          email,
+          nudgePreference: nudge,
+          avatarInitial: name.charAt(0).toUpperCase(),
+        };
+        set({
+          user,
+          isAuthenticated: true,
+          goals: [],
+          goalsLoaded: false,
+          goalsPage: 0,
+          goalsTotalCount: 0,
+          streak: 0,
+          weekData: { ...INITIAL_WEEK_DATA, weekStart: getCurrentWeekStart() },
+          pomodoroSessions: [],
+          activePomodoro: null,
+        });
+      },
+
+      // Fetch goals from backend (RBAC scoped — API only returns current user's goals)
+      fetchGoalsFromBackend: async (page = 0) => {
+        try {
+          const skip = page * GOALS_PER_PAGE;
+          const res = await fetchGoals(skip, GOALS_PER_PAGE);
+          const mapped = res.data.map(mapBackendGoalToGoal);
+          if (page === 0) {
+            set({ goals: mapped, goalsLoaded: true, goalsPage: 0, goalsTotalCount: res.count });
+          } else {
+            set((state) => ({
+              goals: [...state.goals, ...mapped],
+              goalsPage: page,
+              goalsTotalCount: res.count,
+            }));
+          }
+        } catch (err) {
+          console.error('Failed to fetch goals from backend:', err);
+          set({ goalsLoaded: true }); // Mark as loaded even on error
+        }
+
+        // Also fetch pomodoro sessions from backend
+        try {
+          const pomRes = await fetchPomodoroSessions(0, 500);
+          const mapped: PomodoroSession[] = pomRes.data.map((s) => ({
+            id: s.id,
+            goalId: s.goal_id ?? undefined,
+            topicId: s.topic_id ?? undefined,
+            duration: s.duration,
+            startTime: s.start_time ?? new Date().toISOString(),
+            endTime: s.end_time ?? undefined,
+            completed: s.completed,
+            type: (s.session_type === 'focus' ? 'focus' : s.session_type === 'short-break' ? 'short-break' : 'long-break') as 'focus' | 'short-break' | 'long-break',
+          }));
+          set({ pomodoroSessions: mapped });
+        } catch (err) {
+          console.error('Failed to fetch pomodoro sessions:', err);
+        }
+      },
+
+      addGoal: (goalData) => {
+        const temp: Goal = {
+          ...goalData,
+          id: '',
+          progress: 0,
+          createdAt: '',
+          lastLoggedAt: '',
+        };
+        const progress = calcGoalProgress(temp);
+        const status: GoalStatus = progress >= 70 ? 'on-track' : progress >= 40 ? 'at-risk' : 'behind';
+        const today = new Date().toISOString().split('T')[0];
+
+        // Create locally with a temporary ID
+        const tempId = generateId();
+        const goal: Goal = {
+          ...goalData,
+          id: tempId,
+          progress,
+          status,
+          createdAt: today,
+          lastLoggedAt: today,
+        };
+        set((state) => ({ goals: [goal, ...state.goals] }));
+
+        // Sync to backend
+        const payload = goalToBackendPayload({ ...goalData, progress });
+        createGoalApi(payload)
+          .then((backendGoal) => {
+            // Replace temp ID with real backend ID
+            set((state) => ({
+              goals: state.goals.map((g) =>
+                g.id === tempId ? mapBackendGoalToGoal(backendGoal) : g
+              ),
+            }));
+          })
+          .catch((err) => {
+            console.error('Failed to create goal on backend:', err);
+          });
+      },
+
+      addGoals: (goalsData) => {
+        const today = new Date().toISOString().split('T')[0];
+        const tempGoals: { goal: Goal; tempId: string; data: Omit<Goal, 'id' | 'createdAt' | 'lastLoggedAt' | 'progress'> }[] = [];
+
+        for (const goalData of goalsData) {
+          const temp: Goal = {
+            ...goalData,
+            id: '',
+            progress: 0,
+            createdAt: '',
+            lastLoggedAt: '',
+          };
+          const progress = calcGoalProgress(temp);
+          const status: GoalStatus = progress >= 70 ? 'on-track' : progress >= 40 ? 'at-risk' : 'behind';
+          const tempId = generateId();
+          tempGoals.push({
+            goal: { ...goalData, id: tempId, progress, status, createdAt: today, lastLoggedAt: today },
+            tempId,
+            data: goalData,
+          });
+        }
+
+        set((state) => ({
+          goals: [...tempGoals.map((t) => t.goal), ...state.goals],
+        }));
+
+        // Sync each to backend
+        for (const { tempId, goal } of tempGoals) {
+          const payload = goalToBackendPayload({ ...goal, progress: goal.progress });
+          createGoalApi(payload)
+            .then((backendGoal) => {
+              set((state) => ({
+                goals: state.goals.map((g) =>
+                  g.id === tempId ? mapBackendGoalToGoal(backendGoal) : g
+                ),
+              }));
+            })
+            .catch((err) => console.error('Failed to sync goal:', err));
+        }
+      },
+
+      updateGoalProgress: (goalId, progress) => {
+        set((state) => ({
+          goals: state.goals.map((g) =>
+            g.id === goalId
+              ? {
+                ...g,
+                progress,
+                lastLoggedAt: new Date().toISOString().split('T')[0],
+                status: (progress >= 70 ? 'on-track' : progress >= 40 ? 'at-risk' : 'behind') as GoalStatus,
+              }
+              : g
+          ),
+        }));
+        const goal = get().goals.find((g) => g.id === goalId);
+        if (goal) syncGoalToBackend(goal);
+      },
+
+      toggleSubtopic: (goalId, subtopicId) => {
+        set((state) => ({
+          goals: state.goals.map((g) => {
+            if (g.id !== goalId) return g;
+            const subtopics = g.subtopics.map((s) =>
+              s.id === subtopicId ? { ...s, completed: !s.completed } : s
+            );
+            const progress = Math.round((subtopics.filter((s) => s.completed).length / subtopics.length) * 100);
+            const status: GoalStatus = progress >= 70 ? 'on-track' : progress >= 40 ? 'at-risk' : 'behind';
+            return { ...g, subtopics, progress, status, lastLoggedAt: new Date().toISOString().split('T')[0] };
+          }),
+        }));
+        const goal = get().goals.find((g) => g.id === goalId);
+        if (goal) syncGoalToBackend(goal);
+      },
+
+      toggleTopicSubtopic: (goalId, topicId, subtopicId) => {
+        set((state) => ({
+          goals: state.goals.map((g) => {
+            if (g.id !== goalId || !g.topics) return g;
+            const topics = g.topics.map((t) => {
+              if (t.id !== topicId) return t;
+              const subtopics = t.subtopics.map((s) =>
+                s.id === subtopicId ? { ...s, completed: !s.completed } : s
+              );
+              return { ...t, subtopics };
+            });
+            const updated = { ...g, topics };
+            const progress = calcGoalProgress(updated);
+            const status: GoalStatus = progress >= 70 ? 'on-track' : progress >= 40 ? 'at-risk' : 'behind';
+            return { ...updated, progress, status, lastLoggedAt: new Date().toISOString().split('T')[0] };
+          }),
+        }));
+        const goal = get().goals.find((g) => g.id === goalId);
+        if (goal) syncGoalToBackend(goal);
+        // Auto-update streak when daily target is met
+        get().markDayCompleteFromTasks();
+      },
+
+      toggleTopicBuild: (goalId, topicId) => {
+        set((state) => ({
+          goals: state.goals.map((g) => {
+            if (g.id !== goalId || !g.topics) return g;
+            const topics = g.topics.map((t) =>
+              t.id === topicId && t.build
+                ? { ...t, build: { ...t.build, completed: !t.build.completed } }
+                : t
+            );
+            const updated = { ...g, topics };
+            const progress = calcGoalProgress(updated);
+            const status: GoalStatus = progress >= 70 ? 'on-track' : progress >= 40 ? 'at-risk' : 'behind';
+            return { ...updated, progress, status, lastLoggedAt: new Date().toISOString().split('T')[0] };
+          }),
+        }));
+        const goal = get().goals.find((g) => g.id === goalId);
+        if (goal) syncGoalToBackend(goal);
+        get().markDayCompleteFromTasks();
+      },
+
+      toggleCapstoneCompleted: (goalId) => {
+        set((state) => ({
+          goals: state.goals.map((g) => {
+            if (g.id !== goalId || !g.capstone) return g;
+            const capstone = { ...g.capstone, completed: !g.capstone.completed };
+            const updated = { ...g, capstone };
+            const progress = calcGoalProgress(updated);
+            const status: GoalStatus = progress >= 70 ? 'on-track' : progress >= 40 ? 'at-risk' : 'behind';
+            return { ...updated, progress, status, lastLoggedAt: new Date().toISOString().split('T')[0] };
+          }),
+        }));
+        const goal = get().goals.find((g) => g.id === goalId);
+        if (goal) syncGoalToBackend(goal);
+      },
+
+      toggleTopicCompleted: (goalId, topicId) => {
+        set((state) => ({
+          goals: state.goals.map((g) => {
+            if (g.id !== goalId || !g.topics) return g;
+            const topics = g.topics.map((t) =>
+              t.id === topicId ? { ...t, completed: !t.completed } : t
+            );
+            const updated = { ...g, topics };
+            const progress = calcGoalProgress(updated);
+            const status: GoalStatus = progress >= 70 ? 'on-track' : progress >= 40 ? 'at-risk' : 'behind';
+            return { ...updated, progress, status, lastLoggedAt: new Date().toISOString().split('T')[0] };
+          }),
+        }));
+        const goal = get().goals.find((g) => g.id === goalId);
+        if (goal) syncGoalToBackend(goal);
+        get().markDayCompleteFromTasks();
+      },
+
+      addTopicsToGoal: (goalId, newTopics) => {
+        set((state) => ({
+          goals: state.goals.map((g) => {
+            if (g.id !== goalId) return g;
+            const existingTopics = g.topics || [];
+            const topics = [...existingTopics, ...newTopics];
+            const updated = { ...g, topics };
+            const progress = calcGoalProgress(updated);
+            const status: GoalStatus = progress >= 70 ? 'on-track' : progress >= 40 ? 'at-risk' : 'behind';
+            return { ...updated, progress, status };
+          }),
+        }));
+        const goal = get().goals.find((g) => g.id === goalId);
+        if (goal) syncGoalToBackend(goal);
+      },
+
+      deleteGoal: (goalId) => {
+        // Remove from local state immediately
+        set((state) => ({ goals: state.goals.filter((g) => g.id !== goalId) }));
+        // Sync deletion to backend
+        deleteGoalApi(goalId).catch((err) => console.error('Failed to delete goal on backend:', err));
+      },
+
+      toggleDay: (dayIndex) => {
+        const state = get();
+        const newDays = [...state.weekData.days];
+        newDays[dayIndex] = !newDays[dayIndex];
+        const allDone = newDays.every(Boolean);
+        const newStreak = newDays[dayIndex]
+          ? state.streak + 1
+          : Math.max(0, state.streak - 1);
+        set({
+          weekData: { ...state.weekData, days: newDays },
+          streak: newStreak,
+          celebrateVisible: allDone,
+        });
+      },
+
+      resetStreak: () => {
+        set({
+          streak: 0,
+          weekData: { days: [false, false, false, false, false, false, false], weekStart: getCurrentWeekStart() },
+        });
+      },
+
+      checkDailyTaskCompletion: () => {
+        const state = get();
+        let totalRequired = 0;
+        let totalCompleted = 0;
+
+        state.goals.forEach((goal) => {
+          if (goal.dailyTaskRequirement) {
+            totalRequired += goal.dailyTaskRequirement;
+            let completedToday = 0;
+            if (goal.topics) {
+              goal.topics.forEach((topic) => {
+                const subtopicsCompleted = topic.subtopics?.filter((s) => s.completed).length || 0;
+                if (topic.build?.completed) completedToday++;
+                completedToday += subtopicsCompleted;
+              });
+            } else {
+              completedToday = goal.subtopics.filter((s) => s.completed).length;
+            }
+            totalCompleted += Math.min(completedToday, goal.dailyTaskRequirement);
+          }
+        });
+
+        return {
+          met: totalRequired === 0 || totalCompleted >= totalRequired,
+          completed: totalCompleted,
+          required: totalRequired,
+        };
+      },
+
+      markDayCompleteFromTasks: () => {
+        const state = get();
+        const completion = state.checkDailyTaskCompletion();
+        if (completion.met) {
+          const todayIdx = getTodayIndex();
+          const newDays = [...state.weekData.days];
+          if (!newDays[todayIdx]) {
+            newDays[todayIdx] = true;
+            const allDone = newDays.every(Boolean);
+            set({
+              weekData: { ...state.weekData, days: newDays },
+              streak: state.streak + 1,
+              celebrateVisible: allDone,
+            });
+          }
+        }
+      },
+
+      setActiveView: (view) => set({ activeView: view, mobileNavOpen: false }),
+      setMobileNavOpen: (val) => set({ mobileNavOpen: val }),
+      setCelebrate: (val) => set({ celebrateVisible: val }),
+      dismissNudge: () => set({ nudgeDismissed: true }),
+      logProgressNudge: () => {
+        const todayIdx = getTodayIndex();
+        const state = get();
+        const newDays = [...state.weekData.days];
+        newDays[todayIdx] = true;
+        set({
+          nudgeDismissed: true,
+          weekData: { ...state.weekData, days: newDays },
+          streak: state.streak + 1,
+        });
+      },
+
+      startPomodoro: (opts = {}) => {
+        const state = get();
+        if (state.activePomodoro) return;
+        const duration = opts.duration ?? 25;
+        const tempId = generateId();
+        const session: PomodoroSession = {
+          id: tempId,
+          goalId: opts.goalId,
+          topicId: opts.topicId,
+          duration,
+          startTime: new Date().toISOString(),
+          completed: false,
+          type: 'focus',
+        };
+        set({ activePomodoro: session });
+
+        // Sync to backend (replace temp ID with backend ID)
+        createPomodoroSessionApi({
+          goal_id: opts.goalId || null,
+          topic_id: opts.topicId || null,
+          duration,
+          session_type: 'focus',
+        })
+          .then((backendSession) => {
+            const current = get().activePomodoro;
+            if (current && current.id === tempId) {
+              set({ activePomodoro: { ...current, id: backendSession.id } });
+            }
+          })
+          .catch((err) => console.error('Failed to create pomodoro on backend:', err));
+      },
+      pausePomodoro: () => {
+        const state = get();
+        if (!state.activePomodoro) return;
+        const endTime = new Date().toISOString();
+        const completed: PomodoroSession = {
+          ...state.activePomodoro,
+          endTime,
+          completed: true,
+        };
+        set({
+          activePomodoro: null,
+          pomodoroSessions: [completed, ...state.pomodoroSessions],
+        });
+        // Sync completion to backend
+        updatePomodoroSessionApi(completed.id, { completed: true, end_time: endTime })
+          .catch((err) => console.error('Failed to update pomodoro on backend:', err));
+      },
+      completePomodoro: () => {
+        const state = get();
+        if (!state.activePomodoro) return;
+        const endTime = new Date().toISOString();
+        const completed: PomodoroSession = {
+          ...state.activePomodoro,
+          endTime,
+          completed: true,
+        };
+        set({
+          activePomodoro: null,
+          pomodoroSessions: [completed, ...state.pomodoroSessions],
+        });
+        // Sync completion to backend
+        updatePomodoroSessionApi(completed.id, { completed: true, end_time: endTime })
+          .catch((err) => console.error('Failed to update pomodoro on backend:', err));
+      },
+      cancelPomodoro: () => set({ activePomodoro: null }),
+    }),
+    {
+      name: 'forge-storage',
+      partialize: (state) => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+        goals: state.goals,
+        goalsLoaded: state.goalsLoaded,
+        streak: state.streak,
+        weekData: state.weekData,
+        nudgeDismissed: state.nudgeDismissed,
+        pomodoroSessions: state.pomodoroSessions,
+      }),
+    }
+  )
+);
