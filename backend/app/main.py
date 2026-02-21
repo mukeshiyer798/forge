@@ -23,9 +23,28 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+from alembic import command
+from alembic.config import Config
+from app import initial_data
+from app.api.main import api_router
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Application starting up...")
+    
+    # Run database migrations and initial data automatically
+    if settings.ENVIRONMENT != "local":
+        try:
+            logger.info("Running database migrations...")
+            alembic_cfg = Config("alembic.ini")
+            command.upgrade(alembic_cfg, "head")
+            logger.info("Database migrations completed.")
+            
+            logger.info("Ensuring initial data (superuser)...")
+            initial_data.init()
+        except Exception as e:
+            logger.error(f"Error during database initialization: {e}")
+
     start_email_scheduler()
     yield
     logger.info("Application shutting down...")
