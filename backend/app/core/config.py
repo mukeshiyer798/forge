@@ -31,7 +31,9 @@ class Settings(BaseSettings):
         extra="ignore",
     )
     API_V1_STR: str = "/api/v1"
-    SECRET_KEY: str = secrets.token_urlsafe(32)
+    # SECRET_KEY should be a long, secure random string. 
+    # Use 'changethis' as default to trigger the validation error if not set in production.
+    SECRET_KEY: str = "changethis"
     # 60 minutes = 1 hour (short-lived access token for security)
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     # 60 minutes * 24 hours * 7 days = 7 days (refresh token for "remember me")
