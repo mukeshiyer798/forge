@@ -3,7 +3,7 @@ import sys
 from contextlib import asynccontextmanager
 
 import sentry_sdk
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 
@@ -99,16 +99,34 @@ app.add_middleware(SlowAPIMiddleware)
 # Set all CORS enabled origins
 if settings.all_cors_origins:
     origins = [str(origin).rstrip("/") for origin in settings.all_cors_origins]
-    # Proactively allow the specific Vercel preview branch user mentioned
-    # and any other vercel.app subdomain to prevent preflight blocks
+    # Remove any '*' from the list if allow_credentials is True to avoid Starlette errors
+    if "*" in origins:
+        origins.remove("*")
+    
     logger.info(f"Setting up CORS with origins: {origins}")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        allow_origin_regex="https://.*vercel\.app",
+        # Liberal regex for Vercel previews - handles dots correctly
+        allow_origin_regex=r"https://.*\.vercel\.app",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+    )
+
+from fastapi import HTTPException
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    # Log the exact source of 401/403 errors to find the "Not authenticated" trigger
+    if exc.status_code in [401, 403]:
+        logger.warning(f"Auth Error {exc.status_code} at {request.url.path}: {exc.detail}")
+        # Log headers to see if something unexpected is being sent
+        logger.debug(f"Request Headers: {dict(request.headers)}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
     )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
