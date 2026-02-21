@@ -11,6 +11,8 @@ from app.api.routes import (
     pomodoro,
     spaced_repetition,
     readings,
+    ai,
+    wisdom,
 )
 from app.core.config import settings
 
@@ -24,6 +26,8 @@ api_router.include_router(pomodoro.router)
 api_router.include_router(spaced_repetition.router)
 api_router.include_router(email_preferences.router)
 api_router.include_router(readings.router)
+api_router.include_router(ai.router)
+api_router.include_router(wisdom.router)
 
 
 if settings.ENVIRONMENT == "local":

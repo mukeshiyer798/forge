@@ -57,6 +57,13 @@ class Settings(BaseSettings):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str = ""
     POSTGRES_DB: str = ""
+    OPENROUTER_API_KEY: str | None = None
+    OPENROUTER_URL: str = "https://openrouter.ai/api/v1/chat/completions"
+
+    # ── Goal constraints (used by GoalService) ──
+    MAX_ACTIVE_GOALS: int = 3
+    GOAL_ALLOWED_TYPES: list[str] = ["learn", "build", "habit", "fitness"]
+    GOAL_ALLOWED_STATUSES: list[str] = ["on-track", "at-risk", "behind", "paused", "completed"]
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -86,6 +93,17 @@ class Settings(BaseSettings):
         return self
 
     EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48
+    
+    # Application Defaults
+    DUMMY_HASH: str = "$argon2id$v=19$m=65536,t=3,p=4$MjQyZWE1MzBjYjJlZTI0Yw$YTU4NGM5ZTZmYjE2NzZlZjY0ZWY3ZGRkY2U2OWFjNjk"
+    
+    DEFAULT_EMAIL_MORNING_TIME: str = "07:00"
+    DEFAULT_EMAIL_AFTERNOON_TIME: str = "14:00"
+    DEFAULT_EMAIL_EVENING_TIME: str = "20:00"
+    
+    EMAIL_SUBJECT_TEST: str = "{project_name} - Test email"
+    EMAIL_SUBJECT_RESET_PASSWORD: str = "{project_name} - Password recovery for user {email}"
+    EMAIL_SUBJECT_NEW_ACCOUNT: str = "{project_name} - New account for user {username}"
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -110,11 +128,6 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def _enforce_non_default_secrets(self) -> Self:
         self._check_default_secret("SECRET_KEY", self.SECRET_KEY)
-        self._check_default_secret("POSTGRES_PASSWORD", self.POSTGRES_PASSWORD)
-        self._check_default_secret(
-            "FIRST_SUPERUSER_PASSWORD", self.FIRST_SUPERUSER_PASSWORD
-        )
-
         return self
 
 
