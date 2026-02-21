@@ -39,23 +39,31 @@ async def lifespan(app: FastAPI):
         try:
             logger.info("Running database migrations...")
             # Calculate absolute path to alembic.ini (it's in the backend root)
-            # This file is at backend/app/main.py, so project root is two levels up
             project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             alembic_ini_path = os.path.join(project_root, "alembic.ini")
+            
+            # Log the connection target (masking password)
+            db_host = settings.POSTGRES_SERVER
+            db_name = settings.POSTGRES_DB
+            db_user = settings.POSTGRES_USER
+            logger.info(f"Connecting to database: {db_name} as {db_user} at {db_host}")
             
             alembic_cfg = Config(alembic_ini_path)
             
             # Formulate the absolute path for the migrations folder (backend/app/alembic)
             alembic_scripts_path = os.path.join(project_root, "app", "alembic")
+            logger.info(f"Using Alembic scripts at: {alembic_scripts_path}")
             alembic_cfg.set_main_option("script_location", alembic_scripts_path)
             
+            logger.info("Executing alembic upgrade head...")
             command.upgrade(alembic_cfg, "head")
-            logger.info("Database migrations completed.")
+            logger.info("Database migrations completed successfully.")
             
             logger.info("Ensuring initial data (superuser)...")
             initial_data.init()
+            logger.info("Initial data check completed.")
         except Exception as e:
-            logger.error(f"Error during database initialization: {e}")
+            logger.error(f"Error during database initialization: {e}", exc_info=True)
 
     start_email_scheduler()
     yield
