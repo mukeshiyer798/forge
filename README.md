@@ -88,5 +88,5 @@ With features like Pomodoro tracking, an integrated Spaced Repetition System (SR
 ## Security & Privacy
 FORGE is built with privacy in mind. User data, including Pomodoro sessions, goal progress, and SRS reviews, are securely stored, and RBAC (Role-Based Access Control) ensures users only have access to their own data.
 
-## 📄 License
+## License
 This project is licensed under the MIT License.
