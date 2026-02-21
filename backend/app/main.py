@@ -44,6 +44,11 @@ async def lifespan(app: FastAPI):
             alembic_ini_path = os.path.join(project_root, "alembic.ini")
             
             alembic_cfg = Config(alembic_ini_path)
+            
+            # Formulate the absolute path for the migrations folder (backend/app/alembic)
+            alembic_scripts_path = os.path.join(project_root, "app", "alembic")
+            alembic_cfg.set_main_option("script_location", alembic_scripts_path)
+            
             command.upgrade(alembic_cfg, "head")
             logger.info("Database migrations completed.")
             
