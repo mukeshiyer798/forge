@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User, Goal, GoalStatus, GoalType, PomodoroSession, SubTopic, GoalTopic, GoalCapstone } from '@/types';
+import type { User, Goal, GoalStatus, GoalType, PomodoroSession, SubTopic, GoalTopic, GoalCapstone, AIInsight } from '@/types';
 import { generateId, getTodayIndex, calcGoalProgress } from '@/lib/utils';
 import { clearAccessToken } from '@/lib/auth';
 import {
@@ -12,6 +12,10 @@ import {
   createPomodoroSessionApi,
   fetchPomodoroSessions,
   updatePomodoroSessionApi,
+  fetchReadingInsights,
+  createReadingInsightApi,
+  deleteReadingInsightApi,
+  togglePauseGoalApi,
   type GoalPublicBackend,
 } from '@/lib/api';
 
@@ -24,6 +28,7 @@ export function mapBackendUserToUser(backend: {
   nudge_preference?: string;
   greeting_preference?: string | null;
   status_message?: string | null;
+  has_openrouter_key?: boolean;
 }): User {
   const name = backend.full_name || backend.email.split('@')[0] || 'User';
   const displayName = name.charAt(0).toUpperCase() + name.slice(1);
@@ -36,6 +41,7 @@ export function mapBackendUserToUser(backend: {
     avatarInitial: displayName.charAt(0).toUpperCase(),
     greetingPreference: backend.greeting_preference ?? null,
     statusMessage: backend.status_message ?? null,
+    hasOpenrouterKey: backend.has_openrouter_key ?? false,
   };
 }
 
@@ -123,6 +129,7 @@ interface AppState {
   login: (user: User) => void;
   logout: () => void;
   signup: (name: string, email: string, nudge: User['nudgePreference']) => void;
+  updateUser: (user: User) => void;
 
   // Goal actions (sync to backend)
   fetchGoalsFromBackend: (page?: number) => Promise<void>;
@@ -136,6 +143,13 @@ interface AppState {
   toggleTopicCompleted: (goalId: string, topicId: string) => void;
   addTopicsToGoal: (goalId: string, topics: GoalTopic[]) => void;
   deleteGoal: (goalId: string) => void;
+  togglePauseGoal: (goalId: string) => void;
+
+  // Reading
+  readingInsights: AIInsight[];
+  fetchReadingInsightsFromBackend: () => Promise<void>;
+  addReadingInsight: (insight: Omit<AIInsight, 'id'>) => void;
+  deleteReadingInsight: (id: string) => void;
 
   toggleDay: (dayIndex: number) => void;
   resetStreak: () => void;
@@ -203,6 +217,7 @@ export const useAppStore = create<AppState>()(
       goalsLoaded: false,
       goalsPage: 0,
       goalsTotalCount: 0,
+      readingInsights: [],
       streak: 0,
       weekData: { ...INITIAL_WEEK_DATA },
       pomodoroSessions: [],
@@ -223,13 +238,15 @@ export const useAppStore = create<AppState>()(
         goalsLoaded: false,
         goalsPage: 0,
         goalsTotalCount: 0,
+        readingInsights: [],
         streak: 0,
         weekData: { ...INITIAL_WEEK_DATA, weekStart: getCurrentWeekStart() },
         pomodoroSessions: [],
-        activePomodoro: null,
         nudgeDismissed: false,
         celebrateVisible: false,
       }),
+
+      updateUser: (user) => set({ user }),
 
       // CRITICAL FIX: Logout clears ALL user-specific state
       logout: () => {
@@ -242,6 +259,7 @@ export const useAppStore = create<AppState>()(
           goalsLoaded: false,
           goalsPage: 0,
           goalsTotalCount: 0,
+          readingInsights: [],
           streak: 0,
           weekData: { ...INITIAL_WEEK_DATA, weekStart: getCurrentWeekStart() },
           pomodoroSessions: [],
@@ -267,6 +285,7 @@ export const useAppStore = create<AppState>()(
           goalsLoaded: false,
           goalsPage: 0,
           goalsTotalCount: 0,
+          readingInsights: [],
           streak: 0,
           weekData: { ...INITIAL_WEEK_DATA, weekStart: getCurrentWeekStart() },
           pomodoroSessions: [],
@@ -311,6 +330,63 @@ export const useAppStore = create<AppState>()(
         } catch (err) {
           console.error('Failed to fetch pomodoro sessions:', err);
         }
+      },
+
+      // Reading Insights
+      fetchReadingInsightsFromBackend: async () => {
+        try {
+          const res = await fetchReadingInsights(0, 50);
+          const mapped: AIInsight[] = res.data.map(item => ({
+            id: item.id,
+            title: item.title,
+            source: 'Unknown',
+            category: 'tech',
+            type: 'skill_insight',
+            summary: item.content_summary ?? '',
+            keyTakeaway: item.key_takeaways ? JSON.parse(item.key_takeaways)[0] ?? '' : '',
+            actionItem: item.actionable_advice ? JSON.parse(item.actionable_advice)[0] ?? '' : '',
+            relevantGoal: 'general',
+            url: item.url,
+            freshness: 'recent',
+          }));
+          set({ readingInsights: mapped });
+        } catch (err) {
+          console.error('Failed to fetch reading insights from backend:', err);
+        }
+      },
+
+      addReadingInsight: (insightData) => {
+        const tempId = generateId();
+        const insight: AIInsight = { ...insightData, id: tempId };
+        set((state) => ({ readingInsights: [insight, ...state.readingInsights] }));
+
+        createReadingInsightApi({
+          title: insight.title,
+          url: insight.url || '',
+          content_summary: insight.summary,
+          key_takeaways: JSON.stringify([insight.keyTakeaway]),
+          actionable_advice: JSON.stringify([insight.actionItem]),
+        })
+          .then((backendInsight) => {
+            set((state) => ({
+              readingInsights: state.readingInsights.map((i) =>
+                i.id === tempId ? { ...i, id: backendInsight.id } : i
+              ),
+            }));
+          })
+          .catch((err) => {
+            console.error('Failed to create reading insight on backend:', err);
+          });
+      },
+
+      deleteReadingInsight: (id) => {
+        // Optimistic delete
+        set((state) => ({
+          readingInsights: state.readingInsights.filter(i => i.id !== id),
+        }));
+        deleteReadingInsightApi(id).catch(err => {
+          console.error('Failed to delete reading insight on backend:', err);
+        });
       },
 
       addGoal: (goalData) => {
@@ -524,6 +600,23 @@ export const useAppStore = create<AppState>()(
         set((state) => ({ goals: state.goals.filter((g) => g.id !== goalId) }));
         // Sync deletion to backend
         deleteGoalApi(goalId).catch((err) => console.error('Failed to delete goal on backend:', err));
+      },
+
+      togglePauseGoal: (goalId) => {
+        set((state) => ({
+          goals: state.goals.map((g) => {
+            if (g.id !== goalId) return g;
+            return {
+              ...g,
+              status: g.status === 'paused' ? (g.progress >= 70 ? 'on-track' : g.progress >= 40 ? 'at-risk' : 'behind') : 'paused',
+            };
+          })
+        }));
+        togglePauseGoalApi(goalId).then((backendGoal) => {
+          set((state) => ({
+            goals: state.goals.map((g) => g.id === goalId ? mapBackendGoalToGoal(backendGoal) : g)
+          }));
+        }).catch(err => console.error('Failed to toggle pause:', err));
       },
 
       toggleDay: (dayIndex) => {

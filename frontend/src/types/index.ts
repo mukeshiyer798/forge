@@ -1,5 +1,5 @@
 export type GoalType = 'learn' | 'build' | 'habit' | 'fitness';
-export type GoalStatus = 'on-track' | 'at-risk' | 'behind';
+export type GoalStatus = 'on-track' | 'at-risk' | 'behind' | 'paused';
 
 export interface SubTopic {
   id: string;
@@ -85,6 +85,7 @@ export interface User {
   avatarInitial: string;
   greetingPreference?: string | null;
   statusMessage?: string | null;
+  hasOpenrouterKey?: boolean;
 }
 
 export interface WeekDay {
@@ -175,4 +176,18 @@ export interface LearningTemplate {
       completed: boolean;
     }>;
   };
+}
+
+export interface AIInsight {
+  id: string;
+  title: string;
+  source: string;
+  category: string;
+  type: string;
+  summary: string;
+  keyTakeaway: string;
+  actionItem: string;
+  relevantGoal: string;
+  url: string | null;
+  freshness: string;
 }

@@ -3,24 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, Sparkles, ChevronDown, ChevronUp, ExternalLink, Trash2, Loader2, Brain } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
-import type { GoalResource } from '@/types';
+import type { GoalResource, AIInsight } from '@/types';
 import { buildReadingInsightsPrompt, inferIndustries } from '@/prompts/reading-insights';
 import { callGeminiForInsights, hasGeminiKey } from '@/lib/gemini';
 
 // ── Types ─────────────────────────────────────────────────────
-interface AIInsight {
-  id: string;
-  title: string;
-  source: string;
-  category: string;
-  type: string;
-  summary: string;
-  keyTakeaway: string;
-  actionItem: string;
-  relevantGoal: string;
-  url: string | null;
-  freshness: string;
-}
 
 interface MindsetEntry {
   id: string;
@@ -223,9 +210,17 @@ RULES:
 }
 
 // ── Main Page ───────────────────────────────────────────────
+import {
+  fetchGoals,
+  deleteGoalApi,
+  GoalPublicBackend,
+  fetchReadingInsights,
+  deleteReadingInsightApi,
+  fetchUniversalMindset,
+  WisdomBackend
+} from '@/lib/api';
 export default function ReadingPage() {
-  const { goals } = useAppStore();
-  const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
+  const { goals, readingInsights, addReadingInsight, deleteReadingInsight } = useAppStore();
   const [mindsetEntries, setMindsetEntries] = useState<MindsetEntry[]>([]);
   const [loadingInsights, setLoadingInsights] = useState(false);
   const [loadingMindset, setLoadingMindset] = useState(false);
@@ -290,19 +285,20 @@ export default function ReadingPage() {
       setLastPrompt(prompt);
       const result = await callGeminiForInsights<AIInsight>(prompt);
       if (result && result.length > 0) {
-        setAiInsights(result.map((item, i) => ({
-          id: item.id ?? `ai-${i}`,
-          title: item.title ?? 'Untitled',
-          source: item.source ?? 'Unknown',
-          category: item.category ?? 'tech',
-          type: item.type ?? 'skill_insight',
-          summary: item.summary ?? '',
-          keyTakeaway: item.keyTakeaway ?? '',
-          actionItem: item.actionItem ?? '',
-          relevantGoal: item.relevantGoal ?? 'general',
-          url: item.url ?? null,
-          freshness: item.freshness ?? 'recent',
-        })));
+        result.forEach((item) => {
+          addReadingInsight({
+            title: item.title ?? 'Untitled',
+            source: item.source ?? 'Unknown',
+            category: item.category ?? 'tech',
+            type: item.type ?? 'skill_insight',
+            summary: item.summary ?? '',
+            keyTakeaway: item.keyTakeaway ?? '',
+            actionItem: item.actionItem ?? '',
+            relevantGoal: item.relevantGoal ?? 'general',
+            url: item.url ?? null,
+            freshness: item.freshness ?? 'recent',
+          });
+        });
       } else {
         setError('No insights generated. Try again.');
       }
@@ -318,36 +314,27 @@ export default function ReadingPage() {
   };
 
   const handleGetMindset = async () => {
-    if (!hasGeminiKey()) {
-      setError('Set your API key in Settings first.');
-      return;
-    }
     setError('');
     setPromptCopied(false);
     setLoadingMindset(true);
     try {
-      const prompt = buildMindsetPrompt();
-      setLastPrompt(prompt);
-      const result = await callGeminiForInsights<MindsetEntry>(prompt);
-      if (result && result.length > 0) {
-        setMindsetEntries(result.map((item, i) => ({
+      const result = await fetchUniversalMindset(3);
+      if (result && result.data && result.data.length > 0) {
+        setMindsetEntries(result.data.map((item: WisdomBackend, i: number) => ({
           id: item.id ?? `m-${i}`,
           title: item.title ?? 'Untitled',
           book: item.book ?? 'Unknown',
           author: item.author ?? 'Unknown',
           category: item.category ?? 'mindset',
           summary: item.summary ?? '',
-          keyLesson: item.keyLesson ?? '',
-          howToApply: item.howToApply ?? '',
+          keyLesson: item.key_lesson ?? '',
+          howToApply: item.how_to_apply ?? '',
         })));
       } else {
-        setError('No entries generated. Try again.');
+        setError('No entries generated. Ensure active API keys are mapped in backend.');
       }
     } catch (err) {
-      setError(`${err instanceof Error ? err.message : 'Unknown'}`);
-      if (lastPrompt) {
-        navigator.clipboard.writeText(lastPrompt).then(() => setPromptCopied(true)).catch(() => { });
-      }
+      setError(`${err instanceof Error ? err.message : 'Unknown Database Error'}`);
     } finally {
       setLoadingMindset(false);
     }
@@ -365,7 +352,7 @@ export default function ReadingPage() {
           <div className="flex items-center gap-2">
             <BookOpen size={16} className="text-forge-amber" />
             <span className="font-mono text-xs text-forge-dim uppercase tracking-wider">
-              {aiInsights.length + goalResources.length + mindsetEntries.length} pieces
+              {readingInsights.length + goalResources.length + mindsetEntries.length} pieces
             </span>
           </div>
         </div>
@@ -390,13 +377,13 @@ export default function ReadingPage() {
               <h3 className="font-condensed font-black text-xl uppercase tracking-wider text-forge-text">
                 Fresh Insights
               </h3>
-              {aiInsights.length > 0 && (
-                <span className="font-mono text-xs text-forge-dim">{aiInsights.length}</span>
+              {readingInsights.length > 0 && (
+                <span className="font-mono text-xs text-forge-dim">{readingInsights.length}</span>
               )}
             </div>
             <div className="flex items-center gap-2">
-              {aiInsights.length > 0 && (
-                <button onClick={() => setAiInsights([])}
+              {readingInsights.length > 0 && (
+                <button onClick={() => readingInsights.forEach(i => deleteReadingInsight(i.id))}
                   className="forge-btn-ghost flex items-center gap-1 text-xs text-forge-muted">
                   <Trash2 size={11} /> Clear
                 </button>
@@ -414,9 +401,9 @@ export default function ReadingPage() {
             </div>
           </div>
 
-          {aiInsights.length > 0 ? (
+          {readingInsights.length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {aiInsights.map((item, i) => (
+              {readingInsights.map((item, i) => (
                 <InsightCard key={item.id} item={item} index={i} />
               ))}
             </div>
@@ -561,7 +548,7 @@ export default function ReadingPage() {
           )}
         </section>
 
-        {goalResources.length === 0 && aiInsights.length === 0 && mindsetEntries.length === 0
+        {goalResources.length === 0 && readingInsights.length === 0 && mindsetEntries.length === 0
           && !loadingInsights && !loadingMindset && (
             <div className="text-center py-12">
               <div className="text-3xl mb-2">📚</div>

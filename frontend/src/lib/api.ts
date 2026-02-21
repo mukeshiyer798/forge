@@ -1,6 +1,6 @@
 import { getAuthHeaders } from './auth';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 const API_V1 = `${API_BASE}/api/v1`;
 
@@ -134,6 +134,7 @@ export interface GoalPublicBackend {
   resources: string | null; // JSON string
   topics: string | null;    // JSON string
   capstone: string | null;  // JSON string
+  future_look: string | null;
   created_at: string | null;
   last_logged_at: string | null;
 }
@@ -160,6 +161,7 @@ export async function createGoalApi(data: {
   resources?: string;
   topics?: string;
   capstone?: string;
+  future_look?: string;
 }): Promise<GoalPublicBackend> {
   return apiRequest<GoalPublicBackend>('/goals/', {
     method: 'POST',
@@ -182,6 +184,13 @@ export async function deleteGoalApi(id: string): Promise<{ message: string }> {
     method: 'DELETE',
   });
 }
+
+export async function togglePauseGoalApi(id: string): Promise<GoalPublicBackend> {
+  return apiRequest<GoalPublicBackend>(`/goals/${id}/pause`, {
+    method: 'PATCH',
+  });
+}
+
 
 // ── Pomodoro API ───────────────────────────────────────────
 export interface PomodoroSessionBackend {
@@ -281,4 +290,73 @@ export async function submitSpacedRepetitionReview(
       body: JSON.stringify({ correct }),
     }
   );
+}
+
+// ── Reading Insights API ──────────────────────────────────
+export interface ReadingInsightBackend {
+  id: string;
+  owner_id: string;
+  title: string;
+  url: string;
+  content_summary: string | null;
+  key_takeaways: string | null;
+  actionable_advice: string | null;
+  read_time_minutes: number | null;
+  created_at: string | null;
+}
+
+export interface ReadingInsightsResponse {
+  data: ReadingInsightBackend[];
+  count: number;
+}
+
+export async function fetchReadingInsights(
+  skip = 0,
+  limit = 50
+): Promise<ReadingInsightsResponse> {
+  return apiRequest<ReadingInsightsResponse>(
+    `/readings/insights?skip=${skip}&limit=${limit}`
+  );
+}
+
+export async function createReadingInsightApi(data: {
+  title: string;
+  url: string;
+  content_summary?: string | null;
+  key_takeaways?: string | null;
+  actionable_advice?: string | null;
+  read_time_minutes?: number | null;
+}): Promise<ReadingInsightBackend> {
+  return apiRequest<ReadingInsightBackend>('/readings/insights', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteReadingInsightApi(id: string): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/readings/insights/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// ── Wisdom API ─────────────────────────────────────────────
+export interface WisdomBackend {
+  id: string;
+  title: string;
+  book: string | null;
+  author: string | null;
+  category: string;
+  summary: string;
+  key_lesson: string;
+  how_to_apply: string;
+  created_at: string | null;
+}
+
+export interface WisdomsResponse {
+  data: WisdomBackend[];
+  count: number;
+}
+
+export async function fetchUniversalMindset(limit = 3): Promise<WisdomsResponse> {
+  return apiRequest<WisdomsResponse>(`/wisdom/mindset?limit=${limit}`);
 }

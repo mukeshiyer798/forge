@@ -1,10 +1,10 @@
-# FORGE - AI-Powered Learning Roadmap & Goal Tracker
+# FORGE - AI-Powered Personalized Learning Roadmap & Goal Tracker
 
 FORGE is a comprehensive goal-tracking and learning application designed to help users define, structure, and achieve their objectives. It leverages AI to generate customized, actionable learning roadmaps focused on depth, practical projects, and interview preparation. 
 
 With features like Pomodoro tracking, an integrated Spaced Repetition System (SRS), detailed progress analytics, and an intelligent roadmap coach, FORGE transforms abstract goals into manageable, step-by-step journeys.
 
-## 🚀 Features
+## Features
 
 ### 1. Goal Management & AI Coach
 - **AI-Powered Roadmaps:** Define a high-level goal and let the "FORGE Coach" (powered by LLMs) generate a detailed, phased roadmap.
@@ -26,7 +26,7 @@ With features like Pomodoro tracking, an integrated Spaced Repetition System (SR
 - **Reading List:** Save articles, blogs, and documentation for later reading. 
 - **Content Parsing:** Clean, distraction-free reading view integrated directly into the application.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Frontend
 - **Framework:** React 18, Vite
@@ -41,7 +41,7 @@ With features like Pomodoro tracking, an integrated Spaced Repetition System (SR
 - **Authentication:** JWT-based secure authentication mechanism
 - **AI Integration:** OpenRouter / Google Gemini API for the FORGE Coach
 
-## 📦 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Node.js (v18+)
@@ -85,8 +85,8 @@ With features like Pomodoro tracking, an integrated Spaced Repetition System (SR
    npm run dev
    ```
 
-## 🔐 Security & Privacy
+## Security & Privacy
 FORGE is built with privacy in mind. User data, including Pomodoro sessions, goal progress, and SRS reviews, are securely stored, and RBAC (Role-Based Access Control) ensures users only have access to their own data.
 
-## 📄 License
+## License
 This project is licensed under the MIT License.
