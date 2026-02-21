@@ -27,6 +27,7 @@ from alembic import command
 from alembic.config import Config
 from app import initial_data
 from app.api.main import api_router
+from app.core.db import engine, Session
 
 import os
 
@@ -58,6 +59,25 @@ async def lifespan(app: FastAPI):
             logger.info("Executing alembic upgrade head...")
             command.upgrade(alembic_cfg, "head")
             logger.info("Database migrations completed successfully.")
+            
+            # SANITY CHECK: Robust Schema & Table discovery
+            from sqlalchemy import text
+            try:
+                with Session(engine) as session:
+                    # 1. Check current schema
+                    current_schema = session.exec(text("SELECT current_schema()")).first()
+                    # 2. List all tables across all schemas (excluding system schemas)
+                    all_tables = session.exec(text("SELECT schema_name, table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'pg_catalog')")).all()
+                    # 3. Check for alembic_version specifically
+                    try:
+                        rev = session.exec(text("SELECT version_num FROM alembic_version")).first()
+                    except:
+                        rev = "NOT FOUND"
+                    
+                    logger.info(f"Verification: Current Schema={current_schema}, Alembic Revision={rev}")
+                    logger.info(f"Verification: Found {len(all_tables)} total tables: {all_tables}")
+            except Exception as ve:
+                logger.warning(f"Sanity check failed (but migrations might have worked): {ve}")
             
             logger.info("Ensuring initial data (superuser)...")
             initial_data.init()
