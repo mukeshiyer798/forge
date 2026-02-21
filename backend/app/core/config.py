@@ -15,10 +15,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import Self
 
 
+import json
 def parse_cors(v: Any) -> list[str] | str:
     if isinstance(v, str) and not v.startswith("["):
         return [i.strip() for i in v.split(",") if i.strip()]
-    elif isinstance(v, list | str):
+    elif isinstance(v, str) and v.startswith("["):
+        return json.loads(v)
+    elif isinstance(v, list):
         return v
     raise ValueError(v)
 

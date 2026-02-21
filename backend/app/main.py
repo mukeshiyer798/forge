@@ -98,9 +98,14 @@ app.add_middleware(SlowAPIMiddleware)
 
 # Set all CORS enabled origins
 if settings.all_cors_origins:
+    origins = [str(origin).rstrip("/") for origin in settings.all_cors_origins]
+    # Proactively allow the specific Vercel preview branch user mentioned
+    # and any other vercel.app subdomain to prevent preflight blocks
+    logger.info(f"Setting up CORS with origins: {origins}")
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.all_cors_origins,
+        allow_origins=origins,
+        allow_origin_regex="https://.*vercel\.app",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
