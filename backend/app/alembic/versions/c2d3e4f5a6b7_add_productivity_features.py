@@ -64,6 +64,7 @@ def upgrade():
         sa.Column("start_time", sa.DateTime(timezone=True), nullable=True),
         sa.Column("end_time", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["owner_id"], ["user.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["goal_id"], ["goal.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
@@ -88,6 +89,7 @@ def upgrade():
         sa.Column("next_review_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["owner_id"], ["user.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["goal_id"], ["goal.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(
