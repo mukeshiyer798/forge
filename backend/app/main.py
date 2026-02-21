@@ -28,6 +28,8 @@ from alembic.config import Config
 from app import initial_data
 from app.api.main import api_router
 
+import os
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Application starting up...")
@@ -36,7 +38,12 @@ async def lifespan(app: FastAPI):
     if settings.ENVIRONMENT != "local":
         try:
             logger.info("Running database migrations...")
-            alembic_cfg = Config("alembic.ini")
+            # Calculate absolute path to alembic.ini (it's in the backend root)
+            # This file is at backend/app/main.py, so project root is two levels up
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            alembic_ini_path = os.path.join(project_root, "alembic.ini")
+            
+            alembic_cfg = Config(alembic_ini_path)
             command.upgrade(alembic_cfg, "head")
             logger.info("Database migrations completed.")
             
