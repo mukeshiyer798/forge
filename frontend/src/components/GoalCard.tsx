@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Trash2, Check, Timer, Lock, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
+import { Trash2, Check, Timer, Lock, ChevronLeft, ChevronRight, Pause, Play, Plus } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import type { Goal, GoalTopic } from '@/types';
-import { cn, formatDueDate } from '@/lib/utils';
+import { cn, formatDueDate, generateId } from '@/lib/utils';
 import TaskPopup from './TaskPopup';
 import NextPhasePrompt from './NextPhasePrompt';
 
@@ -77,7 +77,7 @@ function TopicSection({ goalId, topic, isLocked }: { goalId: string; topic: Goal
 }
 
 export default function GoalCard({ goal, index }: GoalCardProps) {
-  const { deleteGoal, toggleCapstoneCompleted, startPomodoro, activePomodoro, togglePauseGoal } = useAppStore();
+  const { deleteGoal, toggleCapstoneCompleted, startPomodoro, activePomodoro, togglePauseGoal, addTopicsToGoal } = useAppStore();
   const typeStyle = TYPE_STYLES[goal.type];
   const hasFullStructure = goal.topics && goal.topics.length > 0;
   const sortedTopics = hasFullStructure ? [...goal.topics!].sort((a, b) => a.taskNumber - b.taskNumber) : [];
@@ -277,6 +277,28 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
               {phaseTopics.map((topic) => (
                 <TopicSection key={topic.id} goalId={goal.id} topic={topic} isLocked={displayPhase > activePhase || (!topic.completed && (!topic.subtopics || topic.subtopics.length === 0))} />
               ))}
+
+              {displayPhase === activePhase && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newTopic: GoalTopic = {
+                      id: generateId(),
+                      name: 'New Topic',
+                      taskNumber: sortedTopics.length + 1,
+                      completed: false,
+                      subtopics: [],
+                      resources: [],
+                      build: { name: 'Build Project', completed: false },
+                      interviewPrep: []
+                    };
+                    addTopicsToGoal(goal.id, [newTopic]);
+                  }}
+                  className="w-full py-2.5 flex items-center justify-center gap-2 border border-dashed border-forge-border text-forge-dim hover:text-forge-amber hover:border-forge-amber transition-colors text-xs font-mono uppercase tracking-[0.2em]"
+                >
+                  <Plus size={14} /> Add Topic
+                </button>
+              )}
             </div>
 
             {/* Unlock Next Phase button (only when ALL topics complete and viewing last phase) */}
@@ -372,6 +394,6 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
         completedTopicNames={completedTopicNames}
         nextPhaseTopics={nextPhaseTopicNames}
       />
-    </motion.div>
+    </motion.div >
   );
 }

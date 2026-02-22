@@ -89,10 +89,16 @@ def register_user(request: Request, user_service: UserServiceDep, user_in: UserR
     """
     Create new user without the need to be logged in.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Signup attempt started for email: {user_in.email}")
+    
     user = user_service.get_by_email(email=user_in.email)
     if user:
+        logger.warning(f"Signup failed: User already exists - {user_in.email}")
         raise HTTPException(status_code=400, detail="The user with this email already exists in the system")
     user = user_service.register(user_in=user_in)
+    logger.info(f"Signup success for: {user_in.email}")
     return user
 
 @router.get("/{user_id}", response_model=UserPublic)

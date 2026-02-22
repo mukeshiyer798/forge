@@ -61,6 +61,15 @@
   html {
     font-family: 'Barlow', sans-serif;
   }
+
+  /* Ensure minimum touch target sizes on mobile (Apple HIG: 44×44px) */
+  @media (max-width: 768px) {
+
+    button,
+    [role="button"] {
+      min-height: 44px;
+    }
+  }
 }
 
 @layer components {

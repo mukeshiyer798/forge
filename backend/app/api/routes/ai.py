@@ -4,7 +4,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from app.api.deps import CurrentUser, AiServiceDep
+from app.api.deps import CurrentUser, AiServiceDep, UserServiceDep
 from app.core.rate_limit import limiter
 
 logger = logging.getLogger(__name__)
@@ -16,6 +16,34 @@ class AIRequest(BaseModel):
     prompt: str
     model: str | None = "google/gemini-2.0-flash-001"
 
+class AITestRequest(BaseModel):
+    api_key: str | None = None
+
+@router.post("/test", response_model=dict)
+@limiter.limit("10/minute")
+async def test_ai_key(
+    request: Request,
+    current_user: CurrentUser,
+    ai_service: AiServiceDep,
+    user_service: UserServiceDep,
+    test_request: AITestRequest,
+) -> dict:
+    """Saves the API key first if provided, then tests it. Falls back to DB key if null."""
+    key_to_test = test_request.api_key
+    
+    if key_to_test:
+        from app.models.user import UserUpdateMe
+        user_in = UserUpdateMe(openrouter_api_key=key_to_test)
+        user_service.update_me(db_user=current_user, user_in=user_in)
+    else:
+        from app.core.security import decrypt_api_key
+        key_to_test = decrypt_api_key(current_user.encrypted_openrouter_key)
+        
+    if not key_to_test:
+        return {"ok": False}
+        
+    is_valid = await ai_service.test_key(api_key=key_to_test)
+    return {"ok": is_valid}
 
 @router.post("/generate", response_model=Any)
 @limiter.limit("30/minute")

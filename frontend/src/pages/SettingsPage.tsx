@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Settings, Eye, EyeOff, ExternalLink, Mail, Send } from 'lucide-react';
 import { useAppStore, mapBackendUserToUser } from '@/store/useAppStore';
-import { apiRequest, getCurrentUser } from '@/lib/api';
+import { apiRequest, getCurrentUser, updateGoalApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { getGeminiApiKey, setGeminiApiKey, clearGeminiApiKey, testGeminiConnection } from '@/lib/gemini';
+import { testGeminiConnection } from '@/lib/gemini';
 
 export default function SettingsPage() {
-  const { user, login, goals } = useAppStore();
+  const { user, goals } = useAppStore();
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [morningTime, setMorningTime] = useState('07:00');
   const [afternoonTime, setAfternoonTime] = useState('14:00');
@@ -62,6 +62,7 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      // 1. Save email preferences
       await apiRequest('/email-preferences', {
         method: 'PUT',
         body: JSON.stringify({
@@ -73,37 +74,40 @@ export default function SettingsPage() {
         }),
       });
 
-      // Update basic user properties and API key
+      // 2. Save API key + user prefs in one PATCH if key is provided
+      const patchBody: Record<string, unknown> = {};
+      if (geminiKey.trim()) {
+        patchBody.openrouter_api_key = geminiKey.trim();
+      }
+
       await apiRequest('/users/me', {
         method: 'PATCH',
-        body: JSON.stringify({
-          openrouter_api_key: geminiKey || undefined,
-        })
+        body: JSON.stringify(patchBody),
       });
 
       const updatedUser = await getCurrentUser();
       useAppStore.getState().updateUser(mapBackendUserToUser(updatedUser));
 
-      // Update daily task requirement on all goals
-      const { goals: currentGoals, updateGoalProgress } = useAppStore.getState();
+      if (geminiKey.trim()) {
+        setGeminiKey('');
+        setGeminiStatus('ok');
+      }
+
+      // 3. Sync daily task target to all goals
+      const { goals: currentGoals } = useAppStore.getState();
       for (const g of currentGoals) {
         if (g.dailyTaskRequirement !== dailyTaskTarget) {
-          // Update via store's sync
-          const updated = { ...g, dailyTaskRequirement: dailyTaskTarget };
-          useAppStore.setState(state => ({
-            goals: state.goals.map(gg => gg.id === g.id ? updated : gg),
-          }));
-          // Sync to backend
-          import('@/lib/api').then(({ updateGoalApi }) => {
-            updateGoalApi(g.id, { daily_task_requirement: dailyTaskTarget }).catch(() => { });
-          });
+          updateGoalApi(g.id, { daily_task_requirement: dailyTaskTarget }).catch(() => { });
         }
       }
+      useAppStore.setState(state => ({
+        goals: state.goals.map(g => ({ ...g, dailyTaskRequirement: dailyTaskTarget })),
+      }));
 
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch {
-      // Demo mode
+    } catch (e) {
+      console.error('[FORGE] Save preferences error:', e);
     } finally {
       setSaving(false);
     }
@@ -113,18 +117,17 @@ export default function SettingsPage() {
     setGeminiTesting(true);
     setGeminiStatus('idle');
     try {
-      if (geminiKey.trim()) {
-        await apiRequest('/users/me', {
-          method: 'PATCH',
-          body: JSON.stringify({ openrouter_api_key: geminiKey.trim() })
-        });
+      const keyToTest = geminiKey.trim() || undefined;
+      const ok = await testGeminiConnection(keyToTest);
+      setGeminiStatus(ok ? 'ok' : 'fail');
+
+      if (ok && keyToTest) {
         const updatedUser = await getCurrentUser();
         useAppStore.getState().updateUser(mapBackendUserToUser(updatedUser));
+        setGeminiKey(''); // clear input, show ••••• placeholder
       }
-
-      const ok = await testGeminiConnection();
-      setGeminiStatus(ok ? 'ok' : 'fail');
-    } catch {
+    } catch (e) {
+      console.error('[FORGE] handleTestGemini error:', e);
       setGeminiStatus('fail');
     } finally {
       setGeminiTesting(false);
@@ -158,7 +161,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="px-4 lg:px-10 py-8 max-w-2xl">
+      <div className="px-4 lg:px-10 py-8 max-w-2xl w-full">
         {/* Personalization */}
         <section className="mb-8">
           <h3 className="font-condensed font-bold text-lg uppercase tracking-wider text-forge-amber mb-4">
@@ -193,13 +196,13 @@ export default function SettingsPage() {
               <label className="block font-mono text-xs uppercase tracking-wider text-forge-dim mb-1">
                 Daily task target
               </label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 {[1, 2, 3, 4, 5].map(n => (
                   <button
                     key={n}
                     onClick={() => setDailyTaskTarget(n)}
                     className={cn(
-                      'w-10 h-10 font-condensed font-bold text-base border transition-colors',
+                      'w-11 h-11 font-condensed font-bold text-base border transition-colors',
                       dailyTaskTarget === n
                         ? 'border-forge-amber text-forge-amber bg-amber-500/10'
                         : 'border-forge-border text-forge-dim hover:border-forge-dim'
@@ -225,13 +228,17 @@ export default function SettingsPage() {
           <p className="font-mono text-xs text-forge-dim mb-3 leading-relaxed">
             Set your OpenRouter API key for one-click AI generation. Free tier available.
           </p>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="relative">
               <input
                 type={showKey ? 'text' : 'password'}
                 value={geminiKey}
                 onChange={(e) => setGeminiKey(e.target.value)}
                 placeholder={user?.hasOpenrouterKey ? "•••••••••••••••• (API Key Active)" : "sk-or-..."}
+                autoComplete="new-password"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                spellCheck="false"
                 className="w-full px-4 py-2.5 pr-10 bg-forge-surface2 border border-forge-border rounded text-forge-text font-mono text-sm placeholder:text-forge-muted focus:border-forge-amber focus:outline-none"
               />
               <button
@@ -241,13 +248,13 @@ export default function SettingsPage() {
                 {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={handleTestGemini}
                 disabled={(!geminiKey.trim() && !user?.hasOpenrouterKey) || geminiTesting}
-                className="font-mono text-xs uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-1.5 hover:bg-forge-amber/10 transition-colors disabled:opacity-40"
+                className="font-mono text-xs uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-2 min-h-[44px] hover:bg-forge-amber/10 transition-colors disabled:opacity-40"
               >
-                {geminiTesting ? 'Testing...' : (user?.hasOpenrouterKey && !geminiKey.trim() ? 'Test Existing Key' : 'Save & Test Key')}
+                {geminiTesting ? 'Testing...' : (user?.hasOpenrouterKey && !geminiKey.trim() ? 'Test Existing Key' : 'Test Key')}
               </button>
               <button
                 onClick={async () => {
@@ -260,11 +267,12 @@ export default function SettingsPage() {
                     });
                     const updatedUser = await getCurrentUser();
                     useAppStore.getState().updateUser(mapBackendUserToUser(updatedUser));
+                    console.debug('[FORGE] API key cleared');
                   } catch { }
                 }}
-                className="font-mono text-xs uppercase tracking-wider text-forge-dim border border-forge-border px-3 py-1.5 hover:text-red-400 hover:border-red-500/30 transition-colors"
+                className="font-mono text-xs uppercase tracking-wider text-forge-dim border border-forge-border px-3 py-2 min-h-[44px] hover:text-red-400 hover:border-red-500/30 transition-colors"
               >
-                Clear Context
+                Clear Key
               </button>
               {geminiStatus === 'ok' && (
                 <span className="font-mono text-xs text-green-400">✓ Connected Server</span>
@@ -314,7 +322,7 @@ export default function SettingsPage() {
             </label>
             {emailEnabled && (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pl-6">
+                <div className="grid grid-cols-3 gap-3 pl-6">
                   <div>
                     <label className="block font-mono text-xs uppercase tracking-wider text-forge-dim mb-1">
                       Morning
@@ -351,11 +359,11 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Test email */}
-                <div className="flex items-center gap-3 pl-6">
+                <div className="flex items-center gap-2 flex-wrap pl-6">
                   <button
                     onClick={handleTestEmail}
                     disabled={testingEmail}
-                    className="font-mono text-xs uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-1.5 hover:bg-forge-amber/10 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+                    className="font-mono text-xs uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-2 min-h-[44px] hover:bg-forge-amber/10 transition-colors disabled:opacity-40 flex items-center gap-1.5"
                   >
                     <Send size={11} />
                     {testingEmail ? 'Sending...' : 'Send Test Email'}
@@ -378,10 +386,10 @@ export default function SettingsPage() {
         </section>
 
         <button
-          onClick={handleSave}
+          onClick={() => handleSave()}
           disabled={saving}
           className={cn(
-            'px-6 py-3 font-mono text-sm uppercase tracking-wider border transition-colors',
+            'px-6 py-3 font-mono text-sm uppercase tracking-wider border transition-colors min-h-[44px]',
             saved
               ? 'border-green-500/50 text-green-400 bg-green-500/10'
               : 'border-forge-amber text-forge-amber hover:bg-forge-amber/10'

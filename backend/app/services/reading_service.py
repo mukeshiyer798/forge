@@ -97,7 +97,9 @@ class ReadingService:
         return {"suggestions": suggestions, "categories": sorted(categories)}
 
     def get_insights(self, user: User, skip: int, limit: int) -> tuple[list[ReadingInsight], int]:
-        return self.repo.get_insights_by_owner_id(user.id, skip, limit)
+        insights, count = self.repo.get_insights_by_owner_id(user.id, skip, limit)
+        logger.debug(f"[INSIGHTS] User {user.id} — fetched {len(insights)} insights (total={count}, skip={skip}, limit={limit})")
+        return insights, count
 
     def create_insight(self, insight_in: ReadingInsightCreate, user: User) -> ReadingInsight:
         insight = ReadingInsight(**insight_in.model_dump(), owner_id=user.id)
@@ -108,9 +110,12 @@ class ReadingService:
     def delete_insight(self, id: uuid.UUID, user: User) -> bool:
         insight = self.repo.get_insight_by_id(id)
         if not insight:
+            logger.warning(f"[INSIGHTS] User {user.id} — delete failed, insight {id} not found")
             return False
         if insight.owner_id != user.id:
+            logger.warning(f"[INSIGHTS] User {user.id} — delete blocked, insight {id} belongs to user {insight.owner_id}")
             raise PermissionError("Not enough permissions")
 
         self.repo.delete_insight(insight)
+        logger.info(f"[INSIGHTS] User {user.id} — deleted insight {id}")
         return True

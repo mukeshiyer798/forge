@@ -506,7 +506,7 @@ export default function ReadingPage() {
                                   {item.resource.title}
                                 </a>
                               ) : (
-                                <span className="font-mono text-xs text-forge-text truncate block">{item.resource.title}</span>
+                                <div className="font-mono text-xs text-forge-text truncate block"><FormattedText text={item.resource.title} /></div>
                               )}
                             </div>
                             <span className="font-mono text-[11px] text-forge-muted uppercase shrink-0">{item.resource.type}</span>
@@ -568,5 +568,35 @@ export default function ReadingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function FormattedText({ text, className }: { text: string; className?: string }) {
+  if (!text) return null;
+  const urlRegex = /(https?:\/\/[^\s()]+)/g;
+  const parts = text.split(urlRegex);
+
+  if (parts.length === 1) return <span className={className}>{text}</span>;
+
+  return (
+    <span className={className}>
+      {parts.map((part, i) => {
+        if (part.match(urlRegex)) {
+          return (
+            <a
+              key={i}
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-forge-amber hover:text-forge-text hover:underline mx-1 cursor-pointer font-bold"
+              onClick={e => e.stopPropagation()}
+            >
+              [Link]
+            </a>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </span>
   );
 }

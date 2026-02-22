@@ -1,10 +1,14 @@
+import logging
+import uuid
+
 from app.repositories.user_repository import UserRepository
 from app.models.user import UserCreate, UserUpdate, UserUpdateMe, UpdatePassword, UserRegister
 from app.entities.user import User
 from app.core.security import get_password_hash, verify_password, encrypt_api_key
 from app.core.config import settings
 from app.utils import generate_new_account_email, send_email
-import uuid
+
+logger = logging.getLogger(__name__)
 
 class UserService:
     def __init__(self, repo: UserRepository):
@@ -48,11 +52,26 @@ class UserService:
 
     def update_me(self, db_user: User, user_in: UserUpdateMe) -> User:
         user_data = user_in.model_dump(exclude_unset=True)
+        extra_data = {}
         if "openrouter_api_key" in user_data:
             api_key = user_data.pop("openrouter_api_key")
-            user_data["encrypted_openrouter_key"] = encrypt_api_key(api_key)
-        db_user.sqlmodel_update(user_data)
-        return self.repo.save(db_user)
+            if api_key is None:
+                # Explicit clear — user pressed "Clear" button
+                extra_data["encrypted_openrouter_key"] = None
+                logger.info(f"[API_KEY] User {db_user.id} — cleared OpenRouter API key")
+            elif api_key == "":
+                # Empty string = no change, skip
+                logger.debug(f"[API_KEY] User {db_user.id} — empty key ignored (no change)")
+            else:
+                extra_data["encrypted_openrouter_key"] = encrypt_api_key(api_key)
+                logger.info(f"[API_KEY] User {db_user.id} — encrypted and stored new OpenRouter API key")
+        else:
+            logger.debug(f"[API_KEY] User {db_user.id} — update_me called without API key field")
+            
+        db_user.sqlmodel_update(user_data, update=extra_data)
+        saved = self.repo.save(db_user)
+        logger.debug(f"[USER] User {db_user.id} — profile updated. Fields changed: {list(user_data.keys())} + {list(extra_data.keys())}")
+        return saved
 
     def update_password(self, db_user: User, body: UpdatePassword) -> bool:
         verified, _ = verify_password(body.current_password, db_user.hashed_password)
@@ -93,14 +112,17 @@ class UserService:
     def authenticate(self, email: str, password: str) -> User | None:
         db_user = self.get_by_email(email)
         if not db_user:
+            logger.debug(f"[AUTH] Login attempt for unknown email (timing-safe reject)")
             verify_password(password, settings.DUMMY_HASH)
             return None
         verified, updated_password_hash = verify_password(password, db_user.hashed_password)
         if not verified:
+            logger.warning(f"[AUTH] Failed login for user {db_user.id}")
             return None
         if updated_password_hash:
             db_user.hashed_password = updated_password_hash
             self.repo.save(db_user)
+        logger.info(f"[AUTH] Successful login for user {db_user.id} — has_api_key={bool(db_user.encrypted_openrouter_key)}")
         return db_user
 
     def recover_password(self, email: str) -> None:

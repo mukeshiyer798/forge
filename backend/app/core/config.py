@@ -15,10 +15,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import Self
 
 
+import json
 def parse_cors(v: Any) -> list[str] | str:
     if isinstance(v, str) and not v.startswith("["):
         return [i.strip() for i in v.split(",") if i.strip()]
-    elif isinstance(v, list | str):
+    elif isinstance(v, str) and v.startswith("["):
+        return json.loads(v)
+    elif isinstance(v, list):
         return v
     raise ValueError(v)
 
@@ -31,7 +34,9 @@ class Settings(BaseSettings):
         extra="ignore",
     )
     API_V1_STR: str = "/api/v1"
-    SECRET_KEY: str = secrets.token_urlsafe(32)
+    # SECRET_KEY should be a long, secure random string. 
+    # Use 'changethis' as default to trigger the validation error if not set in production.
+    SECRET_KEY: str = "changethis"
     # 60 minutes = 1 hour (short-lived access token for security)
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     # 60 minutes * 24 hours * 7 days = 7 days (refresh token for "remember me")
