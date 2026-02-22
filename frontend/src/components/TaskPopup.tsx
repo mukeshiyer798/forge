@@ -14,7 +14,7 @@ interface TaskPopupProps {
 }
 
 export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupProps) {
-  const { toggleTopicSubtopic, toggleTopicBuild, toggleTopicCompleted } = useAppStore();
+  const { toggleTopicSubtopic, toggleTopicBuild, toggleTopicCompleted, addSubtopicToTopic, addResourceToTopic, updateTopicName, updateSubtopicName, updateResourceTitle } = useAppStore();
   const [revealedAnswers, setRevealedAnswers] = useState<Set<number>>(new Set());
   const [justCompleted, setJustCompleted] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
@@ -99,9 +99,11 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
                     </span>
                   )}
                 </div>
-                <h2 className="font-condensed font-black text-2xl uppercase tracking-wide text-forge-text">
-                  {topic.name}
-                </h2>
+                <input
+                  className="forge-input bg-transparent border-transparent hover:border-forge-border focus:border-forge-amber font-condensed font-black text-2xl uppercase tracking-wide text-forge-text w-full px-0"
+                  value={topic.name}
+                  onChange={(e) => updateTopicName(goalId, topic.id, e.target.value)}
+                />
               </div>
               <button onClick={handleClose} className="text-forge-dim hover:text-forge-text transition-colors ml-3">
                 <X size={20} />
@@ -149,7 +151,11 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
                               {r.title}
                             </a>
                           ) : (
-                            <div className="font-mono text-sm text-forge-text"><FormattedText text={r.title} /></div>
+                            <input
+                              className="forge-input bg-transparent border-transparent hover:border-forge-border focus:border-forge-amber font-mono text-sm text-forge-text w-full py-0 h-auto"
+                              value={r.title}
+                              onChange={(e) => updateResourceTitle(goalId, topic.id, r.id, e.target.value)}
+                            />
                           )}
                           {r.detail && <div className="font-mono text-[11px] text-forge-dim mt-0.5"><FormattedText text={r.detail} /></div>}
                         </div>
@@ -157,6 +163,12 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
                       </div>
                     ))}
                   </div>
+                  <button
+                    onClick={() => addResourceToTopic(goalId, topic.id, 'New Resource', 'docs')}
+                    className="mt-2 text-[10px] font-mono uppercase tracking-widest text-forge-dim hover:text-forge-amber flex items-center gap-1.5 transition-colors"
+                  >
+                    <span className="text-base">+</span> Add Resource
+                  </button>
                 </div>
               )}
 
@@ -183,16 +195,24 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
                           onChange={() => toggleTopicSubtopic(goalId, topic.id, st.id)}
                           className="mt-1 rounded border-forge-border bg-forge-surface2 text-forge-amber focus:ring-forge-amber w-4 h-4"
                         />
-                        <span className={cn(
-                          'font-mono text-sm flex-1 leading-relaxed',
-                          st.completed ? 'text-forge-amber line-through opacity-70' : 'text-forge-text'
-                        )}>
-                          {st.name}
-                        </span>
+                        <input
+                          className={cn(
+                            'font-mono text-sm flex-1 leading-relaxed bg-transparent border-transparent hover:border-forge-border focus:border-forge-amber py-0 h-auto',
+                            st.completed ? 'text-forge-amber line-through opacity-70' : 'text-forge-text'
+                          )}
+                          value={st.name}
+                          onChange={(e) => updateSubtopicName(goalId, topic.id, st.id, e.target.value)}
+                        />
                         {st.completed && <Check size={14} className="text-forge-amber flex-shrink-0 mt-0.5" />}
                       </label>
                     ))}
                   </div>
+                  <button
+                    onClick={() => addSubtopicToTopic(goalId, topic.id, 'New Action Item')}
+                    className="mt-2 text-[10px] font-mono uppercase tracking-widest text-forge-dim hover:text-forge-amber flex items-center gap-1.5 transition-colors"
+                  >
+                    <span className="text-base">+</span> Add Subtask
+                  </button>
                 </div>
               )}
 
