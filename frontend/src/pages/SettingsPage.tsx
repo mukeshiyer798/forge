@@ -73,19 +73,28 @@ export default function SettingsPage() {
         }),
       });
 
-      // Update basic user properties and API key
-      await apiRequest('/users/me', {
-        method: 'PATCH',
-        body: JSON.stringify({
-          openrouter_api_key: geminiKey || undefined,
-        })
-      });
+      // SECURITY: Only send API key if user actually typed a new one.
+      // Sending undefined/empty would accidentally clear the key.
+      const patchBody: Record<string, unknown> = {};
+      if (geminiKey.trim()) {
+        patchBody.openrouter_api_key = geminiKey.trim();
+        console.debug('[FORGE] Settings save — sending new API key to backend');
+      } else {
+        console.debug('[FORGE] Settings save — no API key change');
+      }
+
+      if (Object.keys(patchBody).length > 0) {
+        await apiRequest('/users/me', {
+          method: 'PATCH',
+          body: JSON.stringify(patchBody),
+        });
+      }
 
       const updatedUser = await getCurrentUser();
       useAppStore.getState().updateUser(mapBackendUserToUser(updatedUser));
 
       // Update daily task requirement on all goals
-      const { goals: currentGoals, updateGoalProgress } = useAppStore.getState();
+      const { goals: currentGoals } = useAppStore.getState();
       for (const g of currentGoals) {
         if (g.dailyTaskRequirement !== dailyTaskTarget) {
           // Update via store's sync
@@ -158,7 +167,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="px-4 lg:px-10 py-8 max-w-2xl">
+      <div className="px-4 lg:px-10 py-8 max-w-2xl w-full">
         {/* Personalization */}
         <section className="mb-8">
           <h3 className="font-condensed font-bold text-lg uppercase tracking-wider text-forge-amber mb-4">
@@ -193,13 +202,13 @@ export default function SettingsPage() {
               <label className="block font-mono text-xs uppercase tracking-wider text-forge-dim mb-1">
                 Daily task target
               </label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 {[1, 2, 3, 4, 5].map(n => (
                   <button
                     key={n}
                     onClick={() => setDailyTaskTarget(n)}
                     className={cn(
-                      'w-10 h-10 font-condensed font-bold text-base border transition-colors',
+                      'w-11 h-11 font-condensed font-bold text-base border transition-colors touch-manipulation',
                       dailyTaskTarget === n
                         ? 'border-forge-amber text-forge-amber bg-amber-500/10'
                         : 'border-forge-border text-forge-dim hover:border-forge-dim'
@@ -241,11 +250,11 @@ export default function SettingsPage() {
                 {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={handleTestGemini}
                 disabled={(!geminiKey.trim() && !user?.hasOpenrouterKey) || geminiTesting}
-                className="font-mono text-xs uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-1.5 hover:bg-forge-amber/10 transition-colors disabled:opacity-40"
+                className="font-mono text-xs uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-2 min-h-[44px] hover:bg-forge-amber/10 transition-colors disabled:opacity-40 touch-manipulation"
               >
                 {geminiTesting ? 'Testing...' : (user?.hasOpenrouterKey && !geminiKey.trim() ? 'Test Existing Key' : 'Save & Test Key')}
               </button>
@@ -260,9 +269,10 @@ export default function SettingsPage() {
                     });
                     const updatedUser = await getCurrentUser();
                     useAppStore.getState().updateUser(mapBackendUserToUser(updatedUser));
+                    console.debug('[FORGE] API key cleared');
                   } catch { }
                 }}
-                className="font-mono text-xs uppercase tracking-wider text-forge-dim border border-forge-border px-3 py-1.5 hover:text-red-400 hover:border-red-500/30 transition-colors"
+                className="font-mono text-xs uppercase tracking-wider text-forge-dim border border-forge-border px-3 py-2 min-h-[44px] hover:text-red-400 hover:border-red-500/30 transition-colors touch-manipulation"
               >
                 Clear Context
               </button>
@@ -314,7 +324,7 @@ export default function SettingsPage() {
             </label>
             {emailEnabled && (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pl-6">
+                <div className="grid grid-cols-3 gap-3 pl-6">
                   <div>
                     <label className="block font-mono text-xs uppercase tracking-wider text-forge-dim mb-1">
                       Morning
@@ -351,11 +361,11 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Test email */}
-                <div className="flex items-center gap-3 pl-6">
+                <div className="flex items-center gap-2 flex-wrap pl-6">
                   <button
                     onClick={handleTestEmail}
                     disabled={testingEmail}
-                    className="font-mono text-xs uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-1.5 hover:bg-forge-amber/10 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+                    className="font-mono text-xs uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-2 min-h-[44px] hover:bg-forge-amber/10 transition-colors disabled:opacity-40 flex items-center gap-1.5 touch-manipulation"
                   >
                     <Send size={11} />
                     {testingEmail ? 'Sending...' : 'Send Test Email'}
@@ -381,7 +391,7 @@ export default function SettingsPage() {
           onClick={handleSave}
           disabled={saving}
           className={cn(
-            'px-6 py-3 font-mono text-sm uppercase tracking-wider border transition-colors',
+            'px-6 py-3 font-mono text-sm uppercase tracking-wider border transition-colors min-h-[44px] touch-manipulation',
             saved
               ? 'border-green-500/50 text-green-400 bg-green-500/10'
               : 'border-forge-amber text-forge-amber hover:bg-forge-amber/10'

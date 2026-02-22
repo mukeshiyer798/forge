@@ -16,10 +16,10 @@ class AiService:
         api_key = decrypt_api_key(user.encrypted_openrouter_key)
 
         if not api_key:
-            logger.error(f"User {user.id} tried to generate AI response, but hasn't set an API key.")
+            logger.error(f"[AI] User {user.id} — no API key configured. encrypted_key_exists={bool(user.encrypted_openrouter_key)}")
             raise ValueError("You have not configured an OpenRouter API key. Please add one in your settings.")
 
-        logger.info(f"Generating AI response for User {user.id}")
+        logger.info(f"[AI] User {user.id} — generating response with model={model}, prompt_len={len(prompt)}")
 
         headers = {
             "Authorization": f"Bearer {api_key}",
@@ -47,10 +47,12 @@ class AiService:
                 
                 text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
                 if not text.strip():
+                    logger.warning(f"[AI] User {user.id} — empty AI response")
                     raise ValueError("Empty response from AI")
                 
                 cleaned = re.sub(r"^```(?:json)?\s*([\s\S]*?)```\s*$", r"\1", text.strip(), flags=re.MULTILINE)
                 
+                logger.info(f"[AI] User {user.id} — AI response received, len={len(cleaned)}")
                 return json.loads(cleaned)
 
         except httpx.HTTPStatusError as e:

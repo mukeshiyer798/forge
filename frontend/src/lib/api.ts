@@ -59,6 +59,7 @@ export interface UserPublic {
   nudge_preference?: string;
   greeting_preference?: string | null;
   status_message?: string | null;
+  has_openrouter_key?: boolean;
 }
 
 export async function login(email: string, password: string): Promise<TokenResponse> {
