@@ -14,7 +14,7 @@ interface TaskPopupProps {
 }
 
 export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupProps) {
-  const { toggleTopicSubtopic, toggleTopicBuild, toggleTopicCompleted } = useAppStore();
+  const { toggleTopicSubtopic, toggleTopicBuild, toggleTopicCompleted, addSubtopicToTopic, addResourceToTopic, updateTopicName, updateSubtopicName, updateResourceTitle } = useAppStore();
   const [revealedAnswers, setRevealedAnswers] = useState<Set<number>>(new Set());
   const [justCompleted, setJustCompleted] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
@@ -72,7 +72,7 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}
         >
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={handleClose} />
 
@@ -99,9 +99,11 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
                     </span>
                   )}
                 </div>
-                <h2 className="font-condensed font-black text-2xl uppercase tracking-wide text-forge-text">
-                  {topic.name}
-                </h2>
+                <input
+                  className="forge-input bg-transparent border-transparent hover:border-forge-border focus:border-forge-amber font-condensed font-black text-2xl uppercase tracking-wide text-forge-text w-full px-0"
+                  value={topic.name}
+                  onChange={(e) => updateTopicName(goalId, topic.id, e.target.value)}
+                />
               </div>
               <button onClick={handleClose} className="text-forge-dim hover:text-forge-text transition-colors ml-3">
                 <X size={20} />
@@ -145,18 +147,28 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
                         <div className="flex-1 min-w-0">
                           {r.url ? (
                             <a href={r.url} target="_blank" rel="noopener noreferrer"
-                              className="font-mono text-sm text-forge-amber hover:text-forge-text hover:underline">
+                              className="font-mono text-sm text-forge-amber hover:text-forge-text hover:underline block truncate">
                               {r.title}
                             </a>
                           ) : (
-                            <span className="font-mono text-sm text-forge-text">{r.title}</span>
+                            <input
+                              className="forge-input bg-transparent border-transparent hover:border-forge-border focus:border-forge-amber font-mono text-sm text-forge-text w-full py-0 h-auto"
+                              value={r.title}
+                              onChange={(e) => updateResourceTitle(goalId, topic.id, r.id, e.target.value)}
+                            />
                           )}
-                          {r.detail && <p className="font-mono text-[11px] text-forge-dim mt-0.5">{r.detail}</p>}
+                          {r.detail && <div className="font-mono text-[11px] text-forge-dim mt-0.5"><FormattedText text={r.detail} /></div>}
                         </div>
                         <span className="font-mono text-[11px] text-forge-muted uppercase tracking-wider shrink-0">{r.type}</span>
                       </div>
                     ))}
                   </div>
+                  <button
+                    onClick={() => addResourceToTopic(goalId, topic.id, 'New Resource', 'docs')}
+                    className="mt-2 text-[10px] font-mono uppercase tracking-widest text-forge-dim hover:text-forge-amber flex items-center gap-1.5 transition-colors"
+                  >
+                    <span className="text-base">+</span> Add Resource
+                  </button>
                 </div>
               )}
 
@@ -183,16 +195,24 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
                           onChange={() => toggleTopicSubtopic(goalId, topic.id, st.id)}
                           className="mt-1 rounded border-forge-border bg-forge-surface2 text-forge-amber focus:ring-forge-amber w-4 h-4"
                         />
-                        <span className={cn(
-                          'font-mono text-sm flex-1 leading-relaxed',
-                          st.completed ? 'text-forge-amber line-through opacity-70' : 'text-forge-text'
-                        )}>
-                          {st.name}
-                        </span>
+                        <input
+                          className={cn(
+                            'font-mono text-sm flex-1 leading-relaxed bg-transparent border-transparent hover:border-forge-border focus:border-forge-amber py-0 h-auto',
+                            st.completed ? 'text-forge-amber line-through opacity-70' : 'text-forge-text'
+                          )}
+                          value={st.name}
+                          onChange={(e) => updateSubtopicName(goalId, topic.id, st.id, e.target.value)}
+                        />
                         {st.completed && <Check size={14} className="text-forge-amber flex-shrink-0 mt-0.5" />}
                       </label>
                     ))}
                   </div>
+                  <button
+                    onClick={() => addSubtopicToTopic(goalId, topic.id, 'New Action Item')}
+                    className="mt-2 text-[10px] font-mono uppercase tracking-widest text-forge-dim hover:text-forge-amber flex items-center gap-1.5 transition-colors"
+                  >
+                    <span className="text-base">+</span> Add Subtask
+                  </button>
                 </div>
               )}
 
@@ -344,4 +364,34 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
   );
 
   return createPortal(content, document.body);
+}
+
+function FormattedText({ text, className }: { text: string; className?: string }) {
+  if (!text) return null;
+  const urlRegex = /(https?:\/\/[^\s()]+)/g;
+  const parts = text.split(urlRegex);
+
+  if (parts.length === 1) return <span className={className}>{text}</span>;
+
+  return (
+    <span className={className}>
+      {parts.map((part, i) => {
+        if (part.match(urlRegex)) {
+          return (
+            <a
+              key={i}
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-forge-amber hover:text-forge-text hover:underline mx-1 cursor-pointer font-bold"
+              onClick={e => e.stopPropagation()}
+            >
+              [Link]
+            </a>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </span>
+  );
 }

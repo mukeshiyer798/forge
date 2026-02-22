@@ -143,6 +143,11 @@ interface AppState {
   toggleCapstoneCompleted: (goalId: string) => void;
   toggleTopicCompleted: (goalId: string, topicId: string) => void;
   addTopicsToGoal: (goalId: string, topics: GoalTopic[]) => void;
+  addSubtopicToTopic: (goalId: string, topicId: string, name: string) => void;
+  updateSubtopicName: (goalId: string, topicId: string, subtopicId: string, name: string) => void;
+  addResourceToTopic: (goalId: string, topicId: string, title: string, type: 'video' | 'docs' | 'blog' | 'youtube') => void;
+  updateResourceTitle: (goalId: string, topicId: string, resourceId: string, title: string) => void;
+  updateTopicName: (goalId: string, topicId: string, name: string) => void;
   deleteGoal: (goalId: string) => void;
   togglePauseGoal: (goalId: string) => void;
 
@@ -602,6 +607,91 @@ export const useAppStore = create<AppState>()(
             const progress = calcGoalProgress(updated);
             const status: GoalStatus = progress >= 70 ? 'on-track' : progress >= 40 ? 'at-risk' : 'behind';
             return { ...updated, progress, status };
+          }),
+        }));
+        const goal = get().goals.find((g) => g.id === goalId);
+        if (goal) syncGoalToBackend(goal);
+      },
+
+      addSubtopicToTopic: (goalId, topicId, name) => {
+        set((state) => ({
+          goals: state.goals.map((g) => {
+            if (g.id !== goalId || !g.topics) return g;
+            const topics = g.topics.map((t) => {
+              if (t.id !== topicId) return t;
+              const subtopics = [...(t.subtopics || []), { id: generateId(), name, completed: false }];
+              return { ...t, subtopics };
+            });
+            const updated = { ...g, topics };
+            const progress = calcGoalProgress(updated);
+            const status: GoalStatus = progress >= 70 ? 'on-track' : progress >= 40 ? 'at-risk' : 'behind';
+            return { ...updated, progress, status };
+          }),
+        }));
+        const goal = get().goals.find((g) => g.id === goalId);
+        if (goal) syncGoalToBackend(goal);
+      },
+
+      addResourceToTopic: (goalId, topicId, title, type) => {
+        set((state) => ({
+          goals: state.goals.map((g) => {
+            if (g.id !== goalId || !g.topics) return g;
+            const topics = g.topics.map((t) => {
+              if (t.id !== topicId) return t;
+              const resources = [...(t.resources || []), { id: generateId(), title, type, url: 'https://' }];
+              return { ...t, resources };
+            });
+            return { ...g, topics };
+          }),
+        }));
+        const goal = get().goals.find((g) => g.id === goalId);
+        if (goal) syncGoalToBackend(goal);
+      },
+
+      updateSubtopicName: (goalId, topicId, subtopicId, name) => {
+        set((state) => ({
+          goals: state.goals.map((g) => {
+            if (g.id !== goalId || !g.topics) return g;
+            const topics = g.topics.map((t) => {
+              if (t.id !== topicId) return t;
+              const subtopics = t.subtopics.map((s) =>
+                s.id === subtopicId ? { ...s, name } : s
+              );
+              return { ...t, subtopics };
+            });
+            return { ...g, topics };
+          }),
+        }));
+        const goal = get().goals.find((g) => g.id === goalId);
+        if (goal) syncGoalToBackend(goal);
+      },
+
+      updateResourceTitle: (goalId, topicId, resourceId, title) => {
+        set((state) => ({
+          goals: state.goals.map((g) => {
+            if (g.id !== goalId || !g.topics) return g;
+            const topics = g.topics.map((t) => {
+              if (t.id !== topicId) return t;
+              const resources = t.resources?.map((r) =>
+                r.id === resourceId ? { ...r, title } : r
+              );
+              return { ...t, resources };
+            });
+            return { ...g, topics };
+          }),
+        }));
+        const goal = get().goals.find((g) => g.id === goalId);
+        if (goal) syncGoalToBackend(goal);
+      },
+
+      updateTopicName: (goalId, topicId, name) => {
+        set((state) => ({
+          goals: state.goals.map((g) => {
+            if (g.id !== goalId || !g.topics) return g;
+            const topics = g.topics.map((t) =>
+              t.id === topicId ? { ...t, name } : t
+            );
+            return { ...g, topics };
           }),
         }));
         const goal = get().goals.find((g) => g.id === goalId);

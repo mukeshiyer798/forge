@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
-from pydantic import EmailStr, computed_field
+from typing import Any
+from pydantic import EmailStr, computed_field, model_validator
 from sqlmodel import Field, SQLModel
 from app.entities.user import UserBase
 
@@ -39,6 +40,18 @@ class UserPublic(UserBase):
     id: uuid.UUID
     created_at: datetime | None = None
     encrypted_openrouter_key: str | None = Field(default=None, exclude=True)
+
+    @model_validator(mode='before')
+    @classmethod
+    def _extract_encrypted_key(cls, data: Any) -> Any:
+        # When FastAPI passes an ORM User object, manually extract the field
+        # since it's not on UserBase and Pydantic won't map it automatically
+        if not isinstance(data, dict) and hasattr(data, 'encrypted_openrouter_key'):
+            return {
+                **{k: v for k, v in data.__dict__.items() if not k.startswith('_')},
+                'encrypted_openrouter_key': data.encrypted_openrouter_key,
+            }
+        return data
 
     @computed_field
     @property
