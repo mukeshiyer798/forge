@@ -208,7 +208,7 @@ export default function SettingsPage() {
                     key={n}
                     onClick={() => setDailyTaskTarget(n)}
                     className={cn(
-                      'w-11 h-11 font-condensed font-bold text-base border transition-colors touch-manipulation',
+                      'w-11 h-11 font-condensed font-bold text-base border transition-colors',
                       dailyTaskTarget === n
                         ? 'border-forge-amber text-forge-amber bg-amber-500/10'
                         : 'border-forge-border text-forge-dim hover:border-forge-dim'
@@ -258,7 +258,7 @@ export default function SettingsPage() {
               <button
                 onClick={handleTestGemini}
                 disabled={(!geminiKey.trim() && !user?.hasOpenrouterKey) || geminiTesting}
-                className="font-mono text-xs uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-2 min-h-[44px] hover:bg-forge-amber/10 transition-colors disabled:opacity-40 touch-manipulation"
+                className="font-mono text-xs uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-2 min-h-[44px] hover:bg-forge-amber/10 transition-colors disabled:opacity-40"
               >
                 {geminiTesting ? 'Testing...' : (user?.hasOpenrouterKey && !geminiKey.trim() ? 'Test Existing Key' : 'Save & Test Key')}
               </button>
@@ -276,7 +276,7 @@ export default function SettingsPage() {
                     console.debug('[FORGE] API key cleared');
                   } catch { }
                 }}
-                className="font-mono text-xs uppercase tracking-wider text-forge-dim border border-forge-border px-3 py-2 min-h-[44px] hover:text-red-400 hover:border-red-500/30 transition-colors touch-manipulation"
+                className="font-mono text-xs uppercase tracking-wider text-forge-dim border border-forge-border px-3 py-2 min-h-[44px] hover:text-red-400 hover:border-red-500/30 transition-colors"
               >
                 Clear Context
               </button>
@@ -369,7 +369,7 @@ export default function SettingsPage() {
                   <button
                     onClick={handleTestEmail}
                     disabled={testingEmail}
-                    className="font-mono text-xs uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-2 min-h-[44px] hover:bg-forge-amber/10 transition-colors disabled:opacity-40 flex items-center gap-1.5 touch-manipulation"
+                    className="font-mono text-xs uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-2 min-h-[44px] hover:bg-forge-amber/10 transition-colors disabled:opacity-40 flex items-center gap-1.5"
                   >
                     <Send size={11} />
                     {testingEmail ? 'Sending...' : 'Send Test Email'}
@@ -395,7 +395,7 @@ export default function SettingsPage() {
           onClick={handleSave}
           disabled={saving}
           className={cn(
-            'px-6 py-3 font-mono text-sm uppercase tracking-wider border transition-colors min-h-[44px] touch-manipulation',
+            'px-6 py-3 font-mono text-sm uppercase tracking-wider border transition-colors min-h-[44px]',
             saved
               ? 'border-green-500/50 text-green-400 bg-green-500/10'
               : 'border-forge-amber text-forge-amber hover:bg-forge-amber/10'
