@@ -22,12 +22,20 @@ export default function WeekTracker() {
       // Show risk popup if requirements not met (only once per day)
       const today = new Date().toISOString().split('T')[0];
       const lastChecked = localStorage.getItem(`risk-checked-${today}`);
-      if (!lastChecked) {
-        setRiskPopupOpen(true);
-        localStorage.setItem(`risk-checked-${today}`, 'true');
+      const hasOldGoals = goals.some(g => g.dailyTaskRequirement && g.createdAt !== today);
+      const isEvening = new Date().getHours() >= 17;
+
+      // Delay popup to avoid jarring the user, and only show if it's evening OR they have old goals
+      if (!lastChecked && (hasOldGoals || isEvening)) {
+        const timer = setTimeout(() => {
+          setRiskPopupOpen(true);
+          localStorage.setItem(`risk-checked-${today}`, 'true');
+        }, 2000);
+        return () => clearTimeout(timer);
       }
     }
-  }, [completion.met, completion.required, markDayCompleteFromTasks]);
+  }, [completion.met, completion.required, markDayCompleteFromTasks, goals]);
+
 
   // Calculate today's task completion
   const todayCompleted = completion.completed;

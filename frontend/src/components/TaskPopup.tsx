@@ -145,13 +145,13 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
                         <div className="flex-1 min-w-0">
                           {r.url ? (
                             <a href={r.url} target="_blank" rel="noopener noreferrer"
-                              className="font-mono text-sm text-forge-amber hover:text-forge-text hover:underline">
+                              className="font-mono text-sm text-forge-amber hover:text-forge-text hover:underline block truncate">
                               {r.title}
                             </a>
                           ) : (
-                            <span className="font-mono text-sm text-forge-text">{r.title}</span>
+                            <div className="font-mono text-sm text-forge-text"><FormattedText text={r.title} /></div>
                           )}
-                          {r.detail && <p className="font-mono text-[11px] text-forge-dim mt-0.5">{r.detail}</p>}
+                          {r.detail && <div className="font-mono text-[11px] text-forge-dim mt-0.5"><FormattedText text={r.detail} /></div>}
                         </div>
                         <span className="font-mono text-[11px] text-forge-muted uppercase tracking-wider shrink-0">{r.type}</span>
                       </div>
@@ -344,4 +344,34 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
   );
 
   return createPortal(content, document.body);
+}
+
+function FormattedText({ text, className }: { text: string; className?: string }) {
+  if (!text) return null;
+  const urlRegex = /(https?:\/\/[^\s()]+)/g;
+  const parts = text.split(urlRegex);
+
+  if (parts.length === 1) return <span className={className}>{text}</span>;
+
+  return (
+    <span className={className}>
+      {parts.map((part, i) => {
+        if (part.match(urlRegex)) {
+          return (
+            <a
+              key={i}
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-forge-amber hover:text-forge-text hover:underline mx-1 cursor-pointer font-bold"
+              onClick={e => e.stopPropagation()}
+            >
+              [Link]
+            </a>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </span>
+  );
 }

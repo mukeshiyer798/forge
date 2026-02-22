@@ -25,15 +25,13 @@ export default function RiskPopup({ open, onClose, completed, required }: RiskPo
             className={`fixed inset-0 bg-black/80 backdrop-blur-sm z-50 ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}
             onClick={onClose}
           />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
-          >
-            <div
-              className="bg-red-950/30 border-2 border-red-900/50 rounded-sm p-6 max-w-md w-full pointer-events-auto"
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              className="bg-red-950/90 border-2 border-red-900/50 rounded-sm p-6 max-w-md w-full pointer-events-auto backdrop-blur-md shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-start gap-4">
@@ -79,8 +77,8 @@ export default function RiskPopup({ open, onClose, completed, required }: RiskPo
                   </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>

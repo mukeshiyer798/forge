@@ -119,7 +119,7 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
 
   const [aiJson, setAiJson] = useState('');
   const [copied, setCopied] = useState(false);
-  const [reviewSource, setReviewSource] = useState<'ai-prompt' | 'ai-import'>('ai-prompt');
+  const [reviewSource, setReviewSource] = useState<'ai-prompt' | 'ai-import' | 'quick'>('ai-prompt');
   const [importError, setImportError] = useState('');
   const [parsedGoalsForReview, setParsedGoalsForReview] = useState<GoalForReview[] | null>(null);
 
@@ -190,6 +190,7 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
     // Fallback: copy prompt to clipboard
     await navigator.clipboard.writeText(prompt);
     setCopied(true);
+    toast({ title: 'Prompt copied', description: 'Paste it into your favorite AI tool and generate the JSON.', tone: 'success' });
     setMode('ai-import');
   };
 
@@ -357,109 +358,52 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                         Build a focused roadmap
                       </p>
                       <p className="font-mono text-xs text-forge-dim mt-1">
-                        Generates Phase 1 (5-7 deep topics). Depth over breadth.
+                        Generates a robust Phase 1 (5-7 deep topics). Depth over breadth.
                       </p>
                     </button>
 
-                    <div className="border border-forge-border bg-forge-surface2/40 p-4">
-                      <p className="font-condensed font-bold text-sm uppercase tracking-wider text-forge-text mb-2">
-                        Quick goal (3 fields)
-                      </p>
-                      <div className="flex flex-col gap-3">
-                        <div className="flex flex-col gap-1.5">
-                          <label className="forge-label">Name</label>
-                          <input
-                            className="forge-input"
-                            placeholder="e.g. Improve Public Speaking"
-                            value={form.name}
-                            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="forge-label">Description</label>
-                          <input
-                            className="forge-input"
-                            placeholder="What you want to be able to do"
-                            value={form.description}
-                            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="forge-label">Deadline</label>
-                          <input
-                            type="date"
-                            className="forge-input"
-                            value={form.targetDate || ''}
-                            onChange={(e) => setForm((f) => ({ ...f, targetDate: e.target.value }))}
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          className="forge-btn-primary"
-                          onClick={() => {
-                            const name = form.name.trim();
-                            if (!name) return;
-                            addGoal({
-                              name,
-                              type: form.type,
-                              description: (form.description || name).trim(),
-                              subtopics: [{ id: generateId(), name: 'Getting started', completed: false }],
-                              resources: [],
-                              targetDate: form.targetDate || isoPlusDays(30),
-                              status: 'on-track',
-                              userId: user?.id,
-                            });
-                            toast({ title: 'Goal created', description: name, tone: 'success' });
-                            handleClose();
-                          }}
-                          disabled={!form.name.trim()}
-                        >
-                          Create goal
-                        </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const emptyGoal: GoalForReview = {
+                          name: 'My Custom Goal',
+                          type: 'learn',
+                          description: '',
+                          targetDate: isoPlusDays(30),
+                          priority: 1,
+                          status: 'on-track',
+                          subtopics: [],
+                          resources: [],
+                          topics: [{
+                            id: generateId(),
+                            name: 'Topic 1',
+                            taskNumber: 1,
+                            completed: false,
+                            subtopics: [{ id: generateId(), name: 'Subtask 1', completed: false }],
+                            resources: [],
+                            build: { name: 'Build Project', completed: false },
+                            interviewPrep: []
+                          }]
+                        };
+                        setParsedGoalsForReview([emptyGoal]);
+                        setReviewSource('quick');
+                        setMode('ai-review');
+                      }}
+                      className="border border-forge-border bg-forge-surface2/40 hover:border-forge-amber p-4 text-left transition-all duration-200"
+                    >
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Plus size={16} className="text-forge-text" />
+                        <span className="font-mono text-[11px] uppercase tracking-widest text-forge-text">Manual</span>
                       </div>
-                    </div>
+                      <p className="font-condensed font-bold text-sm uppercase tracking-wider text-forge-text">
+                        Build roadmap manually
+                      </p>
+                      <p className="font-mono text-xs text-forge-dim mt-1">
+                        Start from scratch. Add your own custom topics, subtasks, resources, and interview prep.
+                      </p>
+                    </button>
                   </div>
 
-                  <div className="border-t border-forge-border pt-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-condensed font-black text-lg uppercase tracking-wider text-forge-text">
-                        Templates
-                      </h3>
-                      <span className="font-mono text-xs text-forge-dim">{GOAL_TEMPLATES.length} options</span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {GOAL_TEMPLATES.map((t) => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => {
-                            addGoal({
-                              name: t.name,
-                              type: t.type,
-                              description: t.description,
-                              subtopics: [{ id: generateId(), name: 'Step 1', completed: false }],
-                              resources: [],
-                              targetDate: isoPlusDays(t.suggestedTargetDays),
-                              status: 'on-track',
-                              dailyTaskRequirement: t.dailyTarget,
-                              userId: user?.id,
-                            });
-                            toast({ title: 'Template added', description: t.name, tone: 'success' });
-                            handleClose();
-                          }}
-                          className="border border-forge-border bg-forge-surface2/30 hover:border-forge-amber p-4 text-left transition-colors"
-                        >
-                          <p className="font-condensed font-bold text-sm uppercase tracking-wider text-forge-text">
-                            {t.name}
-                          </p>
-                          <p className="font-mono text-xs text-forge-dim mt-1 line-clamp-2">{t.description}</p>
-                          <p className="font-mono text-[11px] text-forge-muted mt-2">
-                            {t.tags.join(' · ')}
-                          </p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 </motion.div>
               )}
 
@@ -623,6 +567,7 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                           });
                           await navigator.clipboard.writeText(prompt);
                           setCopied(true);
+                          toast({ title: 'Prompt copied', description: 'Paste it into your favorite AI tool and generate the JSON.', tone: 'success' });
                           setMode('ai-import');
                         }}
                         className="font-mono text-[8px] text-forge-muted hover:text-forge-dim transition-colors uppercase tracking-wider mt-2 block w-full text-right"
@@ -780,6 +725,19 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                                     ))}
                                   </div>
                                 )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newSubtopics = [...(topic.subtopics || [])];
+                                    newSubtopics.push({ id: generateId(), name: 'New Subtask', completed: false });
+                                    const newTopics = [...goal.topics!];
+                                    newTopics[tIdx] = { ...topic, subtopics: newSubtopics };
+                                    updateReviewGoal(i, { topics: newTopics });
+                                  }}
+                                  className="text-[10px] font-mono uppercase tracking-wider text-forge-dim hover:text-forge-amber mt-2 flex items-center gap-1"
+                                >
+                                  <Plus size={10} /> Add Subtask
+                                </button>
                                 {topic.resources && topic.resources.length > 0 && (
                                   <div className="pl-4 border-l-2 border-forge-border/30 space-y-1.5 mt-3 pt-3 border-t">
                                     <p className="font-mono text-[10px] text-forge-muted uppercase tracking-wider mb-2">Resources</p>
@@ -829,14 +787,116 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                                     ))}
                                   </div>
                                 )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newResources = [...(topic.resources || [])];
+                                    newResources.push({ id: generateId(), title: 'New Resource', type: 'docs', url: null });
+                                    const newTopics = [...goal.topics!];
+                                    newTopics[tIdx] = { ...topic, resources: newResources };
+                                    updateReviewGoal(i, { topics: newTopics });
+                                  }}
+                                  className="text-[10px] font-mono uppercase tracking-wider text-forge-dim hover:text-forge-amber mt-2 flex items-center gap-1"
+                                >
+                                  <Plus size={10} /> Add Resource
+                                </button>
+
+                                {topic.interviewPrep && topic.interviewPrep.length > 0 && (
+                                  <div className="pl-4 border-l-2 border-forge-border/30 space-y-1.5 mt-3 pt-3 border-t">
+                                    <p className="font-mono text-[10px] text-forge-muted uppercase tracking-wider mb-2">Interview Prep</p>
+                                    {topic.interviewPrep.map((prep, pIdx) => (
+                                      <div key={pIdx} className="flex items-start gap-2 group/prep mb-2">
+                                        <div className="w-1.5 h-1.5 rounded-sm bg-forge-dim mt-2.5" />
+                                        <div className="flex-1 space-y-1">
+                                          <input
+                                            className="forge-input font-bold text-xs py-1 px-2 h-auto w-full bg-transparent border-transparent hover:border-forge-border/50 focus:border-forge-amber"
+                                            value={prep.question}
+                                            onChange={e => {
+                                              const newPrep = [...topic.interviewPrep!];
+                                              newPrep[pIdx] = { ...prep, question: e.target.value };
+                                              const newTopics = [...goal.topics!];
+                                              newTopics[tIdx] = { ...topic, interviewPrep: newPrep };
+                                              updateReviewGoal(i, { topics: newTopics });
+                                            }}
+                                            placeholder="Question"
+                                          />
+                                          <textarea
+                                            className="forge-input font-mono text-[11px] text-forge-dim py-1 px-2 h-auto w-full bg-transparent border-transparent hover:border-forge-border/50 focus:border-forge-amber resize-none min-h-[40px]"
+                                            value={prep.answer || ''}
+                                            onChange={e => {
+                                              const newPrep = [...topic.interviewPrep!];
+                                              newPrep[pIdx] = { ...prep, answer: e.target.value };
+                                              const newTopics = [...goal.topics!];
+                                              newTopics[tIdx] = { ...topic, interviewPrep: newPrep };
+                                              updateReviewGoal(i, { topics: newTopics });
+                                            }}
+                                            placeholder="Answer"
+                                          />
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const newPrep = [...topic.interviewPrep!];
+                                            newPrep.splice(pIdx, 1);
+                                            const newTopics = [...goal.topics!];
+                                            newTopics[tIdx] = { ...topic, interviewPrep: newPrep };
+                                            updateReviewGoal(i, { topics: newTopics });
+                                          }}
+                                          className="text-forge-dim hover:text-red-400 opacity-0 group-hover/prep:opacity-100 transition-opacity mt-1.5"
+                                        >
+                                          <X size={12} />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newPrep = [...(topic.interviewPrep || [])];
+                                    newPrep.push({ question: 'New Question', answer: '' });
+                                    const newTopics = [...goal.topics!];
+                                    newTopics[tIdx] = { ...topic, interviewPrep: newPrep };
+                                    updateReviewGoal(i, { topics: newTopics });
+                                  }}
+                                  className="text-[10px] font-mono uppercase tracking-wider text-forge-dim hover:text-forge-amber mt-2 flex items-center gap-1"
+                                >
+                                  <Plus size={10} /> Add Question
+                                </button>
                               </div>
                             ))}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newTopics = [...(goal.topics || [])];
+                                newTopics.push({
+                                  id: generateId(),
+                                  name: 'New Topic',
+                                  taskNumber: newTopics.length + 1,
+                                  completed: false,
+                                  subtopics: [],
+                                  resources: [],
+                                  build: { name: 'Build Project', completed: false },
+                                  interviewPrep: []
+                                });
+                                updateReviewGoal(i, { topics: newTopics });
+                              }}
+                              className="w-full mt-2 py-2 border border-dashed border-forge-border text-forge-dim hover:text-forge-amber hover:border-forge-amber transition-colors text-xs font-mono uppercase tracking-wider flex items-center justify-center gap-2"
+                            >
+                              <Plus size={12} /> Add Topic
+                            </button>
                           </div>
                         )}
                       </div>
                     ))}
                   </div>
-                  <div className="flex gap-3 justify-between items-center pt-2 border-t border-forge-border">
+
+                  <div className="bg-forge-surface2/40 border border-forge-border p-4 mt-2 text-center rounded-sm">
+                    <p className="font-condensed text-sm text-forge-amber uppercase tracking-wider mb-1 font-bold">🔒 Phase 2 & 3 Locked</p>
+                    <p className="font-mono text-[11px] text-forge-dim">Focus on executing Phase 1. Once you conquer this, return to generate your next phases.</p>
+                  </div>
+
+                  <div className="flex gap-3 justify-between items-center pt-2 border-t border-forge-border mt-3">
                     <button type="button" onClick={() => { setMode(reviewSource); setParsedGoalsForReview(null); }} className="forge-btn-ghost">← Back</button>
                     <button type="button" onClick={handleConfirmCreateGoals} className="forge-btn-primary flex items-center gap-2" disabled={parsedGoalsForReview.length === 0}>
                       <Plus size={14} />
