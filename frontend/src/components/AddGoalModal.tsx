@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils';
 import { GOAL_TEMPLATES } from '@/lib/goalTemplates';
 import { useToast } from '@/lib/toast';
 import { callGemini, hasGeminiKey } from '@/lib/gemini';
+import { getCurrentUser } from '@/lib/api';
+import { mapBackendUserToUser } from '@/store/useAppStore';
 
 interface AddGoalModalProps {
   open: boolean;
@@ -116,6 +118,7 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
   const [learnerPreferredResources, setLearnerPreferredResources] = useState('');
   const [dailyTaskRequirement, setDailyTaskRequirement] = useState('');
   const [geminiLoading, setGeminiLoading] = useState(false);
+  const [inlineApiKey, setInlineApiKey] = useState('');
 
   const [aiJson, setAiJson] = useState('');
   const [copied, setCopied] = useState(false);
@@ -164,11 +167,16 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
     });
 
     // Try AI API first (OpenRouter)
-    if (hasGeminiKey()) {
+    const keyToUse = inlineApiKey.trim() || '';
+    if (hasGeminiKey() || keyToUse) {
       setGeminiLoading(true);
       setImportError('');
       try {
-        const result = await callGemini<{ goals?: Array<Record<string, unknown>>; phaseRoadmap?: Record<string, string[]> }>(prompt);
+        const result = await callGemini<{ goals?: Array<Record<string, unknown>>; phaseRoadmap?: Record<string, string[]> }>(
+          prompt,
+          "google/gemini-2.0-flash-001",
+          keyToUse
+        );
         if (result) {
           const goalsArray = result.goals || (Array.isArray(result) ? result as unknown as Array<Record<string, unknown>> : []);
           if (goalsArray.length > 0) {
@@ -177,6 +185,18 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
             setReviewSource('ai-prompt');
             setMode('ai-review');
             setGeminiLoading(false);
+            if (keyToUse) {
+              // The backend will have saved the key, but we need to notify the store 
+              // that the user now has a key so the UI updates globally.
+              try {
+                const updatedUser = await getCurrentUser();
+                if (updatedUser) {
+                  useAppStore.getState().updateUser(mapBackendUserToUser(updatedUser));
+                }
+              } catch (e) {
+                console.error("Failed to refresh user after key save:", e);
+              }
+            }
             return;
           }
         }
@@ -430,29 +450,38 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                           Unlock 1-Click Generation
                         </span>
                       </div>
-                      <p className="font-body text-sm text-forge-dim leading-relaxed mb-3">
-                        Add an <strong className="text-forge-text">OpenRouter API key</strong> in Settings to generate roadmaps instantly — no copy-pasting needed. OpenRouter gives you access to GPT-4, Claude, Gemini and more through one key.
+                      <p className="font-body text-sm text-forge-dim leading-relaxed mb-4">
+                        Add an <strong className="text-forge-text">OpenRouter API key</strong> to generate roadmaps instantly. OpenRouter gives you access to GPT-4, Claude, Gemini and more.
                       </p>
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => { handleClose(); useAppStore.getState().setActiveView('settings'); }}
-                          className="flex items-center gap-1.5 border border-forge-amber text-forge-amber px-3 py-1.5 font-mono text-xs uppercase tracking-wider hover:bg-forge-amber/10 transition-colors"
-                        >
-                          Go to Settings →
-                        </button>
-                        <a
-                          href="https://openrouter.ai/keys"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-mono text-xs text-forge-dim hover:text-forge-amber underline transition-colors"
-                        >
-                          Get a free key
-                        </a>
+
+                      <div className="space-y-3">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="font-mono text-[10px] uppercase tracking-widest text-forge-amber">Paste Key to Save & Generate</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="password"
+                              className="forge-input h-9 py-0 text-xs"
+                              placeholder="sk-or-v1-..."
+                              value={inlineApiKey}
+                              onChange={e => setInlineApiKey(e.target.value)}
+                            />
+                            <a
+                              href="https://openrouter.ai/keys"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="h-9 flex items-center justify-center border border-forge-border px-3 font-mono text-[10px] text-forge-muted hover:text-forge-amber transition-colors uppercase"
+                            >
+                              Get Key
+                            </a>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-4 pt-1">
+                          <p className="font-mono text-[10px] text-forge-muted">
+                            No key? You can still copy the prompt below manually.
+                          </p>
+                        </div>
                       </div>
-                      <p className="font-mono text-xs text-forge-muted mt-2">
-                        No key? No problem — you can still copy the prompt below and use it with any AI.
-                      </p>
                     </div>
                   )}
 
@@ -538,7 +567,7 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                       >
                         {geminiLoading ? (
                           <><Loader2 size={14} className="animate-spin" /> Generating...</>
-                        ) : hasGeminiKey() ? (
+                        ) : (hasGeminiKey() || inlineApiKey.trim()) ? (
                           <><Sparkles size={14} /> Generate Roadmap</>
                         ) : (
                           <><ClipboardCopy size={14} /> Copy prompt</>
@@ -881,20 +910,28 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                                 });
                                 updateReviewGoal(i, { topics: newTopics });
                               }}
-                              className="w-full mt-2 py-2 border border-dashed border-forge-border text-forge-dim hover:text-forge-amber hover:border-forge-amber transition-colors text-xs font-mono uppercase tracking-wider flex items-center justify-center gap-2"
+                              className="w-full mt-4 py-2.5 border border-forge-border bg-forge-surface/40 text-forge-dim hover:text-forge-amber hover:border-forge-amber hover:bg-forge-surface transition-all text-[11px] font-mono uppercase tracking-[0.2em] flex items-center justify-center gap-2"
                             >
-                              <Plus size={12} /> Add Topic
+                              <Plus size={12} /> Add Custom Topic
                             </button>
                           </div>
                         )}
                       </div>
                     ))}
+                    {reviewSource !== 'quick' && (
+                      <div className="border-t border-forge-border/30 pt-6 mt-8 mb-4 text-center">
+                        <p className="font-condensed text-xs text-forge-amber uppercase tracking-[0.2em] mb-2 font-bold opacity-80 flex items-center justify-center gap-2">
+                          <span className="w-10 h-px bg-forge-amber/20" />
+                          🔒 Phase 2 & 3 Locked
+                          <span className="w-10 h-px bg-forge-amber/20" />
+                        </p>
+                        <p className="font-mono text-[10px] text-forge-muted max-w-[300px] mx-auto leading-relaxed">
+                          AI focuses on Phase 1 for deep execution. Once you complete these topics, you can return to generate subsequent phases.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="bg-forge-surface2/40 border border-forge-border p-4 mt-2 text-center rounded-sm">
-                    <p className="font-condensed text-sm text-forge-amber uppercase tracking-wider mb-1 font-bold">🔒 Phase 2 & 3 Locked</p>
-                    <p className="font-mono text-[11px] text-forge-dim">Focus on executing Phase 1. Once you conquer this, return to generate your next phases.</p>
-                  </div>
 
                   <div className="flex gap-3 justify-between items-center pt-2 border-t border-forge-border mt-3">
                     <button type="button" onClick={() => { setMode(reviewSource); setParsedGoalsForReview(null); }} className="forge-btn-ghost">← Back</button>

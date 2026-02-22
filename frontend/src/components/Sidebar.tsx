@@ -149,10 +149,19 @@ export default function Sidebar() {
       <AnimatePresence>
         {mobileNavOpen && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            <motion.div
+              key="sidebar-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={() => setMobileNavOpen(false)}
-              className="lg:hidden fixed inset-0 bg-black/70 z-40 backdrop-blur-sm pointer-events-auto" />
-            <motion.div initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
+              className="lg:hidden fixed inset-0 bg-black/70 z-40 backdrop-blur-sm pointer-events-auto"
+            />
+            <motion.div
+              key="sidebar-drawer"
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}
               className="lg:hidden fixed left-0 top-0 bottom-0 w-[280px] bg-forge-surface border-r border-forge-border z-50 flex flex-col overflow-y-auto pointer-events-auto">
               <NavContent onClose={() => setMobileNavOpen(false)} />
