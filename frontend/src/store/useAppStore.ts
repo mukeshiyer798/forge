@@ -78,7 +78,7 @@ function mapBackendGoalToGoal(bg: GoalPublicBackend): Goal {
 }
 
 /** Convert frontend Goal to backend create/update payload */
-function goalToBackendPayload(goal: Omit<Goal, 'id' | 'createdAt' | 'lastLoggedAt' | 'progress'> & { progress?: number }) {
+function goalToBackendPayload(goal: Omit<Goal, 'id' | 'createdAt' | 'lastLoggedAt' | 'progress'> & { progress?: number; futureLook?: string }) {
   return {
     name: goal.name,
     type: goal.type,
@@ -92,6 +92,7 @@ function goalToBackendPayload(goal: Omit<Goal, 'id' | 'createdAt' | 'lastLoggedA
     resources: goal.resources?.length ? JSON.stringify(goal.resources) : undefined,
     topics: goal.topics?.length ? JSON.stringify(goal.topics) : undefined,
     capstone: goal.capstone ? JSON.stringify(goal.capstone) : undefined,
+    future_look: goal.futureLook ?? undefined,
   };
 }
 
@@ -199,10 +200,12 @@ async function syncGoalToBackend(goal: Goal): Promise<void> {
       resources: goal.resources?.length ? JSON.stringify(goal.resources) : null,
       topics: goal.topics?.length ? JSON.stringify(goal.topics) : null,
       capstone: goal.capstone ? JSON.stringify(goal.capstone) : null,
+      future_look: (goal as unknown as Record<string, unknown>).futureLook ?? null,
     };
+    console.debug('[FORGE] Syncing goal to backend:', goal.id, Object.keys(payload));
     await updateGoalApi(goal.id, payload);
   } catch (err) {
-    console.error('Failed to sync goal to backend:', err);
+    console.error('[FORGE] Failed to sync goal to backend:', err);
   }
 }
 
@@ -230,21 +233,26 @@ export const useAppStore = create<AppState>()(
       // CRITICAL FIX: Login clears all previous user-specific state
       // before setting the new user. This prevents RBAC leaks where
       // a new user would see the old user's persisted goals.
-      login: (user) => set({
-        user,
-        isAuthenticated: true,
-        // Clear user-specific data — will be fetched from backend
-        goals: [],
-        goalsLoaded: false,
-        goalsPage: 0,
-        goalsTotalCount: 0,
-        readingInsights: [],
-        streak: 0,
-        weekData: { ...INITIAL_WEEK_DATA, weekStart: getCurrentWeekStart() },
-        pomodoroSessions: [],
-        nudgeDismissed: false,
-        celebrateVisible: false,
-      }),
+      login: (user) => {
+        // PRODUCTION-GRADE: Wipe ALL localStorage cache to prevent cross-user data leaks
+        try { localStorage.removeItem('forge-storage'); } catch { /* ignore */ }
+        console.debug('[FORGE] Login — cleared localStorage, setting user:', user.id);
+        set({
+          user,
+          isAuthenticated: true,
+          // Clear user-specific data — will be fetched from backend
+          goals: [],
+          goalsLoaded: false,
+          goalsPage: 0,
+          goalsTotalCount: 0,
+          readingInsights: [],
+          streak: 0,
+          weekData: { ...INITIAL_WEEK_DATA, weekStart: getCurrentWeekStart() },
+          pomodoroSessions: [],
+          nudgeDismissed: false,
+          celebrateVisible: false,
+        });
+      },
 
       updateUser: (user) => set({ user }),
 
@@ -252,6 +260,9 @@ export const useAppStore = create<AppState>()(
       logout: () => {
         clearTokenRefresh();
         clearAccessToken();
+        // PRODUCTION-GRADE: Wipe localStorage to prevent data leaks
+        try { localStorage.removeItem('forge-storage'); } catch { /* ignore */ }
+        console.debug('[FORGE] Logout — cleared all user data and localStorage');
         set({
           user: null,
           isAuthenticated: false,
@@ -299,6 +310,7 @@ export const useAppStore = create<AppState>()(
           const skip = page * GOALS_PER_PAGE;
           const res = await fetchGoals(skip, GOALS_PER_PAGE);
           const mapped = res.data.map(mapBackendGoalToGoal);
+          console.debug('[FORGE] Fetched goals from backend:', mapped.length, 'total:', res.count);
           if (page === 0) {
             set({ goals: mapped, goalsLoaded: true, goalsPage: 0, goalsTotalCount: res.count });
           } else {
@@ -349,6 +361,7 @@ export const useAppStore = create<AppState>()(
             url: item.url,
             freshness: 'recent',
           }));
+          console.debug('[FORGE] Fetched reading insights from backend:', mapped.length);
           set({ readingInsights: mapped });
         } catch (err) {
           console.error('Failed to fetch reading insights from backend:', err);
@@ -776,12 +789,14 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
-        goals: state.goals,
-        goalsLoaded: state.goalsLoaded,
+        // SECURITY: goals and pomodoroSessions are NOT persisted to localStorage.
+        // They are always fetched fresh from the backend after login.
+        // This prevents cross-user data leaks on shared browsers.
+        readingInsights: state.readingInsights,
         streak: state.streak,
         weekData: state.weekData,
         nudgeDismissed: state.nudgeDismissed,
-        pomodoroSessions: state.pomodoroSessions,
+        activeView: state.activeView,
       }),
     }
   )

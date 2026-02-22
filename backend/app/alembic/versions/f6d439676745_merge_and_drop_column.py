@@ -17,7 +17,14 @@ depends_on = None
 
 def upgrade():
     # Drop the duplicate column 'openrouter_api_key' to ensure single source of truth (encrypted_openrouter_key)
-    op.drop_column('user', 'openrouter_api_key')
+    # Idempotent: skip if column was already dropped (e.g., on a previous deployment)
+    conn = op.get_bind()
+    result = conn.execute(sa.text(
+        "SELECT column_name FROM information_schema.columns "
+        "WHERE table_name='user' AND column_name='openrouter_api_key'"
+    ))
+    if result.fetchone():
+        op.drop_column('user', 'openrouter_api_key')
 
 def downgrade():
     # Add back the column if downgraded
