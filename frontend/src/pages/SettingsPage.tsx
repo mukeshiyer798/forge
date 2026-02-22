@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Settings, Eye, EyeOff, ExternalLink, Mail, Send } from 'lucide-react';
 import { useAppStore, mapBackendUserToUser } from '@/store/useAppStore';
-import { apiRequest, getCurrentUser } from '@/lib/api';
+import { apiRequest, getCurrentUser, updateGoalApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { getGeminiApiKey, setGeminiApiKey, clearGeminiApiKey, testGeminiConnection } from '@/lib/gemini';
+import { testGeminiConnection } from '@/lib/gemini';
 
 export default function SettingsPage() {
-  const { user, login, goals } = useAppStore();
+  const { user, goals } = useAppStore();
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [morningTime, setMorningTime] = useState('07:00');
   const [afternoonTime, setAfternoonTime] = useState('14:00');
@@ -59,9 +59,10 @@ export default function SettingsPage() {
       .catch(() => { });
   }, []);
 
-  const handleSave = async (silent: boolean = false) => {
-    if (!silent) setSaving(true);
+  const handleSave = async () => {
+    setSaving(true);
     try {
+      // 1. Save email preferences
       await apiRequest('/email-preferences', {
         method: 'PUT',
         body: JSON.stringify({
@@ -73,63 +74,42 @@ export default function SettingsPage() {
         }),
       });
 
-      // SECURITY & VALIDATION: Only save API key if it passes the live connection test.
+      // 2. Save API key + user prefs in one PATCH if key is provided
       const patchBody: Record<string, unknown> = {};
       if (geminiKey.trim()) {
-        const keyData = geminiKey.trim();
-        setGeminiTesting(true);
-        const ok = await testGeminiConnection(keyData);
-        setGeminiTesting(false);
-
-        if (ok) {
-          patchBody.openrouter_api_key = keyData;
-          setGeminiStatus('ok');
-          setGeminiKey('');
-          console.debug('[FORGE] API Key validated and ready for persistence');
-        } else {
-          setGeminiStatus('fail');
-          console.debug('[FORGE] API Key failed validation — aborting DB save');
-          if (!silent) {
-            setSaving(false);
-            return; // Abort bulk save if API key is invalid
-          }
-        }
+        patchBody.openrouter_api_key = geminiKey.trim();
       }
 
-      if (Object.keys(patchBody).length > 0) {
-        await apiRequest('/users/me', {
-          method: 'PATCH',
-          body: JSON.stringify(patchBody),
-        });
-      }
+      await apiRequest('/users/me', {
+        method: 'PATCH',
+        body: JSON.stringify(patchBody),
+      });
 
       const updatedUser = await getCurrentUser();
       useAppStore.getState().updateUser(mapBackendUserToUser(updatedUser));
 
-      // Update daily task requirement on all goals
+      if (geminiKey.trim()) {
+        setGeminiKey('');
+        setGeminiStatus('ok');
+      }
+
+      // 3. Sync daily task target to all goals
       const { goals: currentGoals } = useAppStore.getState();
       for (const g of currentGoals) {
         if (g.dailyTaskRequirement !== dailyTaskTarget) {
-          // Sync to backend
-          import('@/lib/api').then(({ updateGoalApi }) => {
-            updateGoalApi(g.id, { daily_task_requirement: dailyTaskTarget }).catch(() => { });
-          });
+          updateGoalApi(g.id, { daily_task_requirement: dailyTaskTarget }).catch(() => { });
         }
       }
-
-      // Update local store goals
       useAppStore.setState(state => ({
         goals: state.goals.map(g => ({ ...g, dailyTaskRequirement: dailyTaskTarget })),
       }));
 
-      if (!silent) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
-      }
-    } catch {
-      // Demo mode
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e) {
+      console.error('[FORGE] Save preferences error:', e);
     } finally {
-      if (!silent) setSaving(false);
+      setSaving(false);
     }
   };
 
@@ -138,24 +118,22 @@ export default function SettingsPage() {
     setGeminiStatus('idle');
     try {
       const keyToTest = geminiKey.trim() || undefined;
-
-      // Step 1: Test the proxy connection with the unpersisted key (or currently saved key if empty)
       const ok = await testGeminiConnection(keyToTest);
       setGeminiStatus(ok ? 'ok' : 'fail');
 
-      // Step 2: If successful AND we have an unpersisted key typed in, persist it immediately
       if (ok && keyToTest) {
+        // New key tested successfully — persist it now
         await apiRequest('/users/me', {
           method: 'PATCH',
-          body: JSON.stringify({ openrouter_api_key: keyToTest })
+          body: JSON.stringify({ openrouter_api_key: keyToTest }),
         });
         const updatedUser = await getCurrentUser();
         useAppStore.getState().updateUser(mapBackendUserToUser(updatedUser));
-
-        // Step 3: Clear the local UI input to show the ••••••• placeholder
-        setGeminiKey('');
+        setGeminiKey(''); // clear input, show ••••• placeholder
       }
-    } catch {
+      // If !keyToTest, we just tested the existing DB key — no save needed
+    } catch (e) {
+      console.error('[FORGE] handleTestGemini error:', e);
       setGeminiStatus('fail');
     } finally {
       setGeminiTesting(false);
