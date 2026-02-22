@@ -122,16 +122,10 @@ export default function SettingsPage() {
       setGeminiStatus(ok ? 'ok' : 'fail');
 
       if (ok && keyToTest) {
-        // New key tested successfully — persist it now
-        await apiRequest('/users/me', {
-          method: 'PATCH',
-          body: JSON.stringify({ openrouter_api_key: keyToTest }),
-        });
         const updatedUser = await getCurrentUser();
         useAppStore.getState().updateUser(mapBackendUserToUser(updatedUser));
         setGeminiKey(''); // clear input, show ••••• placeholder
       }
-      // If !keyToTest, we just tested the existing DB key — no save needed
     } catch (e) {
       console.error('[FORGE] handleTestGemini error:', e);
       setGeminiStatus('fail');

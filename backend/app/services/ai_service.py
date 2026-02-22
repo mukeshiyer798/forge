@@ -59,6 +59,23 @@ class AiService:
             logger.error(f"OpenRouter HTTP error: {e.response.status_code} - {e.response.text}")
             raise ConnectionError(f"AI Provider Error: {e.response.status_code}")
 
+    async def generate_insights(self, goal_names: list[str], goal_types: list[str], industries: list[str], user: User) -> list[dict]:
+        from app.prompts.reading_insights import build_reading_insights_prompt
+        prompt = build_reading_insights_prompt(goal_names, goal_types, industries)
+        response = await self.generate_response(prompt, user)
+        # response should be the list of insights directly or under a "insights" key
+        if isinstance(response, list):
+            return response
+        return response.get("insights", [])
+
+    async def generate_wisdom(self, user: User) -> list[dict]:
+        from app.prompts.reading_insights import build_mindset_prompt
+        prompt = build_mindset_prompt()
+        response = await self.generate_response(prompt, user)
+        if isinstance(response, list):
+            return response
+        return response.get("mindset", response.get("lessons", []))
+
     async def test_key(self, api_key: str) -> bool:
         """Tests an API key directly without needing a user DB entry."""
         headers = {

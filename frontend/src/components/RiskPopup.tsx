@@ -22,7 +22,7 @@ export default function RiskPopup({ open, onClose, completed, required }: RiskPo
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
+            className={`fixed inset-0 bg-black/80 backdrop-blur-sm z-50 ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}
             onClick={onClose}
           />
           <motion.div
