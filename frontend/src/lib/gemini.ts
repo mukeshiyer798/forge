@@ -77,11 +77,24 @@ export async function callGeminiForInsights<T = unknown>(prompt: string, model?:
 }
 
 /**
- * Test the API connection.
+ * Test the API connection. optionally using an unsaved key
  */
-export async function testGeminiConnection(): Promise<boolean> {
+export async function testGeminiConnection(apiKey?: string): Promise<boolean> {
     try {
-        const result = await callGemini<{ ok: boolean }>('Return exactly: {"ok": true}');
+        const token = getAccessToken();
+        if (!token) throw new Error("Authentication required");
+
+        const res = await fetch(`${API_BASE}/api/v1/ai/test`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ api_key: apiKey || '' }),
+        });
+
+        if (!res.ok) return false;
+        const result = await res.json();
         return result?.ok === true;
     } catch {
         return false;

@@ -59,8 +59,8 @@ export default function SettingsPage() {
       .catch(() => { });
   }, []);
 
-  const handleSave = async () => {
-    setSaving(true);
+  const handleSave = async (silent: boolean = false) => {
+    if (!silent) setSaving(true);
     try {
       await apiRequest('/email-preferences', {
         method: 'PUT',
@@ -73,14 +73,27 @@ export default function SettingsPage() {
         }),
       });
 
-      // SECURITY: Only send API key if user actually typed a new one.
-      // Sending undefined/empty would accidentally clear the key.
+      // SECURITY & VALIDATION: Only save API key if it passes the live connection test.
       const patchBody: Record<string, unknown> = {};
       if (geminiKey.trim()) {
-        patchBody.openrouter_api_key = geminiKey.trim();
-        console.debug('[FORGE] Settings save — sending new API key to backend');
-      } else {
-        console.debug('[FORGE] Settings save — no API key change');
+        const keyData = geminiKey.trim();
+        setGeminiTesting(true);
+        const ok = await testGeminiConnection(keyData);
+        setGeminiTesting(false);
+
+        if (ok) {
+          patchBody.openrouter_api_key = keyData;
+          setGeminiStatus('ok');
+          setGeminiKey('');
+          console.debug('[FORGE] API Key validated and ready for persistence');
+        } else {
+          setGeminiStatus('fail');
+          console.debug('[FORGE] API Key failed validation — aborting DB save');
+          if (!silent) {
+            setSaving(false);
+            return; // Abort bulk save if API key is invalid
+          }
+        }
       }
 
       if (Object.keys(patchBody).length > 0) {
@@ -97,11 +110,6 @@ export default function SettingsPage() {
       const { goals: currentGoals } = useAppStore.getState();
       for (const g of currentGoals) {
         if (g.dailyTaskRequirement !== dailyTaskTarget) {
-          // Update via store's sync
-          const updated = { ...g, dailyTaskRequirement: dailyTaskTarget };
-          useAppStore.setState(state => ({
-            goals: state.goals.map(gg => gg.id === g.id ? updated : gg),
-          }));
           // Sync to backend
           import('@/lib/api').then(({ updateGoalApi }) => {
             updateGoalApi(g.id, { daily_task_requirement: dailyTaskTarget }).catch(() => { });
@@ -109,12 +117,19 @@ export default function SettingsPage() {
         }
       }
 
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      // Update local store goals
+      useAppStore.setState(state => ({
+        goals: state.goals.map(g => ({ ...g, dailyTaskRequirement: dailyTaskTarget })),
+      }));
+
+      if (!silent) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
     } catch {
       // Demo mode
     } finally {
-      setSaving(false);
+      if (!silent) setSaving(false);
     }
   };
 
@@ -122,17 +137,24 @@ export default function SettingsPage() {
     setGeminiTesting(true);
     setGeminiStatus('idle');
     try {
-      if (geminiKey.trim()) {
+      const keyToTest = geminiKey.trim() || undefined;
+
+      // Step 1: Test the proxy connection with the unpersisted key (or currently saved key if empty)
+      const ok = await testGeminiConnection(keyToTest);
+      setGeminiStatus(ok ? 'ok' : 'fail');
+
+      // Step 2: If successful AND we have an unpersisted key typed in, persist it immediately
+      if (ok && keyToTest) {
         await apiRequest('/users/me', {
           method: 'PATCH',
-          body: JSON.stringify({ openrouter_api_key: geminiKey.trim() })
+          body: JSON.stringify({ openrouter_api_key: keyToTest })
         });
         const updatedUser = await getCurrentUser();
         useAppStore.getState().updateUser(mapBackendUserToUser(updatedUser));
-      }
 
-      const ok = await testGeminiConnection();
-      setGeminiStatus(ok ? 'ok' : 'fail');
+        // Step 3: Clear the local UI input to show the ••••••• placeholder
+        setGeminiKey('');
+      }
     } catch {
       setGeminiStatus('fail');
     } finally {
@@ -234,7 +256,7 @@ export default function SettingsPage() {
           <p className="font-mono text-xs text-forge-dim mb-3 leading-relaxed">
             Set your OpenRouter API key for one-click AI generation. Free tier available.
           </p>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="relative">
               <input
                 type={showKey ? 'text' : 'password'}
@@ -260,7 +282,7 @@ export default function SettingsPage() {
                 disabled={(!geminiKey.trim() && !user?.hasOpenrouterKey) || geminiTesting}
                 className="font-mono text-xs uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-2 min-h-[44px] hover:bg-forge-amber/10 transition-colors disabled:opacity-40"
               >
-                {geminiTesting ? 'Testing...' : (user?.hasOpenrouterKey && !geminiKey.trim() ? 'Test Existing Key' : 'Save & Test Key')}
+                {geminiTesting ? 'Testing...' : (user?.hasOpenrouterKey && !geminiKey.trim() ? 'Test Existing Key' : 'Test Key')}
               </button>
               <button
                 onClick={async () => {
@@ -278,7 +300,7 @@ export default function SettingsPage() {
                 }}
                 className="font-mono text-xs uppercase tracking-wider text-forge-dim border border-forge-border px-3 py-2 min-h-[44px] hover:text-red-400 hover:border-red-500/30 transition-colors"
               >
-                Clear Context
+                Clear Key
               </button>
               {geminiStatus === 'ok' && (
                 <span className="font-mono text-xs text-green-400">✓ Connected Server</span>
@@ -392,7 +414,7 @@ export default function SettingsPage() {
         </section>
 
         <button
-          onClick={handleSave}
+          onClick={() => handleSave()}
           disabled={saving}
           className={cn(
             'px-6 py-3 font-mono text-sm uppercase tracking-wider border transition-colors min-h-[44px]',
