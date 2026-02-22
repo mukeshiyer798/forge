@@ -60,18 +60,13 @@
 
   html {
     font-family: 'Barlow', sans-serif;
-    /* Prevent horizontal overflow on mobile */
-    overflow-x: hidden;
-  }
-
-  /* MOBILE SAFETY: Faster tap response, removes 300ms delay on iOS/Android */
-  button, a, input, select, textarea, [role="button"] {
-    touch-action: manipulation;
   }
 
   /* Ensure minimum touch target sizes on mobile (Apple HIG: 44×44px) */
   @media (max-width: 768px) {
-    button, [role="button"] {
+
+    button,
+    [role="button"] {
       min-height: 44px;
     }
   }

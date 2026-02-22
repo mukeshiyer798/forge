@@ -52,23 +52,25 @@ class UserService:
 
     def update_me(self, db_user: User, user_in: UserUpdateMe) -> User:
         user_data = user_in.model_dump(exclude_unset=True)
+        extra_data = {}
         if "openrouter_api_key" in user_data:
             api_key = user_data.pop("openrouter_api_key")
             if api_key is None:
                 # Explicit clear — user pressed "Clear" button
-                user_data["encrypted_openrouter_key"] = None
+                extra_data["encrypted_openrouter_key"] = None
                 logger.info(f"[API_KEY] User {db_user.id} — cleared OpenRouter API key")
             elif api_key == "":
                 # Empty string = no change, skip
                 logger.debug(f"[API_KEY] User {db_user.id} — empty key ignored (no change)")
             else:
-                user_data["encrypted_openrouter_key"] = encrypt_api_key(api_key)
+                extra_data["encrypted_openrouter_key"] = encrypt_api_key(api_key)
                 logger.info(f"[API_KEY] User {db_user.id} — encrypted and stored new OpenRouter API key")
         else:
             logger.debug(f"[API_KEY] User {db_user.id} — update_me called without API key field")
-        db_user.sqlmodel_update(user_data)
+            
+        db_user.sqlmodel_update(user_data, update=extra_data)
         saved = self.repo.save(db_user)
-        logger.debug(f"[USER] User {db_user.id} — profile updated. Fields changed: {list(user_data.keys())}")
+        logger.debug(f"[USER] User {db_user.id} — profile updated. Fields changed: {list(user_data.keys())} + {list(extra_data.keys())}")
         return saved
 
     def update_password(self, db_user: User, body: UpdatePassword) -> bool:
