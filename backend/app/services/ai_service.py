@@ -58,6 +58,32 @@ class AiService:
         except httpx.HTTPStatusError as e:
             logger.error(f"OpenRouter HTTP error: {e.response.status_code} - {e.response.text}")
             raise ConnectionError(f"AI Provider Error: {e.response.status_code}")
+
+    async def test_key(self, api_key: str) -> bool:
+        """Tests an API key directly without needing a user DB entry."""
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": settings.FRONTEND_HOST,
+            "X-Title": "FORGE",
+        }
+        payload = {
+            "model": MODEL,
+            "messages": [{"role": "user", "content": "Return exactly: {\"ok\": true}"}],
+            "response_format": {"type": "json_object"},
+        }
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                response = await client.post(OPENROUTER_URL, headers=headers, json=payload)
+                if response.status_code != 200:
+                    return False
+                data = response.json()
+                if "error" in data and data["error"]:
+                    return False
+                return True
+        except Exception as e:
+            logger.warning(f"[AI] Live API key test failed: {e}")
+            return False
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse AI JSON response: {e}")
             raise ValueError("AI returned malformed JSON data")
