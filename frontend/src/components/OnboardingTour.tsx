@@ -83,6 +83,11 @@ export default function OnboardingTour() {
 
   useEffect(() => {
     const seen = localStorage.getItem(STORAGE_KEY);
+    // Disable tour on mobile/tablet (width < 1024px)
+    if (window.innerWidth < 1024) {
+      if (!seen) localStorage.setItem(STORAGE_KEY, 'seen');
+      return;
+    }
     if (!seen) setTimeout(() => setOpen(true), 600);
   }, []);
 

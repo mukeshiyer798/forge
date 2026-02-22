@@ -70,7 +70,8 @@ async def lifespan(app: FastAPI):
             initial_data.init()
             logger.info("Initial data check completed.")
         except Exception as e:
-            logger.error(f"Error during database initialization: {e}", exc_info=True)
+            logger.error(f"FATAL: Error during database initialization: {e}", exc_info=True)
+            raise e  # Force the deployment to fail if migrations cannot run!
 
     start_email_scheduler()
     yield
