@@ -241,6 +241,10 @@ export default function SettingsPage() {
                 value={geminiKey}
                 onChange={(e) => setGeminiKey(e.target.value)}
                 placeholder={user?.hasOpenrouterKey ? "•••••••••••••••• (API Key Active)" : "sk-or-..."}
+                autoComplete="new-password"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                spellCheck="false"
                 className="w-full px-4 py-2.5 pr-10 bg-forge-surface2 border border-forge-border rounded text-forge-text font-mono text-sm placeholder:text-forge-muted focus:border-forge-amber focus:outline-none"
               />
               <button
