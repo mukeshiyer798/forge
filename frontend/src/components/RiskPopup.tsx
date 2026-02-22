@@ -17,12 +17,13 @@ export default function RiskPopup({ open, onClose, completed, required }: RiskPo
   return (
     <AnimatePresence>
       {open && (
-        <>
+        <div key="risk-popup-container">
           <motion.div
+            key="risk-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className={`fixed inset-0 bg-black/80 backdrop-blur-sm z-50 ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 pointer-events-auto"
             onClick={onClose}
           />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
@@ -79,7 +80,7 @@ export default function RiskPopup({ open, onClose, completed, required }: RiskPo
               </div>
             </motion.div>
           </div>
-        </>
+        </div>
       )}
     </AnimatePresence>
   );

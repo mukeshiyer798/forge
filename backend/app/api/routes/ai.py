@@ -15,6 +15,7 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 class AIRequest(BaseModel):
     prompt: str
     model: str | None = "google/gemini-2.0-flash-001"
+    api_key: str | None = None
 
 class AITestRequest(BaseModel):
     api_key: str | None = None
@@ -51,12 +52,20 @@ async def generate_ai_response(
     request: Request,
     current_user: CurrentUser,
     ai_service: AiServiceDep,
+    user_service: UserServiceDep,
     ai_request: AIRequest,
 ) -> Any:
     """
     Proxies requests to OpenRouter/Gemini using the user's provided API key.
+    Saves the key to the DB if provided in the request body.
     Requires authentication.
     """
+    if ai_request.api_key:
+        from app.models.user import UserUpdateMe
+        user_in = UserUpdateMe(openrouter_api_key=ai_request.api_key)
+        user_service.update_me(db_user=current_user, user_in=user_in)
+        logger.info(f"[AI] User {current_user.id} — saved new API key during generation")
+
     try:
         response = await ai_service.generate_response(
             prompt=ai_request.prompt, 

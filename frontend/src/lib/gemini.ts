@@ -20,12 +20,13 @@ export const hasGeminiKey = hasApiKey;
 
 // ── Core call ────────────────────────────────────────────────
 
-async function fetchFromBackendProxy(prompt: string, model?: string) {
+async function fetchFromBackendProxy(prompt: string, model?: string, apiKey?: string) {
     const token = getAccessToken();
     if (!token) throw new Error("Authentication required for AI features");
 
-    const payload: { prompt: string, model?: string } = { prompt };
+    const payload: { prompt: string, model?: string, api_key?: string } = { prompt };
     if (model) payload.model = model;
+    if (apiKey) payload.api_key = apiKey;
 
     const res = await fetch(`${API_BASE}/api/v1/ai/generate`, {
         method: 'POST',
@@ -47,9 +48,9 @@ async function fetchFromBackendProxy(prompt: string, model?: string) {
 /**
  * Call the backend AI proxy expecting JSON back.
  */
-export async function callGemini<T = unknown>(prompt: string, model?: string): Promise<T | null> {
+export async function callGemini<T = unknown>(prompt: string, model?: string, apiKey?: string): Promise<T | null> {
     try {
-        const data = await fetchFromBackendProxy(prompt, model);
+        const data = await fetchFromBackendProxy(prompt, model, apiKey);
         return data as T;
     } catch (e) {
         console.error("AI Generation Error:", e);
@@ -60,9 +61,9 @@ export async function callGemini<T = unknown>(prompt: string, model?: string): P
 /**
  * Call the backend AI proxy expecting a JSON array.
  */
-export async function callGeminiForInsights<T = unknown>(prompt: string, model?: string): Promise<T[] | null> {
+export async function callGeminiForInsights<T = unknown>(prompt: string, model?: string, apiKey?: string): Promise<T[] | null> {
     try {
-        const parsed = await fetchFromBackendProxy(prompt, model);
+        const parsed = await fetchFromBackendProxy(prompt, model, apiKey);
         if (Array.isArray(parsed)) return parsed as T[];
         // Unwrap common wrapper keys
         const keys = Object.keys(parsed);

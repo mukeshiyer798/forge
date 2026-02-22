@@ -19,7 +19,8 @@ class AiService:
             logger.error(f"[AI] User {user.id} — no API key configured. encrypted_key_exists={bool(user.encrypted_openrouter_key)}")
             raise ValueError("You have not configured an OpenRouter API key. Please add one in your settings.")
 
-        logger.info(f"[AI] User {user.id} — generating response with model={model}, prompt_len={len(prompt)}")
+        masked = f"{api_key[:8]}...{api_key[-4:]}" if len(api_key) > 12 else "***"
+        logger.info(f"[AI] User {user.id} — generating response with model={model}, key={masked}, prompt_len={len(prompt)}")
 
         headers = {
             "Authorization": f"Bearer {api_key}",
@@ -89,6 +90,8 @@ class AiService:
             "messages": [{"role": "user", "content": "Return exactly: {\"ok\": true}"}],
             "response_format": {"type": "json_object"},
         }
+        masked = f"{api_key[:8]}...{api_key[-4:]}" if len(api_key) > 12 else "***"
+        logger.info(f"[AI] Testing API key: {masked}")
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 response = await client.post(OPENROUTER_URL, headers=headers, json=payload)
