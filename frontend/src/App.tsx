@@ -13,6 +13,8 @@ import Sidebar from '@/components/Sidebar';
 import StreakCelebration from '@/components/StreakCelebration';
 import ReloadMessage from '@/components/ReloadMessage';
 import OnboardingTour from '@/components/OnboardingTour';
+import PomodoroSession from '@/components/PomodoroSession';
+import StreakToastHandler from '@/components/StreakToastHandler';
 import { ToastProvider } from '@/lib/toast';
 
 const PAGE_MAP = {
@@ -39,6 +41,7 @@ export default function App() {
         // Fetch user's goals from backend (RBAC-scoped)
         useAppStore.getState().fetchGoalsFromBackend();
         useAppStore.getState().fetchReadingInsightsFromBackend();
+        useAppStore.getState().validateStreak();
         // Start auto token refresh (every 50 min, token expires in 60)
         setupTokenRefresh((newToken) => setAccessToken(newToken));
       })
@@ -85,6 +88,8 @@ export default function App() {
         <StreakCelebration />
         <ReloadMessage />
         <OnboardingTour />
+        <PomodoroSession />
+        <StreakToastHandler />
       </div>
     </ToastProvider>
   );

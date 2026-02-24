@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
+import { cn } from '@/lib/utils';
 
 export default function StreakCelebration() {
   const { celebrateVisible, streak, setCelebrate } = useAppStore();
@@ -50,10 +51,14 @@ export default function StreakCelebration() {
 
           {/* Banner */}
           <motion.div
+            key="celebrate-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center"
+            className={cn(
+              "fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center",
+              celebrateVisible ? "pointer-events-auto" : "pointer-events-none"
+            )}
           >
             <motion.div
               initial={{ scale: 0.5, opacity: 0, y: 40 }}

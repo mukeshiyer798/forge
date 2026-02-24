@@ -29,10 +29,14 @@ function useTheme() {
 }
 
 function NavContent({ onClose }: { onClose?: () => void }) {
-  const { user, streak, activeView, setActiveView, logout } = useAppStore();
+  const { user, streak, activeView, setActiveView, setMobileNavOpen, logout } = useAppStore();
   const { isDark, toggle: toggleTheme } = useTheme();
 
-  const handleNav = (id: ViewId) => { setActiveView(id); onClose?.(); };
+  const handleNav = (id: ViewId) => {
+    setActiveView(id);
+    setMobileNavOpen(false);
+    onClose?.();
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -122,7 +126,11 @@ function NavContent({ onClose }: { onClose?: () => void }) {
 }
 
 export default function Sidebar() {
-  const { mobileNavOpen, setMobileNavOpen, streak } = useAppStore();
+  const { mobileNavOpen, setMobileNavOpen, activeView, streak } = useAppStore();
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [activeView, setMobileNavOpen]);
 
   return (
     <>
@@ -146,27 +154,26 @@ export default function Sidebar() {
       </div>
 
       {/* Mobile drawer */}
+      {/* Backdrop — always in DOM, CSS transition */}
+      <div
+        onClick={() => setMobileNavOpen(false)}
+        className={cn(
+          "lg:hidden fixed inset-0 bg-black/70 z-40 backdrop-blur-sm transition-opacity duration-300",
+          mobileNavOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )}
+      />
+
       <AnimatePresence>
         {mobileNavOpen && (
-          <>
-            <motion.div
-              key="sidebar-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setMobileNavOpen(false)}
-              className="lg:hidden fixed inset-0 bg-black/70 z-40 backdrop-blur-sm pointer-events-auto"
-            />
-            <motion.div
-              key="sidebar-drawer"
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-              className="lg:hidden fixed left-0 top-0 bottom-0 w-[280px] bg-forge-surface border-r border-forge-border z-50 flex flex-col overflow-y-auto pointer-events-auto">
-              <NavContent onClose={() => setMobileNavOpen(false)} />
-            </motion.div>
-          </>
+          <motion.div
+            key="sidebar-drawer"
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+            className="lg:hidden fixed left-0 top-0 bottom-0 w-[280px] bg-forge-surface border-r border-forge-border z-50 flex flex-col overflow-y-auto pointer-events-auto">
+            <NavContent onClose={() => setMobileNavOpen(false)} />
+          </motion.div>
         )}
       </AnimatePresence>
     </>
