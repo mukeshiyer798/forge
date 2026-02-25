@@ -125,6 +125,9 @@ interface AppState {
   mobileNavOpen: boolean;
   celebrateVisible: boolean;
   nudgeDismissed: boolean;
+  showReflection: boolean;
+  streakEvent: 'increase' | 'reset' | 'start' | null;
+  setStreakEvent: (e: 'increase' | 'reset' | 'start' | null) => void;
 
   // Actions
   login: (user: User) => void;
@@ -165,8 +168,10 @@ interface AppState {
   setActiveView: (view: ViewId) => void;
   setMobileNavOpen: (val: boolean) => void;
   setCelebrate: (val: boolean) => void;
+  setShowReflection: (val: boolean) => void;
   dismissNudge: () => void;
   logProgressNudge: () => void;
+  validateStreak: () => void;
 
   startPomodoro: (opts?: { goalId?: string; topicId?: string; duration?: number }) => void;
   pausePomodoro: () => void;
@@ -234,6 +239,9 @@ export const useAppStore = create<AppState>()(
       mobileNavOpen: false,
       celebrateVisible: false,
       nudgeDismissed: false,
+      showReflection: false,
+      streakEvent: null,
+      setStreakEvent: (e: 'increase' | 'reset' | 'start' | null) => set({ streakEvent: e }),
 
       // CRITICAL FIX: Login clears all previous user-specific state
       // before setting the new user. This prevents RBAC leaks where
@@ -510,7 +518,9 @@ export const useAppStore = create<AppState>()(
           goals: state.goals.map((g) => {
             if (g.id !== goalId) return g;
             const subtopics = g.subtopics.map((s) =>
-              s.id === subtopicId ? { ...s, completed: !s.completed } : s
+              s.id === subtopicId
+                ? { ...s, completed: !s.completed, completedAt: !s.completed ? new Date().toISOString() : undefined }
+                : s
             );
             const progress = Math.round((subtopics.filter((s) => s.completed).length / subtopics.length) * 100);
             const status: GoalStatus = progress >= 70 ? 'on-track' : progress >= 40 ? 'at-risk' : 'behind';
@@ -528,7 +538,9 @@ export const useAppStore = create<AppState>()(
             const topics = g.topics.map((t) => {
               if (t.id !== topicId) return t;
               const subtopics = t.subtopics.map((s) =>
-                s.id === subtopicId ? { ...s, completed: !s.completed } : s
+                s.id === subtopicId
+                  ? { ...s, completed: !s.completed, completedAt: !s.completed ? new Date().toISOString() : undefined }
+                  : s
               );
               return { ...t, subtopics };
             });
@@ -550,7 +562,7 @@ export const useAppStore = create<AppState>()(
             if (g.id !== goalId || !g.topics) return g;
             const topics = g.topics.map((t) =>
               t.id === topicId && t.build
-                ? { ...t, build: { ...t.build, completed: !t.build.completed } }
+                ? { ...t, build: { ...t.build, completed: !t.build.completed, completedAt: !t.build.completed ? new Date().toISOString() : undefined } }
                 : t
             );
             const updated = { ...g, topics };
@@ -584,7 +596,9 @@ export const useAppStore = create<AppState>()(
           goals: state.goals.map((g) => {
             if (g.id !== goalId || !g.topics) return g;
             const topics = g.topics.map((t) =>
-              t.id === topicId ? { ...t, completed: !t.completed } : t
+              t.id === topicId
+                ? { ...t, completed: !t.completed, completedAt: !t.completed ? new Date().toISOString() : undefined }
+                : t
             );
             const updated = { ...g, topics };
             const progress = calcGoalProgress(updated);
@@ -741,6 +755,7 @@ export const useAppStore = create<AppState>()(
         set({
           streak: 0,
           weekData: { days: [false, false, false, false, false, false, false], weekStart: getCurrentWeekStart() },
+          streakEvent: 'reset'
         });
       },
 
@@ -748,6 +763,7 @@ export const useAppStore = create<AppState>()(
         const state = get();
         let totalRequired = 0;
         let totalCompleted = 0;
+        const todayStr = new Date().toISOString().split('T')[0];
 
         state.goals.forEach((goal) => {
           if (goal.dailyTaskRequirement) {
@@ -755,12 +771,26 @@ export const useAppStore = create<AppState>()(
             let completedToday = 0;
             if (goal.topics) {
               goal.topics.forEach((topic) => {
-                const subtopicsCompleted = topic.subtopics?.filter((s) => s.completed).length || 0;
-                if (topic.build?.completed) completedToday++;
-                completedToday += subtopicsCompleted;
+                // Topic itself
+                if (topic.completed && topic.completedAt?.startsWith(todayStr)) {
+                  completedToday++;
+                }
+                // Subtopics
+                (topic.subtopics || []).forEach((s) => {
+                  if (s.completed && s.completedAt?.startsWith(todayStr)) {
+                    completedToday++;
+                  }
+                });
+                // Build
+                if (topic.build?.completed && topic.build.completedAt?.startsWith(todayStr)) {
+                  completedToday++;
+                }
               });
             } else {
-              completedToday = goal.subtopics.filter((s) => s.completed).length;
+              // Legacy flat subtopics
+              completedToday = goal.subtopics.filter(
+                (s) => s.completed && s.completedAt?.startsWith(todayStr)
+              ).length;
             }
             totalCompleted += Math.min(completedToday, goal.dailyTaskRequirement);
           }
@@ -782,10 +812,12 @@ export const useAppStore = create<AppState>()(
           if (!newDays[todayIdx]) {
             newDays[todayIdx] = true;
             const allDone = newDays.every(Boolean);
+            const isStart = state.streak === 0;
             set({
               weekData: { ...state.weekData, days: newDays },
               streak: state.streak + 1,
               celebrateVisible: allDone,
+              streakEvent: isStart ? 'start' : 'increase'
             });
           }
         }
@@ -794,6 +826,7 @@ export const useAppStore = create<AppState>()(
       setActiveView: (view) => set({ activeView: view, mobileNavOpen: false }),
       setMobileNavOpen: (val) => set({ mobileNavOpen: val }),
       setCelebrate: (val) => set({ celebrateVisible: val }),
+      setShowReflection: (val) => set({ showReflection: val }),
       dismissNudge: () => set({ nudgeDismissed: true }),
       logProgressNudge: () => {
         const todayIdx = getTodayIndex();
@@ -804,6 +837,51 @@ export const useAppStore = create<AppState>()(
           nudgeDismissed: true,
           weekData: { ...state.weekData, days: newDays },
           streak: state.streak + 1,
+          streakEvent: state.streak === 0 ? 'start' : 'increase'
+        });
+      },
+
+      validateStreak: () => {
+        const state = get();
+        const todayIdx = getTodayIndex();
+        const currentWeekStart = getCurrentWeekStart();
+
+        set((s) => {
+          const updates: Partial<AppState> = {};
+          let currentDays = s.weekData.days;
+
+          // 1. Weekly rollover
+          if (s.weekData.weekStart !== currentWeekStart) {
+            // If it's a new week, check if previous week was completed
+            // If not, streak is lost.
+            const lastWeekDone = s.weekData.days.every(Boolean);
+            if (!lastWeekDone && s.streak > 0) {
+              updates.streak = 0;
+              updates.streakEvent = 'reset';
+            }
+            updates.weekData = {
+              days: [false, false, false, false, false, false, false],
+              weekStart: currentWeekStart
+            };
+            currentDays = updates.weekData.days;
+          }
+
+          // 2. Daily failure check WITHIN the current week
+          // If any day before today in the current week is incomplete, streak is lost.
+          let missedDay = false;
+          for (let i = 0; i < todayIdx; i++) {
+            if (!currentDays[i]) {
+              missedDay = true;
+              break;
+            }
+          }
+
+          if (missedDay && s.streak > 0) {
+            updates.streak = 0;
+            updates.streakEvent = 'reset';
+          }
+
+          return updates;
         });
       },
 
@@ -867,12 +945,13 @@ export const useAppStore = create<AppState>()(
         set({
           activePomodoro: null,
           pomodoroSessions: [completed, ...state.pomodoroSessions],
+          showReflection: false,
         });
         // Sync completion to backend
         updatePomodoroSessionApi(completed.id, { completed: true, end_time: endTime })
           .catch((err) => console.error('Failed to update pomodoro on backend:', err));
       },
-      cancelPomodoro: () => set({ activePomodoro: null }),
+      cancelPomodoro: () => set({ activePomodoro: null, showReflection: false }),
     }),
     {
       name: 'forge-storage',

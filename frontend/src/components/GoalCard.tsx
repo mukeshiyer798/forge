@@ -39,7 +39,7 @@ function TopicSection({ goalId, topic, isLocked }: { goalId: string; topic: Goal
   const [popupOpen, setPopupOpen] = useState(false);
   const completedSubtasks = topic.subtopics?.filter(s => s.completed).length || 0;
   const totalSubtasks = topic.subtopics?.length || 0;
-  const isCompleted = topic.completed || (totalSubtasks > 0 && completedSubtasks === totalSubtasks && topic.build?.completed);
+  const isCompleted = topic.completed || (totalSubtasks > 0 && completedSubtasks === totalSubtasks && (!topic.build || topic.build.completed));
 
   return (
     <>
@@ -275,7 +275,7 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
             {/* Topics in displayed phase */}
             <div className="space-y-2">
               {phaseTopics.map((topic) => (
-                <TopicSection key={topic.id} goalId={goal.id} topic={topic} isLocked={displayPhase > activePhase || (!topic.completed && (!topic.subtopics || topic.subtopics.length === 0))} />
+                <TopicSection key={topic.id} goalId={goal.id} topic={topic} isLocked={displayPhase > activePhase} />
               ))}
 
               {displayPhase === activePhase && (
@@ -289,7 +289,6 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
                       completed: false,
                       subtopics: [],
                       resources: [],
-                      build: { name: 'Build Project', completed: false },
                       interviewPrep: []
                     };
                     addTopicsToGoal(goal.id, [newTopic]);

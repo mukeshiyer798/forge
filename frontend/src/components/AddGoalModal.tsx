@@ -295,15 +295,18 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
   const handleConfirmCreateGoals = () => {
     if (!parsedGoalsForReview?.length) return;
     const dailyTaskReq = parseInt(dailyTaskRequirement, 10);
-    const goalsWithDailyReq = parsedGoalsForReview.map((g) => ({
+    const goalsToCreate = parsedGoalsForReview.map((g) => ({
       ...g,
       dailyTaskRequirement: dailyTaskReq || undefined,
       userId: user?.id,
+      // Only keep Phase 1 topics (taskNumber 1-5)
+      topics: (g.topics || []).filter(t => (t.taskNumber || 0) <= 5)
     }));
-    addGoals(goalsWithDailyReq);
+
+    addGoals(goalsToCreate as Goal[]);
     toast({
       title: 'Goals created',
-      description: `${goalsWithDailyReq.length} added to your dashboard`,
+      description: `${goalsToCreate.length} added to your dashboard`,
       tone: 'success',
     });
     handleClose();
@@ -697,203 +700,207 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                         {goal.topics && goal.topics.length > 0 && (
                           <div className="space-y-3 mt-4">
                             <h4 className="font-condensed font-bold text-sm uppercase tracking-wider text-forge-amber mb-2">Topics & Tasks</h4>
-                            {goal.topics.map((topic, tIdx) => (
-                              <div key={topic.id} className="border border-forge-border/40 bg-forge-surface/30 p-3 rounded-sm relative group">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newTopics = [...goal.topics!];
-                                    newTopics.splice(tIdx, 1);
-                                    updateReviewGoal(i, { topics: newTopics });
-                                  }}
-                                  className="absolute top-2 right-2 text-forge-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  title="Remove Topic"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                                <input
-                                  className="forge-input font-condensed font-bold text-sm w-[90%] mb-2"
-                                  value={topic.name}
-                                  onChange={e => {
-                                    const newTopics = [...goal.topics!];
-                                    newTopics[tIdx] = { ...topic, name: e.target.value };
-                                    updateReviewGoal(i, { topics: newTopics });
-                                  }}
-                                  placeholder="Topic name"
-                                />
-                                {topic.subtopics && topic.subtopics.length > 0 && (
-                                  <div className="pl-4 border-l-2 border-forge-border/30 space-y-1.5 mt-2">
-                                    {topic.subtopics.map((sub, sIdx) => (
-                                      <div key={sub.id} className="flex items-center gap-2 group/sub">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-forge-dim" />
-                                        <input
-                                          className="forge-input font-mono text-xs py-1 px-2 h-auto flex-1 bg-transparent border-transparent hover:border-forge-border/50 focus:border-forge-amber"
-                                          value={sub.name}
-                                          onChange={e => {
-                                            const newSubtopics = [...topic.subtopics!];
-                                            newSubtopics[sIdx] = { ...sub, name: e.target.value };
-                                            const newTopics = [...goal.topics!];
-                                            newTopics[tIdx] = { ...topic, subtopics: newSubtopics };
-                                            updateReviewGoal(i, { topics: newTopics });
-                                          }}
-                                        />
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            const newSubtopics = [...topic.subtopics!];
-                                            newSubtopics.splice(sIdx, 1);
-                                            const newTopics = [...goal.topics!];
-                                            newTopics[tIdx] = { ...topic, subtopics: newSubtopics };
-                                            updateReviewGoal(i, { topics: newTopics });
-                                          }}
-                                          className="text-forge-dim hover:text-red-400 opacity-0 group-hover/sub:opacity-100 transition-opacity"
-                                        >
-                                          <X size={12} />
-                                        </button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newSubtopics = [...(topic.subtopics || [])];
-                                    newSubtopics.push({ id: generateId(), name: 'New Subtask', completed: false });
-                                    const newTopics = [...goal.topics!];
-                                    newTopics[tIdx] = { ...topic, subtopics: newSubtopics };
-                                    updateReviewGoal(i, { topics: newTopics });
-                                  }}
-                                  className="text-[10px] font-mono uppercase tracking-wider text-forge-dim hover:text-forge-amber mt-2 flex items-center gap-1"
-                                >
-                                  <Plus size={10} /> Add Subtask
-                                </button>
-                                {topic.resources && topic.resources.length > 0 && (
-                                  <div className="pl-4 border-l-2 border-forge-border/30 space-y-1.5 mt-3 pt-3 border-t">
-                                    <p className="font-mono text-[10px] text-forge-muted uppercase tracking-wider mb-2">Resources</p>
-                                    {topic.resources.map((res, rIdx) => (
-                                      <div key={res.id || rIdx} className="flex items-start gap-2 group/res">
-                                        <div className="w-1.5 h-1.5 rounded-sm bg-forge-dim mt-2.5" />
-                                        <div className="flex-1 space-y-1">
+                            {goal.topics.map((topic, tIdx) => {
+                              // Filter out future phases from the editable review cards
+                              if ((topic.taskNumber || 0) > 5) return null;
+                              return (
+                                <div key={topic.id} className="border border-forge-border/40 bg-forge-surface/30 p-3 rounded-sm relative group">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newTopics = [...goal.topics!];
+                                      newTopics.splice(tIdx, 1);
+                                      updateReviewGoal(i, { topics: newTopics });
+                                    }}
+                                    className="absolute top-2 right-2 text-forge-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="Remove Topic"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                  <input
+                                    className="forge-input font-condensed font-bold text-sm w-[90%] mb-2"
+                                    value={topic.name}
+                                    onChange={e => {
+                                      const newTopics = [...goal.topics!];
+                                      newTopics[tIdx] = { ...topic, name: e.target.value };
+                                      updateReviewGoal(i, { topics: newTopics });
+                                    }}
+                                    placeholder="Topic name"
+                                  />
+                                  {topic.subtopics && topic.subtopics.length > 0 && (
+                                    <div className="pl-4 border-l-2 border-forge-border/30 space-y-1.5 mt-2">
+                                      {topic.subtopics.map((sub, sIdx) => (
+                                        <div key={sub.id} className="flex items-center gap-2 group/sub">
+                                          <div className="w-1.5 h-1.5 rounded-full bg-forge-dim" />
                                           <input
-                                            className="forge-input font-bold text-xs py-1 px-2 h-auto w-full bg-transparent border-transparent hover:border-forge-border/50 focus:border-forge-amber"
-                                            value={res.title}
+                                            className="forge-input font-mono text-xs py-1 px-2 h-auto flex-1 bg-transparent border-transparent hover:border-forge-border/50 focus:border-forge-amber"
+                                            value={sub.name}
                                             onChange={e => {
-                                              const newResources = [...topic.resources!];
-                                              newResources[rIdx] = { ...res, title: e.target.value };
+                                              const newSubtopics = [...topic.subtopics!];
+                                              newSubtopics[sIdx] = { ...sub, name: e.target.value };
                                               const newTopics = [...goal.topics!];
-                                              newTopics[tIdx] = { ...topic, resources: newResources };
+                                              newTopics[tIdx] = { ...topic, subtopics: newSubtopics };
                                               updateReviewGoal(i, { topics: newTopics });
                                             }}
-                                            placeholder="Resource title"
                                           />
-                                          <input
-                                            className="forge-input font-mono text-[11px] text-forge-dim py-1 px-2 h-auto w-full bg-transparent border-transparent hover:border-forge-border/50 focus:border-forge-amber"
-                                            value={res.detail || ''}
-                                            onChange={e => {
-                                              const newResources = [...topic.resources!];
-                                              newResources[rIdx] = { ...res, detail: e.target.value };
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const newSubtopics = [...topic.subtopics!];
+                                              newSubtopics.splice(sIdx, 1);
                                               const newTopics = [...goal.topics!];
-                                              newTopics[tIdx] = { ...topic, resources: newResources };
+                                              newTopics[tIdx] = { ...topic, subtopics: newSubtopics };
                                               updateReviewGoal(i, { topics: newTopics });
                                             }}
-                                            placeholder="Details (e.g. Chapter 1-3)"
-                                          />
+                                            className="text-forge-dim hover:text-red-400 opacity-0 group-hover/sub:opacity-100 transition-opacity"
+                                          >
+                                            <X size={12} />
+                                          </button>
                                         </div>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            const newResources = [...topic.resources!];
-                                            newResources.splice(rIdx, 1);
-                                            const newTopics = [...goal.topics!];
-                                            newTopics[tIdx] = { ...topic, resources: newResources };
-                                            updateReviewGoal(i, { topics: newTopics });
-                                          }}
-                                          className="text-forge-dim hover:text-red-400 opacity-0 group-hover/res:opacity-100 transition-opacity mt-1.5"
-                                        >
-                                          <X size={12} />
-                                        </button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newResources = [...(topic.resources || [])];
-                                    newResources.push({ id: generateId(), title: 'New Resource', type: 'docs', url: null });
-                                    const newTopics = [...goal.topics!];
-                                    newTopics[tIdx] = { ...topic, resources: newResources };
-                                    updateReviewGoal(i, { topics: newTopics });
-                                  }}
-                                  className="text-[10px] font-mono uppercase tracking-wider text-forge-dim hover:text-forge-amber mt-2 flex items-center gap-1"
-                                >
-                                  <Plus size={10} /> Add Resource
-                                </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newSubtopics = [...(topic.subtopics || [])];
+                                      newSubtopics.push({ id: generateId(), name: 'New Subtask', completed: false });
+                                      const newTopics = [...goal.topics!];
+                                      newTopics[tIdx] = { ...topic, subtopics: newSubtopics };
+                                      updateReviewGoal(i, { topics: newTopics });
+                                    }}
+                                    className="text-[10px] font-mono uppercase tracking-wider text-forge-dim hover:text-forge-amber mt-2 flex items-center gap-1"
+                                  >
+                                    <Plus size={10} /> Add Subtask
+                                  </button>
+                                  {topic.resources && topic.resources.length > 0 && (
+                                    <div className="pl-4 border-l-2 border-forge-border/30 space-y-1.5 mt-3 pt-3 border-t">
+                                      <p className="font-mono text-[10px] text-forge-muted uppercase tracking-wider mb-2">Resources</p>
+                                      {topic.resources.map((res, rIdx) => (
+                                        <div key={res.id || rIdx} className="flex items-start gap-2 group/res">
+                                          <div className="w-1.5 h-1.5 rounded-sm bg-forge-dim mt-2.5" />
+                                          <div className="flex-1 space-y-1">
+                                            <input
+                                              className="forge-input font-bold text-xs py-1 px-2 h-auto w-full bg-transparent border-transparent hover:border-forge-border/50 focus:border-forge-amber"
+                                              value={res.title}
+                                              onChange={e => {
+                                                const newResources = [...topic.resources!];
+                                                newResources[rIdx] = { ...res, title: e.target.value };
+                                                const newTopics = [...goal.topics!];
+                                                newTopics[tIdx] = { ...topic, resources: newResources };
+                                                updateReviewGoal(i, { topics: newTopics });
+                                              }}
+                                              placeholder="Resource title"
+                                            />
+                                            <input
+                                              className="forge-input font-mono text-[11px] text-forge-dim py-1 px-2 h-auto w-full bg-transparent border-transparent hover:border-forge-border/50 focus:border-forge-amber"
+                                              value={res.detail || ''}
+                                              onChange={e => {
+                                                const newResources = [...topic.resources!];
+                                                newResources[rIdx] = { ...res, detail: e.target.value };
+                                                const newTopics = [...goal.topics!];
+                                                newTopics[tIdx] = { ...topic, resources: newResources };
+                                                updateReviewGoal(i, { topics: newTopics });
+                                              }}
+                                              placeholder="Details (e.g. Chapter 1-3)"
+                                            />
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const newResources = [...topic.resources!];
+                                              newResources.splice(rIdx, 1);
+                                              const newTopics = [...goal.topics!];
+                                              newTopics[tIdx] = { ...topic, resources: newResources };
+                                              updateReviewGoal(i, { topics: newTopics });
+                                            }}
+                                            className="text-forge-dim hover:text-red-400 opacity-0 group-hover/res:opacity-100 transition-opacity mt-1.5"
+                                          >
+                                            <X size={12} />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newResources = [...(topic.resources || [])];
+                                      newResources.push({ id: generateId(), title: 'New Resource', type: 'docs', url: null });
+                                      const newTopics = [...goal.topics!];
+                                      newTopics[tIdx] = { ...topic, resources: newResources };
+                                      updateReviewGoal(i, { topics: newTopics });
+                                    }}
+                                    className="text-[10px] font-mono uppercase tracking-wider text-forge-dim hover:text-forge-amber mt-2 flex items-center gap-1"
+                                  >
+                                    <Plus size={10} /> Add Resource
+                                  </button>
 
-                                {topic.interviewPrep && topic.interviewPrep.length > 0 && (
-                                  <div className="pl-4 border-l-2 border-forge-border/30 space-y-1.5 mt-3 pt-3 border-t">
-                                    <p className="font-mono text-[10px] text-forge-muted uppercase tracking-wider mb-2">Interview Prep</p>
-                                    {topic.interviewPrep.map((prep, pIdx) => (
-                                      <div key={pIdx} className="flex items-start gap-2 group/prep mb-2">
-                                        <div className="w-1.5 h-1.5 rounded-sm bg-forge-dim mt-2.5" />
-                                        <div className="flex-1 space-y-1">
-                                          <input
-                                            className="forge-input font-bold text-xs py-1 px-2 h-auto w-full bg-transparent border-transparent hover:border-forge-border/50 focus:border-forge-amber"
-                                            value={prep.question}
-                                            onChange={e => {
+                                  {topic.interviewPrep && topic.interviewPrep.length > 0 && (
+                                    <div className="pl-4 border-l-2 border-forge-border/30 space-y-1.5 mt-3 pt-3 border-t">
+                                      <p className="font-mono text-[10px] text-forge-muted uppercase tracking-wider mb-2">Interview Prep</p>
+                                      {topic.interviewPrep.map((prep, pIdx) => (
+                                        <div key={pIdx} className="flex items-start gap-2 group/prep mb-2">
+                                          <div className="w-1.5 h-1.5 rounded-sm bg-forge-dim mt-2.5" />
+                                          <div className="flex-1 space-y-1">
+                                            <input
+                                              className="forge-input font-bold text-xs py-1 px-2 h-auto w-full bg-transparent border-transparent hover:border-forge-border/50 focus:border-forge-amber"
+                                              value={prep.question}
+                                              onChange={e => {
+                                                const newPrep = [...topic.interviewPrep!];
+                                                newPrep[pIdx] = { ...prep, question: e.target.value };
+                                                const newTopics = [...goal.topics!];
+                                                newTopics[tIdx] = { ...topic, interviewPrep: newPrep };
+                                                updateReviewGoal(i, { topics: newTopics });
+                                              }}
+                                              placeholder="Question"
+                                            />
+                                            <textarea
+                                              className="forge-input font-mono text-[11px] text-forge-dim py-1 px-2 h-auto w-full bg-transparent border-transparent hover:border-forge-border/50 focus:border-forge-amber resize-none min-h-[40px]"
+                                              value={prep.answer || ''}
+                                              onChange={e => {
+                                                const newPrep = [...topic.interviewPrep!];
+                                                newPrep[pIdx] = { ...prep, answer: e.target.value };
+                                                const newTopics = [...goal.topics!];
+                                                newTopics[tIdx] = { ...topic, interviewPrep: newPrep };
+                                                updateReviewGoal(i, { topics: newTopics });
+                                              }}
+                                              placeholder="Answer"
+                                            />
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
                                               const newPrep = [...topic.interviewPrep!];
-                                              newPrep[pIdx] = { ...prep, question: e.target.value };
+                                              newPrep.splice(pIdx, 1);
                                               const newTopics = [...goal.topics!];
                                               newTopics[tIdx] = { ...topic, interviewPrep: newPrep };
                                               updateReviewGoal(i, { topics: newTopics });
                                             }}
-                                            placeholder="Question"
-                                          />
-                                          <textarea
-                                            className="forge-input font-mono text-[11px] text-forge-dim py-1 px-2 h-auto w-full bg-transparent border-transparent hover:border-forge-border/50 focus:border-forge-amber resize-none min-h-[40px]"
-                                            value={prep.answer || ''}
-                                            onChange={e => {
-                                              const newPrep = [...topic.interviewPrep!];
-                                              newPrep[pIdx] = { ...prep, answer: e.target.value };
-                                              const newTopics = [...goal.topics!];
-                                              newTopics[tIdx] = { ...topic, interviewPrep: newPrep };
-                                              updateReviewGoal(i, { topics: newTopics });
-                                            }}
-                                            placeholder="Answer"
-                                          />
+                                            className="text-forge-dim hover:text-red-400 opacity-0 group-hover/prep:opacity-100 transition-opacity mt-1.5"
+                                          >
+                                            <X size={12} />
+                                          </button>
                                         </div>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            const newPrep = [...topic.interviewPrep!];
-                                            newPrep.splice(pIdx, 1);
-                                            const newTopics = [...goal.topics!];
-                                            newTopics[tIdx] = { ...topic, interviewPrep: newPrep };
-                                            updateReviewGoal(i, { topics: newTopics });
-                                          }}
-                                          className="text-forge-dim hover:text-red-400 opacity-0 group-hover/prep:opacity-100 transition-opacity mt-1.5"
-                                        >
-                                          <X size={12} />
-                                        </button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newPrep = [...(topic.interviewPrep || [])];
-                                    newPrep.push({ question: 'New Question', answer: '' });
-                                    const newTopics = [...goal.topics!];
-                                    newTopics[tIdx] = { ...topic, interviewPrep: newPrep };
-                                    updateReviewGoal(i, { topics: newTopics });
-                                  }}
-                                  className="text-[10px] font-mono uppercase tracking-wider text-forge-dim hover:text-forge-amber mt-2 flex items-center gap-1"
-                                >
-                                  <Plus size={10} /> Add Question
-                                </button>
-                              </div>
-                            ))}
+                                      ))}
+                                    </div>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newPrep = [...(topic.interviewPrep || [])];
+                                      newPrep.push({ question: 'New Question', answer: '' });
+                                      const newTopics = [...goal.topics!];
+                                      newTopics[tIdx] = { ...topic, interviewPrep: newPrep };
+                                      updateReviewGoal(i, { topics: newTopics });
+                                    }}
+                                    className="text-[10px] font-mono uppercase tracking-wider text-forge-dim hover:text-forge-amber mt-2 flex items-center gap-1"
+                                  >
+                                    <Plus size={10} /> Add Question
+                                  </button>
+                                </div>
+                              );
+                            })}
                             <button
                               type="button"
                               onClick={() => {
@@ -901,11 +908,10 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                                 newTopics.push({
                                   id: generateId(),
                                   name: 'New Topic',
-                                  taskNumber: newTopics.length + 1,
+                                  taskNumber: 1, // Keep manual topics in Phase 1 by default
                                   completed: false,
                                   subtopics: [],
                                   resources: [],
-                                  build: { name: 'Build Project', completed: false },
                                   interviewPrep: []
                                 });
                                 updateReviewGoal(i, { topics: newTopics });
@@ -920,11 +926,23 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                     ))}
                     {reviewSource !== 'quick' && (
                       <div className="border-t border-forge-border/30 pt-6 mt-8 mb-4 text-center">
-                        <p className="font-condensed text-xs text-forge-amber uppercase tracking-[0.2em] mb-2 font-bold opacity-80 flex items-center justify-center gap-2">
+                        <p className="font-condensed text-xs text-forge-amber uppercase tracking-[0.2em] mb-3 font-bold opacity-80 flex items-center justify-center gap-2">
                           <span className="w-10 h-px bg-forge-amber/20" />
                           🔒 Phase 2 & 3 Locked
                           <span className="w-10 h-px bg-forge-amber/20" />
                         </p>
+
+                        {/* Show names of locked topics if available */}
+                        {parsedGoalsForReview.some(g => g.topics && g.topics.some(t => (t.taskNumber || 0) > 5)) && (
+                          <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mb-4 max-w-[400px] mx-auto opacity-40">
+                            {parsedGoalsForReview.flatMap(g => (g.topics || []).filter(t => (t.taskNumber || 0) > 5)).map(t => (
+                              <span key={t.id} className="font-mono text-[9px] text-forge-muted uppercase tracking-wider">
+                                // {t.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
                         <p className="font-mono text-[10px] text-forge-muted max-w-[300px] mx-auto leading-relaxed">
                           AI focuses on Phase 1 for deep execution. Once you complete these topics, you can return to generate subsequent phases.
                         </p>

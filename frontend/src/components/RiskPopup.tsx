@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, X } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
+import { cn } from '@/lib/utils';
 
 interface RiskPopupProps {
   open: boolean;
@@ -17,16 +18,19 @@ export default function RiskPopup({ open, onClose, completed, required }: RiskPo
   return (
     <AnimatePresence>
       {open && (
-        <div key="risk-popup-container">
+        <>
           <motion.div
             key="risk-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 pointer-events-auto"
+            className={cn(
+              "fixed inset-0 bg-black/80 backdrop-blur-sm z-50",
+              open ? "pointer-events-auto" : "pointer-events-none"
+            )}
             onClick={onClose}
           />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+          <div className="fixed inset-0 z-[51] flex items-center justify-center p-4 pointer-events-none">
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -80,7 +84,7 @@ export default function RiskPopup({ open, onClose, completed, required }: RiskPo
               </div>
             </motion.div>
           </div>
-        </div>
+        </>
       )}
     </AnimatePresence>
   );
