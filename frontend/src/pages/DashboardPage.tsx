@@ -157,7 +157,6 @@ export default function DashboardPage() {
       </div>
 
       <AddGoalModal open={addModalOpen} onClose={() => setAddModalOpen(false)} />
-      <PomodoroSession />
     </>
   );
 }

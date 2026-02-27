@@ -40,11 +40,29 @@ export function calcGoalProgress(goal: Goal): number {
     let total = 0;
     let completed = 0;
     for (const t of topics) {
-      total += t.subtopics.length;
-      completed += t.subtopics.filter((s) => s.completed).length;
-      if (t.build) {
-        total += 1;
-        if (t.build.completed) completed += 1;
+      if (t.completed) {
+        // If topic is marked complete, count all its constituents as done
+        const subCount = t.subtopics?.length || 0;
+        const buildCount = t.build ? 1 : 0;
+        total += subCount + buildCount;
+        completed += subCount + buildCount;
+
+        // Ensure even empty topics count for something
+        if (subCount === 0 && buildCount === 0) {
+          total += 1;
+          completed += 1;
+        }
+      } else {
+        total += t.subtopics.length;
+        completed += t.subtopics.filter((s) => s.completed).length;
+        if (t.build) {
+          total += 1;
+          if (t.build.completed) completed += 1;
+        }
+        // Ensure even uncompleted empty topics count in the total
+        if (t.subtopics.length === 0 && !t.build) {
+          total += 1;
+        }
       }
     }
     if (capstone) {

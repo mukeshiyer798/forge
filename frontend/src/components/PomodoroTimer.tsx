@@ -20,10 +20,9 @@ export default function PomodoroTimer({
   compact = false,
   headerMode = false,
 }: PomodoroTimerProps) {
-  const { activePomodoro, startPomodoro, completePomodoro, cancelPomodoro } = useAppStore();
+  const { activePomodoro, showReflection, startPomodoro, completePomodoro, cancelPomodoro, setShowReflection } = useAppStore();
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [selectedDuration, setSelectedDuration] = useState(25);
-  const [showReflection, setShowReflection] = useState(false);
   const [showGoalPicker, setShowGoalPicker] = useState(false);
 
   const duration = activePomodoro?.duration ?? selectedDuration;
@@ -31,7 +30,7 @@ export default function PomodoroTimer({
 
   const handleComplete = useCallback(() => {
     setShowReflection(true);
-  }, []);
+  }, [setShowReflection]);
 
   useEffect(() => {
     if (!activePomodoro) return;

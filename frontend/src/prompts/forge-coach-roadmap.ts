@@ -122,14 +122,16 @@ Return ONLY valid JSON. Start with '{' end with '}'.
 }
 
 CRITICAL:
-- 4-6 fully detailed topics for Phase 1.
+- 4-6 fully detailed topics for Phase 1 (taskNumber 1-5).
 - 3-5 locked topics for Phase 2 (taskNumber 6+). For these, provide ONLY id, name, description, taskNumber, and completed: false. They must have empty resources/subtopics.
-- 2-3 resources per Phase 1 topic with SPECIFIC chapters/sections.
-- 3-5 hands-on subtopics per Phase 1 topic. Each is a concrete action.
-- 3-4 interviewPrep Q&A pairs per Phase 1 topic.
-- Resources must be REAL titles. Free only.
+- Topic names for Phase 2 should NOT include "(Phase 2)" in the title; this will be handled by the UI.
+- 2-3 resources per Phase 1 topic with SPECIFIC chapters/sections. Use REAL, well-known books or courses.
+- 3-5 hands-on subtopics per Phase 1 topic. Each is a concrete action (e.g., "Implement X using Y").
+- 3-4 interviewPrep Q&A pairs per Phase 1 topic. Answers must be detailed and technically accurate.
+- Resources must be REAL titles. Free only. If a URL is available (e.g., YouTube or documentation), provide it.
 - phaseRoadmap lists topic names for ALL future phases.
-- Return EXACTLY ONE goal object.`;
+- Return EXACTLY ONE goal object.
+- QUALITY OVER QUANTITY: Ensure Phase 1 is a masterclass in details. Each topic must feel like a deep-dive.`;
 
 // ── Phase generation prompt ──────────────────────────────────
 

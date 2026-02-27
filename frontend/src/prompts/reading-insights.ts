@@ -72,7 +72,7 @@ export function buildReadingInsightsPrompt(vars: ReadingInsightPromptVars): stri
     const uniqueSources = [...new Set(sourceSuggestions)].slice(0, 15);
     const sourcesList = uniqueSources.map(s => `  - ${s}`).join('\n');
 
-    return `You are a knowledge curator for FORGE — a personal learning platform. Your job is to surface the most interesting, practical, and non-obvious things happening RIGHT NOW in the fields this learner cares about.
+    return `You are a knowledge curator for FORGE — a personal learning platform. Your job is to surface the most interesting, practical, and technically deep things happening RIGHT NOW in the fields this learner cares about.
 
 ## THE LEARNER'S ACTIVE GOALS
 ${goalList}
@@ -80,7 +80,7 @@ ${goalList}
 ## THEIR FIELDS
 ${industriesList}
 
-## PREFERRED SOURCES (prioritize articles/insights from these)
+## PREFERRED SOURCES (You MUST prioritize articles/insights from these)
 ${sourcesList}
 
 ---
@@ -89,53 +89,42 @@ ${sourcesList}
 
 Generate 6-8 reading insights. These should be:
 
-1. **CURRENT** — Things from the last 6 months. Not evergreen advice everyone knows. Think: "Stripe just launched Minions (AI agents that handle disputes)" or "Bridgewater's latest research note argues rate cuts won't happen until Q3" or "Grab's engineering team solved the distributed tracing problem at 10x scale."
+1. **CURRENT & SPECIFIC** — Things from the last 6 months. Reference REAL, specific blog posts or events. (e.g., "Stripe's new Minions agents", "Vercel's AI SDK 3.0", "Netflix's move to GraphQL for their mobile homepage").
 
-2. **PRACTICAL** — Each insight should make the reader think "I should look into this" or "I can use this." Real things practitioners talk about on X, Hacker News, or in Slack channels.
+2. **PRACTICAL & TECHNICAL** — Don't be generic. Explain the HOW. If a blog post discusses a migration, mention the tools used. If a research note discusses interest rates, mention the specific metrics cited.
 
-3. **FROM REAL SOURCES** — Reference actual blog posts, articles, research papers, or newsletters from the sources listed above (or similar quality sources). Include the URL when possible. Don't invent articles that don't exist — reference real ones.
+3. **FROM REAL SOURCES ONLY** — If you reference a source from the list above, it MUST be a real article that exists. Research the current state of these blogs in your knowledge.
 
-4. **DEPTH-ORIENTED** — Don't just say "AI is changing everything." Say "Vercel's v0 can now generate full Next.js apps from screenshots — here's what that means for frontend developers."
-
-5. **VARIED** — Mix between:
-   - **Industry moves** (company launches, open-source releases, research)
-   - **Skill insights** (trends in what skills matter most right now)
-   - **Career intel** (hiring trends, role changes, compensation data)
-   - **Tool discoveries** (new tools, frameworks, or platforms worth trying)
-   - **Learning resources** (new free courses, books, YouTube channels)
-   - **Blog deep-dives** (specific engineering/research blog posts worth reading)
-
-6. **GOAL-RELEVANT** — Match the learner's goals. If they're learning Java, prioritize JVM ecosystem. If they're in finance, prioritize market analysis and research.
+4. **GOAL-ALIGNED** — If the learner is learning Java, focus on the Java/Spring/JVM ecosystem moves. If they are in AI, focus on LLM engineering and infrastructure.
 
 ---
 
 ## OUTPUT FORMAT
 
-Return ONLY a valid JSON array. No markdown fences, no comments. Start with '[' and end with ']'.
+Return ONLY a valid JSON array.
 
 [
   {
-    "id": "string — unique e.g. 'insight-1'",
-    "title": "string — attention-grabbing: 'Stripe's Engineering Blog Explains How They Built AI Dispute Agents'",
-    "source": "string — the actual source: 'Stripe Engineering Blog', 'Howard Marks Memo', 'Netflix Tech Blog'",
+    "id": "string — unique",
+    "title": "string — Specific & punchy (e.g., 'How Uber Eng Handles 2 Million Requests per Second with Go')",
+    "source": "string — Actual blog/source name",
     "category": "tech | finance | health | productivity | career | design",
     "type": "industry_move | skill_insight | career_intel | tool_discovery | learning_resource | blog_deep_dive",
-    "summary": "string — 2-3 sentences. What happened, why it matters for THIS learner, and what they should do about it.",
-    "keyTakeaway": "string — one sentence: the single most important thing to remember",
-    "actionItem": "string — specific next step: 'Read the full post at [url] and notice how they used [pattern relevant to learner's goal]'",
-    "relevantGoal": "string — which of the learner's goals this maps to, or 'general'",
-    "url": "string or null — direct link to the source article/post when available",
+    "summary": "string — 3-4 sentences. Detailed explanation of the insight, its technical relevance, and why it's a 'must-read' for someone with this learner's goals.",
+    "keyTakeaway": "string — one sentence: the core technical or practical lesson",
+    "actionItem": "string — 'Read the full article at [url]. Pay close attention to [specific technical detail].'",
+    "relevantGoal": "string — which goal matches this best",
+    "url": "string or null — Direct link to the source post",
     "freshness": "string — 'this week' | 'this month' | 'last 3 months' | 'recent'"
   }
 ]
 
-RULES:
-- Every insight must reference REAL sources. Prefer the sources listed above.
-- If referencing a blog post, include the actual URL when you know it.
-- If you're unsure about a specific date/detail, say "recently" instead of making up dates.
-- Include at least 2 specific blog post deep-dives from the preferred sources.
-- Each actionItem should be specific enough to act on today.
-- Make it feel like a smart friend who reads everything sent you a curated briefing.`;
+CRITICAL RULES:
+- NO GENERIC ADVICE (e.g., 'Read more books').
+- NO PLACEHOLDERS.
+- Ensure the 'summary' is meaty and informative.
+- If you don't know a real URL, provide a search query string for the URL and I will label it appropriately.
+- At least 50% of insights must be 'blog_deep_dive' from the preferred sources.`;
 }
 
 /**

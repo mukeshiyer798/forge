@@ -5,6 +5,7 @@ export interface SubTopic {
   id: string;
   name: string;
   completed: boolean;
+  completedAt?: string;
 }
 
 /** Resource inside a topic (book, docs, video, blog, youtube — all free) */
@@ -23,6 +24,7 @@ export interface GoalBuild {
   doneWhen?: string;
   estimatedHours?: number;
   completed: boolean;
+  completedAt?: string;
 }
 
 /** Topic with resources, build, subtopics (full card structure) */
@@ -32,8 +34,9 @@ export interface GoalTopic {
   description?: string;
   taskNumber: number;
   completed: boolean;
+  completedAt?: string;
   resources: GoalResource[];
-  build: GoalBuild;
+  build?: GoalBuild;
   subtopics: SubTopic[];
   activeRecallQuestion?: string;
   activeRecallAnswer?: string;
