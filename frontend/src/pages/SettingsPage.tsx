@@ -223,10 +223,10 @@ export default function SettingsPage() {
         {/* AI API Key */}
         <section id="settings-api-key" className="mb-8">
           <h3 className="font-condensed font-bold text-lg uppercase tracking-wider text-forge-amber mb-4">
-            AI API Key
+            AI Connection
           </h3>
           <p className="font-mono text-xs text-forge-dim mb-3 leading-relaxed">
-            Set your OpenRouter API key for one-click AI generation. Free tier available.
+            Your access code powers AI features — roadmap generation, reading insights, and more. Free codes available.
           </p>
           <div className="space-y-4">
             <div className="relative">

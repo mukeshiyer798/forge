@@ -42,6 +42,8 @@ export interface GoalTopic {
   activeRecallAnswer?: string;
   /** Multiple interview prep questions with hidden answers */
   interviewPrep?: Array<{ question: string; answer: string }>;
+  /** Learning science note explaining WHY this topic is placed here */
+  pedagogyNote?: string;
 }
 
 /** Capstone at bottom of goal card */

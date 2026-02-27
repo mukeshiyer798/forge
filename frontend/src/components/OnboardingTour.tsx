@@ -25,8 +25,8 @@ const STEPS: TourStep[] = [
     cta: 'Start Tour →',
   },
   {
-    title: 'Add Your AI Key',
-    body: 'Paste an OpenRouter API key here to unlock 1-click roadmap generation. Get a free key at openrouter.ai/keys.',
+    title: 'Connect AI ✨',
+    body: 'Paste a free access code here so the app can build personalized study plans for you. Get one at openrouter.ai/keys — it takes 30 seconds.',
     targetId: 'settings-api-key',
     view: 'settings',
     position: 'top',
@@ -60,7 +60,7 @@ const STEPS: TourStep[] = [
   },
   {
     title: 'You\'re All Set!',
-    body: 'Start by adding your API key in Settings, then create your first goal. Consistency over ambition — show up every day.',
+    body: 'Head to Settings to connect AI, then create your first goal. Consistency over ambition — show up every day.',
     targetId: 'nav-dashboard',
     view: 'dashboard',
     position: 'right',

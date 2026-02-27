@@ -13,7 +13,7 @@ export default function HeroBanner() {
       <div className="absolute top-0 left-10 w-40 h-40 bg-amber-500/5 blur-[60px] pointer-events-none" />
 
       <div className="relative z-10">
-        <p className="font-mono text-xs uppercase tracking-[0.25em] text-forge-amber mb-3">// Daily Mantra</p>
+        <p className="font-mono text-sm uppercase tracking-[0.25em] text-forge-amber mb-3">// Daily Mantra</p>
         <h1 className="font-display text-[clamp(40px,7vw,80px)] leading-[0.92] text-forge-text tracking-wide mb-6">
           CONSISTENCY<br />
           OVER{' '}
@@ -35,7 +35,7 @@ export default function HeroBanner() {
             <p className="font-body font-light text-[15px] lg:text-[17px] text-forge-text leading-relaxed italic mb-2">
               "{quote.text}"
             </p>
-            <p className="font-mono text-xs uppercase tracking-[0.12em] text-forge-amber">
+            <p className="font-mono text-sm uppercase tracking-[0.12em] text-forge-amber">
               — {quote.author}
               {quote.source && <span className="text-forge-dim">, {quote.source}</span>}
             </p>

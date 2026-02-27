@@ -70,7 +70,8 @@ async def generate_ai_response(
         response = await ai_service.generate_response(
             prompt=ai_request.prompt, 
             user=current_user,
-            model=ai_request.model or "google/gemini-2.0-flash-001"
+            model=ai_request.model or "google/gemini-2.0-flash-001",
+            api_key_override=ai_request.api_key or None
         )
         return response
     except ValueError as e:
@@ -80,3 +81,69 @@ async def generate_ai_response(
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+def _extract_goal_context(user) -> list[dict]:
+    """Extract goal data with current phase and active topics for AI prompts."""
+    goals_data = []
+    for g in user.goals:
+        import json as _json
+        topics = []
+        current_phase = 1
+        current_topics = []
+        try:
+            topics = _json.loads(g.topics) if g.topics else []
+        except (ValueError, TypeError):
+            topics = []
+
+        if topics:
+            # Determine phase: first incomplete topic is current
+            for t in topics:
+                if not t.get("completed", False):
+                    current_topics.append(t.get("name", ""))
+                    current_phase = t.get("taskNumber", 1)
+                    if len(current_topics) >= 3:
+                        break
+
+        goals_data.append({
+            "name": g.name,
+            "description": g.description or "",
+            "current_phase": current_phase,
+            "current_topics": current_topics or [g.name],
+        })
+    return goals_data
+
+
+@router.post("/intelligence-feed")
+@limiter.limit("10/minute")
+async def generate_intelligence_feed(
+    request: Request,
+    current_user: CurrentUser,
+    ai_service: AiServiceDep,
+) -> Any:
+    """Generate phase-aware contextual insights (Layer 2 - Intelligence Feed)."""
+    goals_data = _extract_goal_context(current_user)
+    try:
+        items = await ai_service.generate_intelligence_feed(goals=goals_data, user=current_user)
+        return {"data": items, "count": len(items)}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ConnectionError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@router.post("/frameworks")
+@limiter.limit("10/minute")
+async def generate_frameworks(
+    request: Request,
+    current_user: CurrentUser,
+    ai_service: AiServiceDep,
+) -> Any:
+    """Generate applied mental frameworks (Layer 3 - Discipline Frameworks)."""
+    goals_data = _extract_goal_context(current_user)
+    try:
+        items = await ai_service.generate_frameworks(goals=goals_data, user=current_user)
+        return {"data": items, "count": len(items)}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ConnectionError as e:
+        raise HTTPException(status_code=502, detail=str(e))

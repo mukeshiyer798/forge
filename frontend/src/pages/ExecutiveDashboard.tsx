@@ -41,7 +41,7 @@ export default function ExecutiveDashboard() {
   return (
     <div className="flex flex-col">
       <div className="sticky top-0 z-10 bg-forge-surface border-b border-forge-border px-4 lg:px-10 py-5">
-        <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-forge-dim mb-1">// Summary</p>
+        <p className="font-mono text-[13px] uppercase tracking-[0.2em] text-forge-dim mb-1">// Summary</p>
         <h2 className="font-display text-3xl lg:text-4xl tracking-widest text-forge-text">SUMMARY DASHBOARD</h2>
       </div>
 
@@ -96,7 +96,7 @@ export default function ExecutiveDashboard() {
         <ProgressChart title="Overall progress trend" points={chartPoints} />
 
         <div className="border-t border-forge-border pt-6 text-center">
-          <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-forge-muted">
+          <p className="font-mono text-[13px] uppercase tracking-[0.3em] text-forge-muted">
             FORGE — BUILD THE PERSON YOU NEED TO BE
           </p>
         </div>

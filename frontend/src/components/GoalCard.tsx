@@ -56,17 +56,22 @@ function TopicSection({ goalId, topic, isLocked }: { goalId: string; topic: Goal
               : 'bg-forge-surface2/50 hover:bg-forge-surface2 border-forge-border'
         )}
       >
-        <span className={cn("font-mono text-xs uppercase tracking-wider", isLocked ? "text-forge-dim" : "text-forge-amber")}>TASK {topic.taskNumber}</span>
+        <span className={cn("font-mono text-sm uppercase tracking-wider", isLocked ? "text-forge-dim" : "text-forge-amber")}>TASK {topic.taskNumber}</span>
         <span className={cn(
-          'font-condensed font-bold text-sm uppercase tracking-wide flex-1',
+          'font-condensed font-bold text-base uppercase tracking-wide flex-1 flex items-center gap-2',
           isCompleted ? 'text-forge-amber line-through opacity-70' : isLocked ? 'text-forge-muted' : 'text-forge-text'
         )}>
           {topic.name}
+          {!isLocked && topic.pedagogyNote && (
+            <span className="font-mono text-[9px] px-1.5 py-0 border border-purple-500/30 text-purple-400 bg-purple-500/5 normal-case tracking-normal rounded-sm" title={topic.pedagogyNote}>
+              🧠 Learn Sci
+            </span>
+          )}
         </span>
         {isLocked && <Lock size={12} className="text-forge-dim" />}
         {isCompleted && <Check size={14} className="text-green-400" />}
         {!isLocked && totalSubtasks > 0 && (
-          <span className="font-mono text-[11px] text-forge-dim">
+          <span className="font-mono text-[13px] text-forge-dim">
             {completedSubtasks}/{totalSubtasks}
           </span>
         )}
@@ -141,7 +146,7 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2 flex-wrap">
             {goal.priority != null && (
-              <span className="font-mono text-[11px] uppercase tracking-wider bg-forge-amber/15 text-forge-amber border border-forge-amber/30 px-2 py-0.5">
+              <span className="font-mono text-[13px] uppercase tracking-wider bg-forge-amber/15 text-forge-amber border border-forge-amber/30 px-2 py-0.5">
                 PRIORITY {goal.priority}
               </span>
             )}
@@ -169,14 +174,14 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
             </button>
             {confirmingDelete ? (
               <div className="flex items-center gap-1.5">
-                <span className="font-mono text-[11px] text-red-400 uppercase tracking-wider">Delete?</span>
+                <span className="font-mono text-[13px] text-red-400 uppercase tracking-wider">Delete?</span>
                 <button
                   onClick={() => { deleteGoal(goal.id); setConfirmingDelete(false); }}
-                  className="font-mono text-[11px] text-red-400 hover:text-red-300 border border-red-500/30 px-1.5 py-0.5 uppercase tracking-wider"
+                  className="font-mono text-[13px] text-red-400 hover:text-red-300 border border-red-500/30 px-1.5 py-0.5 uppercase tracking-wider"
                 >Yes</button>
                 <button
                   onClick={() => setConfirmingDelete(false)}
-                  className="font-mono text-[11px] text-forge-dim hover:text-forge-text border border-forge-border px-1.5 py-0.5 uppercase tracking-wider"
+                  className="font-mono text-[13px] text-forge-dim hover:text-forge-text border border-forge-border px-1.5 py-0.5 uppercase tracking-wider"
                 >No</button>
               </div>
             ) : (
@@ -194,7 +199,7 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
         <h3 className="font-condensed font-black text-2xl text-forge-text uppercase tracking-wide leading-tight mb-1">
           {goal.name}
         </h3>
-        <p className="font-mono text-xs text-forge-dim mb-3 leading-relaxed">{goal.description}</p>
+        <p className="font-mono text-sm text-forge-dim mb-3 leading-relaxed">{goal.description}</p>
 
         {/* Progress bar */}
         <div className="bg-forge-surface2 h-[3px] mb-2 relative overflow-hidden">
@@ -210,9 +215,9 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
 
         {/* HEADER: target date + status */}
         <div className="flex items-center justify-between mb-4">
-          <span className="font-mono text-xs uppercase tracking-wider text-forge-dim">{formatDueDate(goal.targetDate)}</span>
+          <span className="font-mono text-sm uppercase tracking-wider text-forge-dim">{formatDueDate(goal.targetDate)}</span>
           <span className={cn(
-            'font-mono text-xs uppercase tracking-wider flex items-center gap-1.5',
+            'font-mono text-sm uppercase tracking-wider flex items-center gap-1.5',
             goal.status === 'on-track' ? 'text-green-400' : goal.status === 'at-risk' ? 'text-amber-400' : goal.status === 'behind' ? 'text-red-400' : 'text-gray-400'
           )}>
             <span className={cn('w-1.5 h-1.5 rounded-full', STATUS_DOT[goal.status])} />
@@ -221,7 +226,7 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
         </div>
 
         {/* PHASE-BASED TOPICS */}
-        {hasFullStructure && (
+        {(hasFullStructure || (!goal.topics || goal.topics.length === 0)) && (
           <div className="border-t border-forge-border pt-4">
             {/* Phase header with navigation */}
             <div className="flex items-center justify-between mb-3">
@@ -235,7 +240,7 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
                     <ChevronLeft size={14} />
                   </button>
                 )}
-                <span className="font-mono text-xs uppercase tracking-[0.2em] text-forge-amber">
+                <span className="font-mono text-sm uppercase tracking-[0.2em] text-forge-amber">
                   Phase {displayPhase}
                   {totalPhases > 1 && <span className="text-forge-dim"> / {totalPhases}</span>}
                 </span>
@@ -252,13 +257,13 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
                 {viewPhase !== null && viewPhase !== activePhase && (
                   <button
                     onClick={() => setViewPhase(null)}
-                    className="font-mono text-[8px] uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-1.5 py-0.5 hover:bg-amber-500/5 ml-1"
+                    className="font-mono text-[10px] uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-1.5 py-0.5 hover:bg-amber-500/5 ml-1"
                   >
                     Active
                   </button>
                 )}
               </div>
-              <span className="font-mono text-[11px] text-forge-dim">
+              <span className="font-mono text-[13px] text-forge-dim">
                 {completedInPhase}/{totalInPhase} tasks
                 {isPhaseComplete && <span className="text-green-400 ml-1">✓</span>}
               </span>
@@ -293,7 +298,7 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
                     };
                     addTopicsToGoal(goal.id, [newTopic]);
                   }}
-                  className="w-full py-2.5 flex items-center justify-center gap-2 border border-dashed border-forge-border text-forge-dim hover:text-forge-amber hover:border-forge-amber transition-colors text-xs font-mono uppercase tracking-[0.2em]"
+                  className="w-full py-2.5 flex items-center justify-center gap-2 border border-dashed border-forge-border text-forge-dim hover:text-forge-amber hover:border-forge-amber transition-colors text-sm font-mono uppercase tracking-[0.2em]"
                 >
                   <Plus size={14} /> Add Topic
                 </button>
@@ -305,7 +310,7 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
               <button
                 type="button"
                 onClick={() => setNextPhaseOpen(true)}
-                className="w-full mt-3 py-3 flex items-center justify-center gap-2 font-condensed font-black text-sm uppercase tracking-wider bg-forge-amber/10 text-forge-amber border border-forge-amber/30 hover:bg-forge-amber/20 transition-colors"
+                className="w-full mt-3 py-3 flex items-center justify-center gap-2 font-condensed font-black text-base uppercase tracking-wider bg-forge-amber/10 text-forge-amber border border-forge-amber/30 hover:bg-forge-amber/20 transition-colors"
               >
                 <Lock size={14} />
                 {displayPhase === activePhase && isShellPhase ? `Unlock Phase ${displayPhase}` : `Unlock Phase ${totalPhases + 1}`}
@@ -344,7 +349,7 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
         {/* CAPSTONE */}
         {goal.capstone && (
           <div className="border-t border-forge-border mt-4 pt-4">
-            <p className="font-mono text-[11px] uppercase tracking-wider text-forge-muted mb-2">Capstone</p>
+            <p className="font-mono text-[13px] uppercase tracking-wider text-forge-muted mb-2">Capstone</p>
             <label className="flex items-start gap-2 cursor-pointer group">
               <input
                 type="checkbox"
@@ -353,11 +358,11 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
                 className="mt-1 rounded border-forge-border bg-forge-surface2 text-forge-amber focus:ring-forge-amber"
               />
               <div>
-                <span className="font-condensed font-bold text-sm uppercase tracking-wide text-forge-text group-hover:text-forge-amber">{goal.capstone.name}</span>
+                <span className="font-condensed font-bold text-base uppercase tracking-wide text-forge-text group-hover:text-forge-amber">{goal.capstone.name}</span>
                 {goal.capstone.estimatedHours != null && (
-                  <span className="font-mono text-xs text-forge-dim ml-1.5">{goal.capstone.estimatedHours}h</span>
+                  <span className="font-mono text-sm text-forge-dim ml-1.5">{goal.capstone.estimatedHours}h</span>
                 )}
-                {goal.capstone.description && <p className="font-mono text-xs text-forge-dim mt-0.5">{goal.capstone.description}</p>}
+                {goal.capstone.description && <p className="font-mono text-sm text-forge-dim mt-0.5">{goal.capstone.description}</p>}
               </div>
             </label>
           </div>
@@ -372,7 +377,7 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
                 type="button"
                 onClick={() => useAppStore.getState().toggleSubtopic(goal.id, st.id)}
                 className={cn(
-                  'font-mono text-[11px] uppercase tracking-wider px-2 py-1 border transition-all duration-200',
+                  'font-mono text-[13px] uppercase tracking-wider px-2 py-1 border transition-all duration-200',
                   st.completed
                     ? 'border-amber-600/40 text-forge-amber bg-amber-500/5 line-through decoration-amber-600/50'
                     : 'border-forge-border text-forge-muted hover:border-forge-dim hover:text-forge-dim'

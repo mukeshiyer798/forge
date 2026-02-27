@@ -247,9 +247,14 @@ export const useAppStore = create<AppState>()(
       // before setting the new user. This prevents RBAC leaks where
       // a new user would see the old user's persisted goals.
       login: (user) => {
-        // PRODUCTION-GRADE: Wipe ALL localStorage cache to prevent cross-user data leaks
-        try { localStorage.removeItem('forge-storage'); } catch { /* ignore */ }
-        console.debug('[FORGE] Login — cleared localStorage, setting user:', user.id);
+        // PRODUCTION-GRADE: Only wipe localStorage if a DIFFERENT user is logging in
+        // This prevents the persist middleware from overwriting freshly-fetched goals
+        const prevUserId = get().user?.id;
+        if (prevUserId && prevUserId !== user.id) {
+          try { localStorage.removeItem('forge-storage'); } catch { /* ignore */ }
+          console.debug('[FORGE] Login — user switched, cleared localStorage');
+        }
+        console.debug('[FORGE] Login — setting user:', user.id);
         set({
           user,
           isAuthenticated: true,

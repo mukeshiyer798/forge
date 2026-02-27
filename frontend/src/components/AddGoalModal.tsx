@@ -450,16 +450,16 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                       <div className="flex items-center gap-2 mb-2">
                         <Sparkles size={15} className="text-forge-amber" />
                         <span className="font-condensed font-bold text-sm uppercase tracking-wider text-forge-amber">
-                          Unlock 1-Click Generation
+                          Connect AI for Instant Roadmaps
                         </span>
                       </div>
                       <p className="font-body text-sm text-forge-dim leading-relaxed mb-4">
-                        Add an <strong className="text-forge-text">OpenRouter API key</strong> to generate roadmaps instantly. OpenRouter gives you access to GPT-4, Claude, Gemini and more.
+                        Paste a free <strong className="text-forge-text">access code</strong> to generate personalized study plans in one click. Get one at openrouter.ai/keys — it takes 30 seconds.
                       </p>
 
                       <div className="space-y-3">
                         <div className="flex flex-col gap-1.5">
-                          <label className="font-mono text-[10px] uppercase tracking-widest text-forge-amber">Paste Key to Save & Generate</label>
+                          <label className="font-mono text-[10px] uppercase tracking-widest text-forge-amber">Paste Access Code</label>
                           <div className="flex gap-2">
                             <input
                               type="password"
@@ -564,9 +564,11 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                         disabled={!learnerGoal.trim() || geminiLoading}
                         onClick={handleCopyPrompt}
                         className={cn('flex items-center gap-2 border px-4 py-2.5 font-condensed font-black text-sm uppercase tracking-wider transition-all duration-200',
-                          learnerGoal.trim() && !geminiLoading
-                            ? 'border-forge-amber text-forge-amber hover:bg-amber-500/5 cursor-pointer'
-                            : 'border-forge-border text-forge-muted cursor-not-allowed opacity-40')}
+                          geminiLoading
+                            ? 'border-forge-amber text-forge-amber cursor-wait opacity-80'
+                            : learnerGoal.trim()
+                              ? 'border-forge-amber text-forge-amber hover:bg-amber-500/5 cursor-pointer'
+                              : 'border-forge-border text-forge-muted cursor-not-allowed opacity-40')}
                       >
                         {geminiLoading ? (
                           <><Loader2 size={14} className="animate-spin" /> Generating...</>

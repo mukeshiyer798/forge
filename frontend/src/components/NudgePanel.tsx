@@ -21,49 +21,45 @@ export default function NudgePanel() {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, height: 0 }}
         transition={{ duration: 0.3 }}
-        className={`border p-5 flex items-start gap-4 relative overflow-hidden ${
-          isNuclear
+        className={`border p-5 flex items-start gap-4 relative overflow-hidden ${isNuclear
             ? 'bg-red-950/30 border-red-900/50'
             : isStern
-            ? 'bg-amber-950/30 border-amber-900/40'
-            : 'bg-blue-950/20 border-blue-900/30'
-        }`}
+              ? 'bg-amber-950/30 border-amber-900/40'
+              : 'bg-blue-950/20 border-blue-900/30'
+          }`}
       >
         {/* Pulse bar */}
-        <div className={`absolute top-0 left-0 right-0 h-0.5 ${
-          isNuclear ? 'bg-red-500' : isStern ? 'bg-amber-500' : 'bg-blue-500'
-        }`} />
+        <div className={`absolute top-0 left-0 right-0 h-0.5 ${isNuclear ? 'bg-red-500' : isStern ? 'bg-amber-500' : 'bg-blue-500'
+          }`} />
 
         <div className="text-2xl flex-shrink-0 mt-0.5">
           {isNuclear ? '☢️' : isStern ? '⚠️' : '👀'}
         </div>
 
         <div className="flex-1 min-w-0">
-          <h4 className={`font-condensed font-black text-lg uppercase tracking-wide mb-1 ${
-            isNuclear ? 'text-red-400' : isStern ? 'text-amber-400' : 'text-blue-400'
-          }`}>
+          <h4 className={`font-condensed font-black text-lg uppercase tracking-wide mb-1 ${isNuclear ? 'text-red-400' : isStern ? 'text-amber-400' : 'text-blue-400'
+            }`}>
             {isNuclear
               ? 'This is embarrassing. Really.'
               : isStern
-              ? "You're slipping, soldier."
-              : "Haven't seen you today 👀"}
+                ? "You're slipping, soldier."
+                : "Haven't seen you today 👀"}
           </h4>
-          <p className={`text-sm leading-relaxed ${
-            isNuclear ? 'text-red-300/70' : isStern ? 'text-amber-300/70' : 'text-blue-300/70'
-          }`}>
+          <p className={`text-base leading-relaxed ${isNuclear ? 'text-red-300/70' : isStern ? 'text-amber-300/70' : 'text-blue-300/70'
+            }`}>
             {isNuclear
               ? `${daysBehind} days since you touched "${laggingGoal.name}". Someone with your exact dream is working on it right now. The gap is growing.`
               : isStern
-              ? `${daysBehind} days. Nothing. "${laggingGoal.name}" isn't going to complete itself. Your streak is dying.`
-              : `"${laggingGoal.name}" hasn't been logged today. Five minutes. Keep the chain alive.`}
+                ? `${daysBehind} days. Nothing. "${laggingGoal.name}" isn't going to complete itself. Your streak is dying.`
+                : `"${laggingGoal.name}" hasn't been logged today. Five minutes. Keep the chain alive.`}
           </p>
         </div>
 
         <div className="flex flex-col gap-2 flex-shrink-0">
-          <button onClick={logProgressNudge} className="forge-btn-primary text-xs py-2 px-4 whitespace-nowrap">
+          <button onClick={logProgressNudge} className="forge-btn-primary text-sm py-2 px-4 whitespace-nowrap">
             Log Progress
           </button>
-          <button onClick={dismissNudge} className="forge-btn-ghost text-xs py-1.5 px-3 whitespace-nowrap">
+          <button onClick={dismissNudge} className="forge-btn-ghost text-sm py-1.5 px-3 whitespace-nowrap">
             Dismiss
           </button>
         </div>

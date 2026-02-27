@@ -22,6 +22,7 @@ Build a PHASE 1 learning roadmap — 4-6 focused topics. Each topic should take 
 5. **Free resources only.** Books (can be borrowed), YouTube, blogs, official docs.
 6. **First topic = early win.** Something visible in 2-3 days.
 7. **Multiple goals = separate goals.** Each major skill gets its own goal object.
+8. **Learning science matters.** For each topic, include a pedagogyNote explaining WHY this topic is placed in this order. Reference learning science: interleaving, retrieval practice, the testing effect, spaced repetition, or progressive overload. Make the pedagogy visible and trusted.
 
 ---
 
@@ -91,7 +92,8 @@ Return ONLY valid JSON. Start with '{' end with '}'.
             { "question": "Explain JVM memory model (heap, stack, metaspace)", "answer": "The JVM divides memory into: Heap (shared, stores objects), Stack (per-thread, stores local vars and method calls), and Metaspace (stores class metadata, replaced PermGen in Java 8)." },
             { "question": "Difference between == and .equals()?", "answer": "== compares references (memory addresses). .equals() compares values. For objects, always use .equals(). String literals are pooled, so == may work but is unreliable." },
             { "question": "Why is String immutable in Java?", "answer": "Security (used in class loading, networking), thread-safety (shared freely), caching (String pool), and hashCode consistency (used as HashMap keys)." }
-          ]
+          ],
+          "pedagogyNote": "OOP is placed first because it uses interleaving — switching between abstract design concepts and concrete Java syntax builds stronger neural pathways than studying either in isolation."
         },
         {
           "id": "t6",

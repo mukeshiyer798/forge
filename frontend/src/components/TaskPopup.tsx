@@ -90,11 +90,11 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
             <div className="flex items-center justify-between px-6 py-5 border-b border-forge-border">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-mono text-xs uppercase tracking-wider text-forge-amber">
+                  <span className="font-mono text-sm uppercase tracking-wider text-forge-amber">
                     TASK {topic.taskNumber}
                   </span>
                   {isCompleted && (
-                    <span className="font-mono text-[11px] uppercase tracking-wider text-green-400 bg-green-500/10 border border-green-500/30 px-2 py-0.5">
+                    <span className="font-mono text-[13px] uppercase tracking-wider text-green-400 bg-green-500/10 border border-green-500/30 px-2 py-0.5">
                       ✓ Completed
                     </span>
                   )}
@@ -116,11 +116,22 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
                 <p className="font-mono text-sm text-forge-text leading-relaxed">{topic.description}</p>
               )}
 
+              {/* Pedagogy Note */}
+              {topic.pedagogyNote && (
+                <div className="bg-purple-500/5 border-l-2 border-purple-400 p-3 flex items-start gap-3">
+                  <span className="text-purple-400 mt-0.5 text-lg">🧠</span>
+                  <div>
+                    <h4 className="font-mono text-[10px] uppercase tracking-widest text-purple-400 mb-1">Learning Science Notes</h4>
+                    <p className="font-body text-[13px] text-forge-dim leading-relaxed">{topic.pedagogyNote}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Progress bar */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="font-mono text-xs uppercase tracking-wider text-forge-dim">Progress</span>
-                  <span className="font-mono text-xs text-forge-amber">{progressPct}%</span>
+                  <span className="font-mono text-sm uppercase tracking-wider text-forge-dim">Progress</span>
+                  <span className="font-mono text-sm text-forge-amber">{progressPct}%</span>
                 </div>
                 <div className="bg-forge-surface2 h-[3px] relative overflow-hidden">
                   <motion.div
@@ -133,11 +144,11 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
               </div>
 
               {/* Primary Resources */}
-              {topic.resources && topic.resources.length > 0 && (
-                <div>
-                  <h3 className="font-condensed font-bold text-base uppercase tracking-wide text-forge-text mb-2">
-                    Primary Resources
-                  </h3>
+              <div>
+                <h3 className="font-condensed font-bold text-base uppercase tracking-wide text-forge-text mb-2">
+                  Primary Resources
+                </h3>
+                {topic.resources && topic.resources.length > 0 ? (
                   <div className="space-y-1.5">
                     {topic.resources.map((r) => (
                       <div key={r.id} className="flex items-start gap-3 p-3 bg-forge-surface2 border border-forge-border">
@@ -147,37 +158,39 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
                         <div className="flex-1 min-w-0">
                           {r.url ? (
                             <a href={r.url} target="_blank" rel="noopener noreferrer"
-                              className="font-mono text-sm text-forge-amber hover:text-forge-text hover:underline block truncate">
+                              className="font-mono text-base text-forge-amber hover:text-forge-text hover:underline block truncate">
                               {r.title}
                             </a>
                           ) : (
                             <input
-                              className="forge-input bg-transparent border-transparent hover:border-forge-border focus:border-forge-amber font-mono text-sm text-forge-text w-full py-0 h-auto"
+                              className="forge-input bg-transparent border-transparent hover:border-forge-border focus:border-forge-amber font-mono text-base text-forge-text w-full py-0 h-auto"
                               value={r.title}
                               onChange={(e) => updateResourceTitle(goalId, topic.id, r.id, e.target.value)}
                             />
                           )}
-                          {r.detail && <div className="font-mono text-[11px] text-forge-dim mt-0.5"><FormattedText text={r.detail} /></div>}
+                          {r.detail && <div className="font-mono text-[13px] text-forge-dim mt-0.5"><FormattedText text={r.detail} /></div>}
                         </div>
-                        <span className="font-mono text-[11px] text-forge-muted uppercase tracking-wider shrink-0">{r.type}</span>
+                        <span className="font-mono text-[13px] text-forge-muted uppercase tracking-wider shrink-0">{r.type}</span>
                       </div>
                     ))}
                   </div>
-                  <button
-                    onClick={() => addResourceToTopic(goalId, topic.id, 'New Resource', 'docs')}
-                    className="mt-2 text-[10px] font-mono uppercase tracking-widest text-forge-dim hover:text-forge-amber flex items-center gap-1.5 transition-colors"
-                  >
-                    <span className="text-base">+</span> Add Resource
-                  </button>
-                </div>
-              )}
+                ) : (
+                  <p className="font-mono text-xs text-forge-dim italic mb-2">No resources added yet.</p>
+                )}
+                <button
+                  onClick={() => addResourceToTopic(goalId, topic.id, 'New Resource', 'docs')}
+                  className="mt-2 text-xs font-mono uppercase tracking-widest text-forge-dim hover:text-forge-amber flex items-center gap-1.5 transition-colors"
+                >
+                  <span className="text-base">+</span> Add Resource
+                </button>
+              </div>
 
               {/* Hands-on Tasks */}
-              {topic.subtopics.length > 0 && (
-                <div>
-                  <h3 className="font-condensed font-bold text-base uppercase tracking-wide text-forge-text mb-2">
-                    Hands-on ({completedSubtasks}/{totalSubtasks})
-                  </h3>
+              <div>
+                <h3 className="font-condensed font-bold text-base uppercase tracking-wide text-forge-text mb-2">
+                  Hands-on ({completedSubtasks}/{totalSubtasks})
+                </h3>
+                {topic.subtopics.length > 0 ? (
                   <div className="space-y-1.5">
                     {topic.subtopics.map((st) => (
                       <label
@@ -197,7 +210,7 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
                         />
                         <input
                           className={cn(
-                            'font-mono text-sm flex-1 leading-relaxed bg-transparent border-transparent hover:border-forge-border focus:border-forge-amber py-0 h-auto',
+                            'font-mono text-base flex-1 leading-relaxed bg-transparent border-transparent hover:border-forge-border focus:border-forge-amber py-0 h-auto',
                             st.completed ? 'text-forge-amber line-through opacity-70' : 'text-forge-text'
                           )}
                           value={st.name}
@@ -207,14 +220,16 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
                       </label>
                     ))}
                   </div>
-                  <button
-                    onClick={() => addSubtopicToTopic(goalId, topic.id, 'New Action Item')}
-                    className="mt-2 text-[10px] font-mono uppercase tracking-widest text-forge-dim hover:text-forge-amber flex items-center gap-1.5 transition-colors"
-                  >
-                    <span className="text-base">+</span> Add Subtask
-                  </button>
-                </div>
-              )}
+                ) : (
+                  <p className="font-mono text-xs text-forge-dim italic mb-2">No tasks added yet.</p>
+                )}
+                <button
+                  onClick={() => addSubtopicToTopic(goalId, topic.id, 'New Action Item')}
+                  className="mt-2 text-xs font-mono uppercase tracking-widest text-forge-dim hover:text-forge-amber flex items-center gap-1.5 transition-colors"
+                >
+                  <span className="text-base">+</span> Add Subtask
+                </button>
+              </div>
 
               {/* Build Project */}
               {topic.build && (
@@ -245,10 +260,10 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
                         <p className="font-mono text-xs text-forge-dim mt-1 leading-relaxed">{topic.build.description}</p>
                       )}
                       {topic.build.doneWhen && (
-                        <p className="font-mono text-xs text-forge-muted mt-1.5">✓ Done when: {topic.build.doneWhen}</p>
+                        <p className="font-mono text-sm text-forge-muted mt-1.5">✓ Done when: {topic.build.doneWhen}</p>
                       )}
                       {topic.build.estimatedHours != null && (
-                        <p className="font-mono text-xs text-forge-dim mt-1">~{topic.build.estimatedHours}h</p>
+                        <p className="font-mono text-sm text-forge-dim mt-1">~{topic.build.estimatedHours}h</p>
                       )}
                     </div>
                   </label>
@@ -292,18 +307,18 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
                   <h3 className="font-condensed font-bold text-base uppercase tracking-wide text-forge-text mb-3 flex items-center gap-2">
                     🧠 Interview Prep
                   </h3>
-                  <p className="font-mono text-[11px] text-forge-dim italic mb-3">
+                  <p className="font-mono text-[13px] text-forge-dim italic mb-3">
                     Think about each answer, then click to reveal.
                   </p>
                   <div className="space-y-3">
                     {prepQuestions.map((q, idx) => (
                       <div key={idx} className="bg-blue-500/5 border border-blue-500/20 p-4">
-                        <p className="font-body text-sm text-forge-text font-semibold leading-relaxed mb-2">
+                        <p className="font-body text-base text-forge-text font-semibold leading-relaxed mb-2">
                           {idx + 1}. {q.question}
                         </p>
                         <button
                           onClick={() => toggleAnswer(idx)}
-                          className="flex items-center gap-1.5 font-mono text-xs text-blue-400 hover:text-forge-text transition-colors mb-1"
+                          className="flex items-center gap-1.5 font-mono text-sm text-blue-400 hover:text-forge-text transition-colors mb-1"
                         >
                           {revealedAnswers.has(idx) ? <EyeOff size={12} /> : <Eye size={12} />}
                           {revealedAnswers.has(idx) ? 'Hide' : 'Reveal Answer'}
@@ -318,7 +333,7 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
                               className="overflow-hidden"
                             >
                               <div className="border-l-2 border-blue-400 pl-3 py-1.5 mt-2">
-                                <p className="font-body text-sm text-forge-text leading-relaxed">{q.answer}</p>
+                                <p className="font-body text-base text-forge-text leading-relaxed">{q.answer}</p>
                               </div>
                             </motion.div>
                           )}
@@ -342,7 +357,7 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
               {justCompleted && (
                 <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.1 }} className="text-center py-2">
-                  <p className="font-mono text-xs uppercase tracking-[0.3em] text-forge-amber">
+                  <p className="font-mono text-sm uppercase tracking-[0.3em] text-forge-amber">
                     🔥 Task complete. Progress updated.
                   </p>
                 </motion.div>
@@ -351,7 +366,7 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
               {isCompleted && !justCompleted && (
                 <div className="flex items-center justify-center gap-2 pt-2 border-t border-forge-border">
                   <ChevronRight size={12} className="text-forge-dim" />
-                  <span className="font-mono text-xs text-forge-dim uppercase tracking-wider">
+                  <span className="font-mono text-sm text-forge-dim uppercase tracking-wider">
                     Move on to the next task
                   </span>
                 </div>
