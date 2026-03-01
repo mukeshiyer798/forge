@@ -107,6 +107,16 @@ def read_reading_insights(
     return ReadingInsightsPublic(data=insights, count=count)
 
 
+@router.post("/insights/generate", response_model=ReadingInsightsPublic)
+async def generate_reading_insights(
+    reading_service: ReadingServiceDep,
+    current_user: CurrentUser,
+) -> Any:
+    """Trigger AI generation of fresh reading insights based on user goals."""
+    insights = await reading_service.generate_fresh_insights(user=current_user)
+    return ReadingInsightsPublic(data=insights, count=len(insights))
+
+
 @router.post("/insights", response_model=ReadingInsightPublic)
 def create_reading_insight(
     *, reading_service: ReadingServiceDep, current_user: CurrentUser, insight_in: ReadingInsightCreate

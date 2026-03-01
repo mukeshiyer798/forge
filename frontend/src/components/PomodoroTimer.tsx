@@ -89,14 +89,14 @@ export default function PomodoroTimer({
               <h3 className="font-display text-2xl tracking-widest text-forge-text mb-2">
                 TIME'S UP
               </h3>
-              <p className="font-condensed font-bold text-lg uppercase tracking-wider text-forge-amber mb-4">
+              <p className="font-condensed font-bold text-[20px] uppercase tracking-wider text-forge-amber mb-4">
                 {duration} minute{duration !== 1 ? 's' : ''} of deep work{goalName ? ` on ${goalName}` : ''} ✓
               </p>
 
               <div className="bg-forge-surface2 border border-forge-border p-5 mb-6 text-left">
                 <div className="flex items-center gap-2 mb-3">
                   <Brain size={16} className="text-purple-400" />
-                  <span className="font-condensed font-bold text-sm uppercase tracking-wider text-forge-text">
+                  <span className="font-condensed font-bold text-base uppercase tracking-wider text-forge-text">
                     Reflection Moment
                   </span>
                 </div>
@@ -122,7 +122,7 @@ export default function PomodoroTimer({
 
               <button
                 onClick={handleDismissReflection}
-                className="w-full py-3 bg-forge-amber text-forge-bg font-condensed font-black text-base uppercase tracking-wider hover:bg-amber-400 transition-colors"
+                className="w-full py-3 bg-forge-amber text-forge-bg font-condensed font-black text-lg uppercase tracking-wider hover:bg-amber-400 transition-colors"
               >
                 Done — Log Session ✓
               </button>
@@ -169,7 +169,7 @@ export default function PomodoroTimer({
               <p className="font-mono text-lg font-bold text-forge-text tabular-nums">
                 {String(mins).padStart(2, '0')}:{String(secs).padStart(2, '0')}
               </p>
-              <p className="font-mono text-[11px] uppercase tracking-wider text-forge-dim">
+              <p className="font-mono text-[13px] uppercase tracking-wider text-forge-dim">
                 {goalName ? goalName : 'Focus'}
               </p>
             </div>
@@ -201,7 +201,7 @@ export default function PomodoroTimer({
       <div className="relative">
         <button
           onClick={() => setShowGoalPicker(!showGoalPicker)}
-          className="flex items-center gap-1.5 border border-forge-amber/30 text-forge-amber px-3 py-2 font-mono text-xs uppercase tracking-wider hover:bg-forge-amber/10 transition-colors"
+          className="flex items-center gap-1.5 border border-forge-amber/30 text-forge-amber px-3 py-2 font-mono text-sm uppercase tracking-wider hover:bg-forge-amber/10 transition-colors"
         >
           <Timer size={13} />
           <span>{selectedDuration}m</span>
@@ -217,7 +217,7 @@ export default function PomodoroTimer({
               className="absolute right-0 top-full mt-2 w-72 bg-forge-surface border border-forge-border shadow-xl z-50 p-4"
             >
               {/* Duration picker */}
-              <p className="font-mono text-[11px] uppercase tracking-widest text-forge-dim mb-2">
+              <p className="font-mono text-[13px] uppercase tracking-widest text-forge-dim mb-2">
                 Duration
               </p>
               <div className="flex gap-1.5 mb-4">
@@ -226,7 +226,7 @@ export default function PomodoroTimer({
                     key={d}
                     onClick={() => setSelectedDuration(d)}
                     className={cn(
-                      'flex-1 py-1.5 font-mono text-xs border transition-colors',
+                      'flex-1 py-1.5 font-mono text-sm border transition-colors',
                       selectedDuration === d
                         ? 'border-forge-amber text-forge-amber bg-forge-amber/10'
                         : 'border-forge-border text-forge-dim hover:border-forge-dim'
@@ -240,7 +240,7 @@ export default function PomodoroTimer({
               {/* Quick start */}
               <button
                 onClick={() => { startPomodoro({ duration: selectedDuration }); setShowGoalPicker(false); }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-forge-amber/10 border border-forge-amber/30 hover:border-forge-amber text-forge-amber font-mono text-sm uppercase tracking-wider transition-colors mb-3"
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-forge-amber/10 border border-forge-amber/30 hover:border-forge-amber text-forge-amber font-mono text-base uppercase tracking-wider transition-colors mb-3"
               >
                 <Play size={13} />
                 Start {selectedDuration}m Focus
@@ -249,7 +249,7 @@ export default function PomodoroTimer({
               {/* Goal-specific */}
               {goals.length > 0 && (
                 <>
-                  <p className="font-mono text-xs uppercase tracking-widest text-forge-dim mb-2">
+                  <p className="font-mono text-sm uppercase tracking-widest text-forge-dim mb-2">
                     Or focus on a goal
                   </p>
                   <div className="space-y-1 max-h-32 overflow-y-auto">
@@ -261,7 +261,7 @@ export default function PomodoroTimer({
                           onStartWithGoal?.(goal.id);
                           setShowGoalPicker(false);
                         }}
-                        className="w-full text-left px-3 py-2 border border-forge-border hover:border-forge-amber/50 text-sm text-forge-dim hover:text-forge-text transition-colors truncate"
+                        className="w-full text-left px-3 py-2 border border-forge-border hover:border-forge-amber/50 text-base text-forge-dim hover:text-forge-text transition-colors truncate"
                       >
                         {goal.name}
                       </button>
@@ -281,7 +281,7 @@ export default function PomodoroTimer({
     <div className={cn('bg-forge-surface border border-forge-border', compact ? 'p-3' : 'p-4')}>
       <div className="flex items-center gap-2 mb-3">
         <Timer size={16} className="text-forge-amber" />
-        <span className="font-mono text-[11px] uppercase tracking-wider text-forge-amber">
+        <span className="font-mono text-[13px] uppercase tracking-wider text-forge-amber">
           Pomodoro
         </span>
       </div>
@@ -303,19 +303,19 @@ export default function PomodoroTimer({
         >
           <Plus size={12} />
         </button>
-        <span className="font-mono text-[11px] text-forge-dim">min</span>
+        <span className="font-mono text-[13px] text-forge-dim">min</span>
       </div>
 
       <button
         onClick={() => startPomodoro({ duration: selectedDuration })}
-        className="w-full flex items-center justify-center gap-2 py-2.5 bg-forge-amber/10 border border-forge-amber/30 hover:border-forge-amber text-forge-amber font-mono text-sm uppercase tracking-wider transition-colors"
+        className="w-full flex items-center justify-center gap-2 py-2.5 bg-forge-amber/10 border border-forge-amber/30 hover:border-forge-amber text-forge-amber font-mono text-base uppercase tracking-wider transition-colors"
       >
         <Play size={14} />
         Start {selectedDuration} min
       </button>
       {goals.length > 0 && (
         <div className="mt-3 space-y-1">
-          <p className="font-mono text-xs uppercase tracking-widest text-forge-dim mb-2">
+          <p className="font-mono text-sm uppercase tracking-widest text-forge-dim mb-2">
             Or focus on a goal
           </p>
           {goals.slice(0, 3).map((goal) => (
@@ -325,7 +325,7 @@ export default function PomodoroTimer({
                 startPomodoro({ goalId: goal.id, duration: selectedDuration });
                 onStartWithGoal?.(goal.id);
               }}
-              className="w-full text-left px-3 py-2 border border-forge-border hover:border-forge-amber/50 text-sm text-forge-dim hover:text-forge-text transition-colors"
+              className="w-full text-left px-3 py-2 border border-forge-border hover:border-forge-amber/50 text-base text-forge-dim hover:text-forge-text transition-colors"
             >
               {goal.name}
             </button>

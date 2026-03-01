@@ -65,6 +65,15 @@ class Settings(BaseSettings):
     OPENROUTER_API_KEY: str | None = None
     OPENROUTER_URL: str = "https://openrouter.ai/api/v1/chat/completions"
 
+    # ── Mailgun config ──
+    MAILGUN_API_KEY: str | None = None
+    MAILGUN_DOMAIN: str | None = None
+    MAILGUN_API_URL: str = "https://api.mailgun.net/v3"
+
+    # ── Brevo config ──
+    BREVO_API_KEY: str | None = None
+    BREVO_API_URL: str = "https://api.brevo.com/v3/smtp/email"
+
     # ── Goal constraints (used by GoalService) ──
     MAX_ACTIVE_GOALS: int = 3
     GOAL_ALLOWED_TYPES: list[str] = ["learn", "build", "habit", "fitness"]
@@ -113,7 +122,11 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def emails_enabled(self) -> bool:
-        return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
+        return bool(
+            (self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
+            or (self.MAILGUN_API_KEY and self.MAILGUN_DOMAIN)
+            or self.BREVO_API_KEY
+        )
 
     EMAIL_TEST_USER: EmailStr = "test@example.com"
     FIRST_SUPERUSER: EmailStr

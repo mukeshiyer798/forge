@@ -96,7 +96,7 @@ export default function TemplatePage() {
     <div className="flex flex-col">
       {/* Header */}
       <div className="sticky top-0 lg:top-0 z-10 bg-forge-surface border-b border-forge-border px-4 lg:px-10 py-5">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-forge-dim mb-1">// AI-powered planning</p>
+        <p className="font-mono text-sm uppercase tracking-[0.2em] text-forge-dim mb-1">// AI-powered planning</p>
         <h2 className="font-display text-3xl lg:text-4xl tracking-widest text-forge-text">PLAN TEMPLATE</h2>
       </div>
 
@@ -113,7 +113,7 @@ export default function TemplatePage() {
               <div className="absolute top-3 right-3 font-display text-4xl text-forge-muted/30">{s.step}</div>
               <div className="text-2xl mb-2">{s.icon}</div>
               <p className="font-condensed font-black text-base uppercase tracking-wider text-forge-text mb-1">{s.title}</p>
-              <p className="font-mono text-xs text-forge-dim">{s.desc}</p>
+              <p className="font-mono text-sm text-forge-dim">{s.desc}</p>
             </div>
           ))}
         </div>
@@ -122,22 +122,21 @@ export default function TemplatePage() {
         <section>
           <div className="mb-4">
             <h3 className="font-condensed font-black text-xl uppercase tracking-wider text-forge-text">Prompt Starters</h3>
-            <p className="font-mono text-xs text-forge-dim mt-0.5">Copy a prompt — it includes the template automatically</p>
+            <p className="font-mono text-sm text-forge-dim mt-0.5">Copy a prompt — it includes the template automatically</p>
           </div>
           <div className="flex flex-col gap-3">
             {PROMPT_TEMPLATES.map((pt, i) => (
               <div key={i} className="bg-forge-surface border border-forge-border p-4 flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="font-condensed font-bold text-sm uppercase tracking-wider text-forge-amber mb-1">{pt.label}</p>
-                  <p className="font-mono text-[11px] text-forge-dim leading-relaxed line-clamp-2">{pt.prompt}</p>
+                  <p className="font-condensed font-bold text-base uppercase tracking-wider text-forge-amber mb-1">{pt.label}</p>
+                  <p className="font-mono text-[13px] text-forge-dim leading-relaxed line-clamp-2">{pt.prompt}</p>
                 </div>
                 <button
                   onClick={() => handleCopyPrompt(i, pt.prompt)}
-                  className={`flex items-center gap-1.5 flex-shrink-0 border px-3 py-2 font-mono text-xs uppercase tracking-wider transition-all duration-200 ${
-                    promptCopied === i
+                  className={`flex items-center gap-1.5 flex-shrink-0 border px-3 py-2 font-mono text-sm uppercase tracking-wider transition-all duration-200 ${promptCopied === i
                       ? 'border-green-500 text-green-400'
                       : 'border-forge-border text-forge-dim hover:border-forge-amber hover:text-forge-amber'
-                  }`}
+                    }`}
                 >
                   {promptCopied === i ? <Check size={11} /> : <Copy size={11} />}
                   {promptCopied === i ? 'Copied' : 'Copy'}
@@ -153,7 +152,7 @@ export default function TemplatePage() {
             <div className="bg-forge-surface2 px-5 py-4 border-b border-forge-border flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="font-condensed font-black text-lg uppercase tracking-wider text-forge-text">Learning Plan Template</span>
-                <span className="bg-forge-amber text-forge-bg font-mono text-[11px] uppercase tracking-widest px-2 py-0.5">
+                <span className="bg-forge-amber text-forge-bg font-mono text-[13px] uppercase tracking-widest px-2 py-0.5">
                   Paste into an AI assistant
                 </span>
               </div>
@@ -167,11 +166,10 @@ export default function TemplatePage() {
                 </button>
                 <button
                   onClick={handleCopyJson}
-                  className={`flex items-center gap-1.5 border px-4 py-2 font-mono text-xs uppercase tracking-wider transition-all duration-200 ${
-                    copied
+                  className={`flex items-center gap-1.5 border px-4 py-2 font-mono text-sm uppercase tracking-wider transition-all duration-200 ${copied
                       ? 'border-green-500 text-green-400'
                       : 'border-forge-border text-forge-dim hover:border-forge-amber hover:text-forge-amber'
-                  }`}
+                    }`}
                 >
                   {copied ? <Check size={11} /> : <Copy size={11} />}
                   {copied ? 'Copied!' : 'Copy'}
@@ -183,11 +181,11 @@ export default function TemplatePage() {
               <div className="flex">
                 <div className="px-3 py-4 bg-forge-bg/50 border-r border-forge-border select-none overflow-hidden">
                   {raw.split('\n').map((_, i) => (
-                    <div key={i} className="font-mono text-xs text-forge-muted leading-[1.7] text-right min-w-[24px]">{i + 1}</div>
+                    <div key={i} className="font-mono text-sm text-forge-muted leading-[1.7] text-right min-w-[24px]">{i + 1}</div>
                   ))}
                 </div>
                 <pre
-                  className="flex-1 px-5 py-4 font-mono text-[11px] leading-[1.7] text-forge-dim overflow-x-auto max-h-[360px] overflow-y-auto"
+                  className="flex-1 px-5 py-4 font-mono text-[13px] leading-[1.7] text-forge-dim overflow-x-auto max-h-[360px] overflow-y-auto"
                   dangerouslySetInnerHTML={{ __html: syntaxHighlight(raw) }}
                 />
               </div>
@@ -199,21 +197,21 @@ export default function TemplatePage() {
         <section>
           <div className="mb-4">
             <h3 className="font-condensed font-black text-xl uppercase tracking-wider text-forge-text">Add AI Result as a Goal</h3>
-            <p className="font-mono text-xs text-forge-dim mt-0.5">
+            <p className="font-mono text-sm text-forge-dim mt-0.5">
               Paste the filled plan back here — it will create a goal automatically
             </p>
           </div>
 
           <div className="bg-forge-surface border border-forge-border overflow-hidden">
             <div className="bg-forge-surface2 px-5 py-3 border-b border-forge-border">
-              <p className="font-mono text-xs uppercase tracking-wider text-forge-dim flex items-center gap-2">
+              <p className="font-mono text-sm uppercase tracking-wider text-forge-dim flex items-center gap-2">
                 <Wand2 size={11} className="text-forge-amber" />
                 Paste your AI's response below
               </p>
             </div>
             <div className="p-4">
               <textarea
-                className="forge-input font-mono text-[11px] resize-none min-h-[160px] leading-relaxed"
+                className="forge-input font-mono text-[13px] resize-none min-h-[160px] leading-relaxed"
                 placeholder={'{\n  "learning_plan": {\n    "major_topic": "Python",\n    ...\n  }\n}'}
                 value={jsonInput}
                 onChange={(e) => { setJsonInput(e.target.value); setImportError(''); }}
@@ -223,7 +221,7 @@ export default function TemplatePage() {
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="font-mono text-[11px] text-red-400 mt-2"
+                  className="font-mono text-[13px] text-red-400 mt-2"
                 >
                   ⚠ {importError}
                 </motion.p>
@@ -233,7 +231,7 @@ export default function TemplatePage() {
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="font-mono text-[11px] text-green-400 mt-2"
+                  className="font-mono text-[13px] text-green-400 mt-2"
                 >
                   ✓ Goal created! Check My Goals.
                 </motion.p>
@@ -257,7 +255,7 @@ export default function TemplatePage() {
         </section>
 
         <div className="border-t border-forge-border pt-6 text-center">
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-forge-muted">
+          <p className="font-mono text-sm uppercase tracking-[0.3em] text-forge-muted">
             FORGE — BUILD THE PERSON YOU NEED TO BE
           </p>
         </div>

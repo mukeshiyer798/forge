@@ -42,6 +42,8 @@ export interface GoalTopic {
   activeRecallAnswer?: string;
   /** Multiple interview prep questions with hidden answers */
   interviewPrep?: Array<{ question: string; answer: string }>;
+  /** Learning science note explaining WHY this topic is placed here */
+  pedagogyNote?: string;
 }
 
 /** Capstone at bottom of goal card */
@@ -89,6 +91,7 @@ export interface User {
   greetingPreference?: string | null;
   statusMessage?: string | null;
   hasOpenrouterKey?: boolean;
+  intelligenceKeywords?: string | null;
 }
 
 export interface WeekDay {
@@ -193,4 +196,8 @@ export interface AIInsight {
   relevantGoal: string;
   url: string | null;
   freshness: string;
+  hook?: string;
+  before?: string;
+  after?: string;
+  whyItMatters?: string;
 }

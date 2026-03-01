@@ -4,8 +4,7 @@ import { BookOpen, Sparkles, ChevronDown, ChevronUp, ExternalLink, Trash2, Loade
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 import type { GoalResource, AIInsight } from '@/types';
-import { buildReadingInsightsPrompt, inferIndustries } from '@/prompts/reading-insights';
-import { callGeminiForInsights, hasGeminiKey } from '@/lib/gemini';
+import { apiRequest } from '@/lib/api';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -61,31 +60,38 @@ function InsightCard({ item, index }: { item: AIInsight; index: number }) {
       <div className="p-5">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className={cn('type-tag text-[8px] py-0', typeInfo.bg, typeInfo.color)}>
+            <span className={cn('type-tag text-[10px] py-0', typeInfo.bg, typeInfo.color)}>
               {typeInfo.emoji} {typeInfo.label}
             </span>
-            <span className={cn('font-mono text-[8px] uppercase tracking-wider px-1.5 py-0 border', freshnessStyle)}>
+            <span className={cn('font-mono text-[10px] uppercase tracking-wider px-1.5 py-0 border', freshnessStyle)}>
               {item.freshness}
             </span>
+            {item.category && (
+              <span className="font-mono text-[10px] text-forge-muted uppercase tracking-wider border border-forge-border px-1.5 py-0">
+                {item.category}
+              </span>
+            )}
           </div>
-          {item.relevantGoal && item.relevantGoal !== 'general' && (
-            <span className="font-mono text-[8px] text-forge-amber uppercase tracking-wider border border-forge-amber/30 bg-amber-500/5 px-1.5 py-0 shrink-0">
-              {item.relevantGoal}
-            </span>
-          )}
         </div>
 
         <h3 className="font-condensed font-black text-base uppercase tracking-wide text-forge-text mb-1 leading-tight">
           {item.title}
         </h3>
-        <p className="font-mono text-[11px] text-forge-dim mb-2">{item.source}</p>
+        <p className="font-mono text-[13px] text-forge-dim mb-2">{item.source}</p>
 
-        <div className="border-l-2 border-forge-amber pl-3 bg-amber-500/5 py-1.5 pr-3 mb-2">
-          <p className="text-xs text-forge-text font-body font-semibold leading-relaxed">{item.keyTakeaway}</p>
-        </div>
+        {/* Hook teaser */}
+        {item.hook ? (
+          <div className="border-l-2 border-forge-amber pl-3 bg-amber-500/5 py-1.5 pr-3 mb-2">
+            <p className="text-sm text-forge-text font-body font-semibold leading-relaxed">{item.hook}</p>
+          </div>
+        ) : item.keyTakeaway ? (
+          <div className="border-l-2 border-forge-amber pl-3 bg-amber-500/5 py-1.5 pr-3 mb-2">
+            <p className="text-sm text-forge-text font-body font-semibold leading-relaxed">{item.keyTakeaway}</p>
+          </div>
+        ) : null}
 
         <button onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-1 font-mono text-[11px] uppercase tracking-wider text-forge-amber hover:text-forge-text transition-colors">
+          className="flex items-center gap-1 font-mono text-[13px] uppercase tracking-wider text-forge-amber hover:text-forge-text transition-colors">
           {expanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
           {expanded ? 'Less' : 'Details'}
         </button>
@@ -94,14 +100,38 @@ function InsightCard({ item, index }: { item: AIInsight; index: number }) {
           {expanded && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
-              <p className="text-xs text-forge-dim leading-relaxed mt-2 mb-2 font-body">{item.summary}</p>
-              <div className="border border-forge-border bg-forge-surface2 px-3 py-2">
-                <p className="font-mono text-[8px] uppercase tracking-[0.2em] text-forge-amber mb-0.5">Action</p>
-                <p className="text-xs text-forge-text font-body leading-relaxed">{item.actionItem}</p>
-              </div>
+              {item.before && (
+                <div className="mt-3 space-y-2">
+                  <div className="border border-forge-border p-3">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-forge-muted mb-1">Before</p>
+                    <p className="text-sm text-forge-dim leading-relaxed font-body">{item.before}</p>
+                  </div>
+                  {item.after && (
+                    <div className="border border-forge-amber/30 p-3">
+                      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-forge-amber mb-1">After</p>
+                      <p className="text-sm text-forge-text leading-relaxed font-body">{item.after}</p>
+                    </div>
+                  )}
+                  {item.whyItMatters && (
+                    <div className="border border-forge-border bg-forge-surface2 p-3">
+                      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-forge-amber mb-1">Why It Matters</p>
+                      <p className="text-sm text-forge-text leading-relaxed font-body">{item.whyItMatters}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              {!item.before && (
+                <p className="text-sm text-forge-dim leading-relaxed mt-2 mb-2 font-body">{item.summary}</p>
+              )}
+              {item.actionItem && (
+                <div className="border border-forge-border bg-forge-surface2 px-3 py-2 mt-2">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-forge-amber mb-0.5">Action</p>
+                  <p className="text-sm text-forge-text font-body leading-relaxed">{item.actionItem}</p>
+                </div>
+              )}
               {item.url && (
                 <a href={item.url} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 font-mono text-xs text-forge-amber hover:text-forge-text hover:underline mt-2">
+                  className="inline-flex items-center gap-1 font-mono text-sm text-forge-amber hover:text-forge-text hover:underline mt-2">
                   Source <ExternalLink size={9} />
                 </a>
               )}
@@ -126,8 +156,8 @@ function MindsetCard({ item, index }: { item: MindsetEntry; index: number }) {
     >
       <div className="p-5">
         <div className="flex items-center gap-1.5 mb-2">
-          <span className={cn('type-tag text-[8px] py-0', catInfo.bg, catInfo.color)}>{catInfo.label}</span>
-          <span className="font-mono text-[8px] text-forge-muted uppercase tracking-wider border border-forge-border px-1.5 py-0">
+          <span className={cn('type-tag text-[10px] py-0', catInfo.bg, catInfo.color)}>{catInfo.label}</span>
+          <span className="font-mono text-[10px] text-forge-muted uppercase tracking-wider border border-forge-border px-1.5 py-0">
             {item.book}
           </span>
         </div>
@@ -135,14 +165,14 @@ function MindsetCard({ item, index }: { item: MindsetEntry; index: number }) {
         <h3 className="font-condensed font-black text-base uppercase tracking-wide text-forge-text mb-1 leading-tight">
           {item.title}
         </h3>
-        <p className="font-mono text-[11px] text-forge-dim mb-2">{item.author}</p>
+        <p className="font-mono text-[13px] text-forge-dim mb-2">{item.author}</p>
 
         <div className="border-l-2 border-purple-400 pl-3 bg-purple-500/5 py-1.5 pr-3 mb-2">
-          <p className="text-xs text-forge-text font-body font-semibold leading-relaxed">{item.keyLesson}</p>
+          <p className="text-sm text-forge-text font-body font-semibold leading-relaxed">{item.keyLesson}</p>
         </div>
 
         <button onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-1 font-mono text-[11px] uppercase tracking-wider text-forge-amber hover:text-forge-text transition-colors">
+          className="flex items-center gap-1 font-mono text-[13px] uppercase tracking-wider text-forge-amber hover:text-forge-text transition-colors">
           {expanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
           {expanded ? 'Less' : 'How to Apply'}
         </button>
@@ -151,10 +181,10 @@ function MindsetCard({ item, index }: { item: MindsetEntry; index: number }) {
           {expanded && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
-              <p className="text-xs text-forge-dim leading-relaxed mt-2 mb-2 font-body">{item.summary}</p>
+              <p className="text-sm text-forge-dim leading-relaxed mt-2 mb-2 font-body">{item.summary}</p>
               <div className="border border-forge-border bg-forge-surface2 px-3 py-2">
-                <p className="font-mono text-[8px] uppercase tracking-[0.2em] text-purple-400 mb-0.5">Apply This</p>
-                <p className="text-xs text-forge-text font-body leading-relaxed">{item.howToApply}</p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-purple-400 mb-0.5">Apply This</p>
+                <p className="text-sm text-forge-text font-body leading-relaxed">{item.howToApply}</p>
               </div>
             </motion.div>
           )}
@@ -220,7 +250,7 @@ import {
   WisdomBackend
 } from '@/lib/api';
 export default function ReadingPage() {
-  const { goals, readingInsights, addReadingInsight, deleteReadingInsight } = useAppStore();
+  const { user, goals, readingInsights, addReadingInsight, deleteReadingInsight } = useAppStore();
   const [mindsetEntries, setMindsetEntries] = useState<MindsetEntry[]>([]);
   const [loadingInsights, setLoadingInsights] = useState(false);
   const [loadingMindset, setLoadingMindset] = useState(false);
@@ -270,44 +300,37 @@ export default function ReadingPage() {
   const [promptCopied, setPromptCopied] = useState(false);
 
   const handleGetInsights = async () => {
-    if (!hasGeminiKey()) {
-      setError('Set your API key in Settings first.');
-      return;
-    }
     setError('');
-    setPromptCopied(false);
     setLoadingInsights(true);
     try {
-      const goalNames = goals.map(g => g.name);
-      const goalTypes = [...new Set(goals.map(g => g.type))];
-      const industries = inferIndustries(goalNames, goalTypes);
-      const prompt = buildReadingInsightsPrompt({ goalNames, goalTypes, industries });
-      setLastPrompt(prompt);
-      const result = await callGeminiForInsights<AIInsight>(prompt);
-      if (result && result.length > 0) {
-        result.forEach((item) => {
+      const res = await apiRequest<{ data: any[]; count: number }>('/ai/intelligence-feed', {
+        method: 'POST',
+      });
+
+      if (res && res.data && res.data.length > 0) {
+        res.data.forEach((item: any) => {
           addReadingInsight({
             title: item.title ?? 'Untitled',
-            source: item.source ?? 'Unknown',
+            source: item.source ?? 'Intelligence Feed',
             category: item.category ?? 'tech',
-            type: item.type ?? 'skill_insight',
-            summary: item.summary ?? '',
-            keyTakeaway: item.keyTakeaway ?? '',
+            type: item.type ?? 'industry_move',
+            summary: item.whyItMatters ?? item.summary ?? '',
+            keyTakeaway: item.hook ?? item.phaseConnection ?? '',
             actionItem: item.actionItem ?? '',
-            relevantGoal: item.relevantGoal ?? 'general',
+            relevantGoal: 'general',
             url: item.url ?? null,
-            freshness: item.freshness ?? 'recent',
+            freshness: item.eventDate ?? 'this week',
+            hook: item.hook ?? undefined,
+            before: item.before ?? undefined,
+            after: item.after ?? undefined,
+            whyItMatters: item.whyItMatters ?? undefined,
           });
         });
       } else {
-        setError('No insights generated. Try again.');
+        setError('No feed items generated. Ensure goals exist and API key is set.');
       }
     } catch (err) {
-      setError(`${err instanceof Error ? err.message : 'Unknown'}`);
-      // Auto-copy prompt on failure
-      if (lastPrompt) {
-        navigator.clipboard.writeText(lastPrompt).then(() => setPromptCopied(true)).catch(() => { });
-      }
+      setError(`${err instanceof Error ? err.message : 'Unknown Error'}`);
     } finally {
       setLoadingInsights(false);
     }
@@ -318,23 +341,25 @@ export default function ReadingPage() {
     setPromptCopied(false);
     setLoadingMindset(true);
     try {
-      const result = await fetchUniversalMindset(3);
+      const result = await apiRequest<{ data: any[]; count: number }>('/ai/frameworks', {
+        method: 'POST',
+      });
       if (result && result.data && result.data.length > 0) {
-        setMindsetEntries(result.data.map((item: WisdomBackend, i: number) => ({
-          id: item.id ?? `m-${i}`,
-          title: item.title ?? 'Untitled',
+        setMindsetEntries(result.data.map((item: any, i: number) => ({
+          id: item.id ?? `f-${i}`,
+          title: item.frameworkName ?? 'Untitled',
           book: item.book ?? 'Unknown',
           author: item.author ?? 'Unknown',
-          category: item.category ?? 'mindset',
-          summary: item.summary ?? '',
-          keyLesson: item.key_lesson ?? '',
-          howToApply: item.how_to_apply ?? '',
+          category: item.category ?? 'discipline',
+          summary: item.coreIdea ?? '',
+          keyLesson: item.appliedTo ?? '',
+          howToApply: item.fiveMinuteAction ?? '',
         })));
       } else {
-        setError('No entries generated. Ensure active API keys are mapped in backend.');
+        setError('No frameworks generated. Ensure active API keys are set.');
       }
     } catch (err) {
-      setError(`${err instanceof Error ? err.message : 'Unknown Database Error'}`);
+      setError(`${err instanceof Error ? err.message : 'Unknown Error'}`);
     } finally {
       setLoadingMindset(false);
     }
@@ -346,12 +371,12 @@ export default function ReadingPage() {
       <div className="sticky top-0 lg:top-0 z-10 bg-forge-surface border-b border-forge-border px-4 lg:px-10 py-5">
         <div className="flex items-end justify-between">
           <div>
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-forge-dim mb-1">// Library</p>
+            <p className="font-mono text-sm uppercase tracking-[0.2em] text-forge-dim mb-1">// Library</p>
             <h2 className="font-display text-3xl lg:text-4xl tracking-widest text-forge-text">READING ROOM</h2>
           </div>
           <div className="flex items-center gap-2">
             <BookOpen size={16} className="text-forge-amber" />
-            <span className="font-mono text-xs text-forge-dim uppercase tracking-wider">
+            <span className="font-mono text-sm text-forge-dim uppercase tracking-wider">
               {readingInsights.length + goalResources.length + mindsetEntries.length} pieces
             </span>
           </div>
@@ -362,42 +387,43 @@ export default function ReadingPage() {
 
         {error && (
           <div className="flex items-center justify-between">
-            <p className="font-mono text-[11px] text-red-400">⚠ {error}</p>
+            <p className="font-mono text-[13px] text-red-400">⚠ {error}</p>
             {promptCopied && (
-              <span className="font-mono text-[8px] text-forge-muted uppercase tracking-wider">prompt copied to clipboard</span>
+              <span className="font-mono text-[10px] text-forge-muted uppercase tracking-wider">prompt copied to clipboard</span>
             )}
           </div>
         )}
 
-        {/* ── Fresh Insights ──────────────────────────────── */}
+        {/* ── Intelligence Feed ──────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <Sparkles size={16} className="text-forge-amber" />
               <h3 className="font-condensed font-black text-xl uppercase tracking-wider text-forge-text">
-                Fresh Insights
+                Intelligence Feed
               </h3>
               {readingInsights.length > 0 && (
-                <span className="font-mono text-xs text-forge-dim">{readingInsights.length}</span>
+                <span className="font-mono text-sm text-forge-dim">{readingInsights.length}</span>
               )}
             </div>
             <div className="flex items-center gap-2">
               {readingInsights.length > 0 && (
                 <button onClick={() => readingInsights.forEach(i => deleteReadingInsight(i.id))}
-                  className="forge-btn-ghost flex items-center gap-1 text-xs text-forge-muted">
+                  className="forge-btn-ghost flex items-center gap-1 text-sm text-forge-muted">
                   <Trash2 size={11} /> Clear
                 </button>
               )}
               <button onClick={handleGetInsights} disabled={loadingInsights}
                 className={cn(
-                  'flex items-center gap-1.5 border px-3 py-1.5 font-condensed font-bold text-xs uppercase tracking-wider transition-colors',
+                  'flex items-center gap-1.5 border px-3 py-1.5 font-condensed font-bold text-sm uppercase tracking-wider transition-colors',
                   loadingInsights
                     ? 'border-forge-border text-forge-muted'
                     : 'border-forge-amber text-forge-amber hover:bg-amber-500/5'
                 )}>
                 {loadingInsights ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-                {loadingInsights ? 'Generating...' : 'Get Fresh Insights'}
+                {loadingInsights ? 'Generating...' : 'Get Contextual Feed'}
               </button>
+
             </div>
           </div>
 
@@ -410,8 +436,8 @@ export default function ReadingPage() {
           ) : !loadingInsights ? (
             <div className="border border-dashed border-forge-border text-center py-6">
               <Sparkles size={18} className="text-forge-amber mx-auto mb-2 opacity-60" />
-              <p className="font-mono text-xs text-forge-muted max-w-sm mx-auto">
-                {hasGeminiKey()
+              <p className="font-mono text-sm text-forge-muted max-w-sm mx-auto">
+                {user?.hasOpenrouterKey
                   ? `Get personalized insights based on your ${goals.length} goal${goals.length !== 1 ? 's' : ''}.`
                   : 'Set your API key in Settings to get started.'
                 }
@@ -428,7 +454,7 @@ export default function ReadingPage() {
               <button
                 onClick={() => setBottomTab('resources')}
                 className={cn(
-                  'flex items-center gap-1.5 px-4 py-2 font-condensed font-bold text-xs uppercase tracking-wider transition-colors',
+                  'flex items-center gap-1.5 px-4 py-2 font-condensed font-bold text-sm uppercase tracking-wider transition-colors',
                   bottomTab === 'resources'
                     ? 'bg-forge-amber text-forge-bg'
                     : 'text-forge-dim hover:text-forge-text'
@@ -445,16 +471,16 @@ export default function ReadingPage() {
               <button
                 onClick={() => setBottomTab('mindset')}
                 className={cn(
-                  'flex items-center gap-1.5 px-4 py-2 font-condensed font-bold text-xs uppercase tracking-wider transition-colors',
+                  'flex items-center gap-1.5 px-4 py-2 font-condensed font-bold text-sm uppercase tracking-wider transition-colors',
                   bottomTab === 'mindset'
                     ? 'bg-purple-600 text-forge-text'
                     : 'text-forge-dim hover:text-forge-text'
                 )}
               >
                 <Brain size={12} />
-                Mindset
+                Applied Frameworks
                 {mindsetEntries.length > 0 && (
-                  <span className={cn('font-mono text-xs', bottomTab === 'mindset' ? 'text-forge-text/70' : 'text-forge-muted')}>
+                  <span className={cn('font-mono text-sm', bottomTab === 'mindset' ? 'text-forge-text/70' : 'text-forge-muted')}>
                     {mindsetEntries.length}
                   </span>
                 )}
@@ -466,19 +492,19 @@ export default function ReadingPage() {
               <div className="flex items-center gap-2">
                 {mindsetEntries.length > 0 && (
                   <button onClick={() => setMindsetEntries([])}
-                    className="font-mono text-xs text-forge-muted hover:text-red-400 transition-colors">
+                    className="font-mono text-sm text-forge-muted hover:text-red-400 transition-colors">
                     Clear
                   </button>
                 )}
                 <button onClick={handleGetMindset} disabled={loadingMindset}
                   className={cn(
-                    'flex items-center gap-1 border px-3 py-1.5 font-condensed font-bold text-xs uppercase tracking-wider transition-colors',
+                    'flex items-center gap-1 border px-3 py-1.5 font-condensed font-bold text-sm uppercase tracking-wider transition-colors',
                     loadingMindset
                       ? 'border-forge-border text-forge-muted'
                       : 'border-purple-500/50 text-purple-400 hover:bg-purple-500/5'
                   )}>
                   {loadingMindset ? <Loader2 size={11} className="animate-spin" /> : <Brain size={11} />}
-                  {loadingMindset ? 'Loading...' : 'Get Wisdom'}
+                  {loadingMindset ? 'Loading...' : 'Get Frameworks'}
                 </button>
               </div>
             )}
@@ -491,7 +517,7 @@ export default function ReadingPage() {
                 <div className="space-y-4">
                   {Object.entries(groupedResources).map(([goalName, items]) => (
                     <div key={goalName}>
-                      <p className="font-mono text-xs uppercase tracking-wider text-forge-amber mb-1.5">{goalName}</p>
+                      <p className="font-mono text-sm uppercase tracking-wider text-forge-amber mb-1.5">{goalName}</p>
                       <div className="space-y-1">
                         {items.map((item, i) => (
                           <div key={`${item.resource.id}-${i}`}
@@ -502,14 +528,14 @@ export default function ReadingPage() {
                             <div className="flex-1 min-w-0">
                               {item.resource.url ? (
                                 <a href={item.resource.url} target="_blank" rel="noopener noreferrer"
-                                  className="font-mono text-xs text-forge-amber hover:text-forge-text hover:underline truncate block">
+                                  className="font-mono text-sm text-forge-amber hover:text-forge-text hover:underline truncate block">
                                   {item.resource.title}
                                 </a>
                               ) : (
-                                <div className="font-mono text-xs text-forge-text truncate block"><FormattedText text={item.resource.title} /></div>
+                                <div className="font-mono text-sm text-forge-text truncate block"><FormattedText text={item.resource.title} /></div>
                               )}
                             </div>
-                            <span className="font-mono text-[11px] text-forge-muted uppercase shrink-0">{item.resource.type}</span>
+                            <span className="font-mono text-[13px] text-forge-muted uppercase shrink-0">{item.resource.type}</span>
                           </div>
                         ))}
                       </div>
@@ -519,7 +545,7 @@ export default function ReadingPage() {
               ) : (
                 <div className="border border-dashed border-forge-border text-center py-8">
                   <BookOpen size={18} className="text-forge-amber mx-auto mb-2 opacity-60" />
-                  <p className="font-mono text-xs text-forge-muted">Resources from your goals will appear here</p>
+                  <p className="font-mono text-sm text-forge-muted">Resources from your goals will appear here</p>
                 </div>
               )}
             </div>
@@ -536,9 +562,9 @@ export default function ReadingPage() {
               ) : !loadingMindset ? (
                 <div className="border border-dashed border-forge-border text-center py-8">
                   <Brain size={18} className="text-purple-400 mx-auto mb-2 opacity-60" />
-                  <p className="font-mono text-xs text-forge-muted max-w-sm mx-auto">
-                    {hasGeminiKey()
-                      ? 'Lessons from Goggins, Clear, Dweck, Newport and more.'
+                  <p className="font-mono text-sm text-forge-muted max-w-sm mx-auto">
+                    {user?.hasOpenrouterKey
+                      ? 'Applied frameworks (Clear, Goggins, Newport) tailored exactly to your active goals.'
                       : 'Set your API key in Settings to unlock this.'
                     }
                   </p>
@@ -555,14 +581,14 @@ export default function ReadingPage() {
               <p className="font-condensed font-bold text-base uppercase tracking-wider text-forge-dim">
                 Your reading room is empty
               </p>
-              <p className="font-mono text-xs text-forge-muted mt-1">
+              <p className="font-mono text-sm text-forge-muted mt-1">
                 Add goals or generate insights to fill it up.
               </p>
             </div>
           )}
 
         <div className="border-t border-forge-border pt-6 text-center">
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-forge-muted">
+          <p className="font-mono text-sm uppercase tracking-[0.3em] text-forge-muted">
             FORGE — BUILD THE PERSON YOU NEED TO BE
           </p>
         </div>

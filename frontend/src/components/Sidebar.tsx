@@ -15,7 +15,7 @@ const NAV_ITEMS: { id: ViewId; label: string; icon: React.ElementType; descripti
 function useTheme() {
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('forge-theme');
-    return saved ? saved === 'dark' : true;
+    return saved ? saved === 'dark' : false;
   });
 
   useEffect(() => {
@@ -46,7 +46,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
           <h1 className="font-display text-[32px] tracking-widest text-forge-text leading-none">
             FORGE<span className="text-forge-amber">.</span>
           </h1>
-          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-forge-muted mt-1">
+          <p className="font-mono text-sm uppercase tracking-[0.2em] text-forge-muted mt-1">
             // Consistency over ambition
           </p>
         </div>
@@ -74,7 +74,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
         </div>
         <div className="min-w-0">
           <p className="font-body font-bold text-sm text-forge-text truncate">{user?.name ?? 'Warrior'}</p>
-          <p className="font-mono text-[11px] text-forge-dim truncate">{user?.email ?? ''}</p>
+          <p className="font-mono text-[13px] text-forge-dim truncate">{user?.email ?? ''}</p>
         </div>
       </div>
 
@@ -91,7 +91,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
                 <div className={cn('text-sm font-semibold leading-none', isActive ? 'text-forge-amber' : 'text-forge-dim group-hover:text-forge-text')}>
                   {item.label}
                 </div>
-                <div className="text-[11px] text-forge-muted mt-0.5 font-mono">{item.description}</div>
+                <div className="text-sm text-forge-muted mt-0.5 font-mono">{item.description}</div>
               </div>
               {isActive && (
                 <motion.div layoutId="nav-indicator" className="absolute right-2 w-1.5 h-1.5 rounded-full bg-forge-amber" />
@@ -109,7 +109,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
             className="text-2xl inline-block">🔥</motion.span>
           <div>
             <div className="font-display text-3xl text-forge-fire leading-none">{streak}</div>
-            <div className="font-mono text-xs uppercase tracking-[0.15em] text-forge-dim">Day Streak</div>
+            <div className="font-mono text-base uppercase tracking-[0.15em] text-forge-dim">Day Streak</div>
           </div>
         </div>
       </div>

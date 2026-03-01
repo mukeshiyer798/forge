@@ -22,11 +22,12 @@ export default function WeekTracker() {
       // Show risk popup if requirements not met (only once per day)
       const today = new Date().toISOString().split('T')[0];
       const lastChecked = localStorage.getItem(`risk-checked-${today}`);
-      const hasOldGoals = goals.some(g => g.dailyTaskRequirement && g.createdAt !== today);
+      // Only check goals with requirements that were created *before* today
+      const hasOldGoals = goals.some(g => g.dailyTaskRequirement && g.createdAt && g.createdAt < today);
       const isEvening = new Date().getHours() >= 17;
 
-      // Delay popup to avoid jarring the user, and only show if it's evening OR they have old goals
-      if (!lastChecked && (hasOldGoals || isEvening)) {
+      // Only show if it's evening AND they have old goals that didn't meet requirements
+      if (!lastChecked && isEvening && hasOldGoals) {
         const timer = setTimeout(() => {
           setRiskPopupOpen(true);
           localStorage.setItem(`risk-checked-${today}`, 'true');
@@ -48,21 +49,21 @@ export default function WeekTracker() {
 
         <div className="flex items-center justify-between mb-5">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-forge-dim mb-1">
+            <p className="font-mono text-[13px] uppercase tracking-[0.2em] text-forge-dim mb-1">
               This Week
             </p>
             <h3 className="font-condensed font-black text-lg uppercase tracking-wider text-forge-text">
               Task Completion Tracker
             </h3>
             {todayRequired > 0 && (
-              <p className="font-mono text-[11px] text-forge-dim mt-1">
+              <p className="font-mono text-[13px] text-forge-dim mt-1">
                 Today: {todayCompleted}/{todayRequired} tasks
               </p>
             )}
           </div>
           <div className="text-right">
             <span className="font-display text-3xl text-forge-amber">{completedCount}</span>
-            <span className="font-mono text-xs text-forge-dim">/7</span>
+            <span className="font-mono text-sm text-forge-dim">/7</span>
           </div>
         </div>
 
@@ -75,7 +76,7 @@ export default function WeekTracker() {
             return (
               <div key={day} className="flex flex-col items-center gap-2">
                 <span className={cn(
-                  'font-mono text-[11px] uppercase tracking-wider',
+                  'font-mono text-[12px] uppercase tracking-wider',
                   isToday ? 'text-forge-amber' : 'text-forge-dim'
                 )}>
                   {day}
@@ -113,7 +114,7 @@ export default function WeekTracker() {
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-4 text-center font-mono text-xs uppercase tracking-widest text-forge-amber"
+            className="mt-4 text-center font-mono text-sm uppercase tracking-widest text-forge-amber"
           >
             🔥 Perfect week. Keep the streak alive.
           </motion.div>

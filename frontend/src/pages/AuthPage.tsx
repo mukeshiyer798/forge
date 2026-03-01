@@ -125,7 +125,7 @@ export default function AuthPage() {
               <h1 className="font-display text-5xl tracking-widest text-forge-text">
                 FORGE<span className="text-forge-amber">.</span>
               </h1>
-              <p className="font-mono text-xs uppercase tracking-[0.2em] text-forge-dim mt-1">
+              <p className="font-mono text-sm uppercase tracking-[0.2em] text-forge-dim mt-1">
                 // Build the person you need to be
               </p>
             </div>
@@ -136,7 +136,7 @@ export default function AuthPage() {
                 <button
                   key={t}
                   onClick={() => setTab(t)}
-                  className={`font-condensed font-bold text-sm tracking-widest uppercase px-5 py-3 border-b-2 -mb-px transition-all duration-200 ${tab === t
+                  className={`font-condensed font-bold text-base tracking-widest uppercase px-5 py-3 border-b-2 -mb-px transition-all duration-200 ${tab === t
                     ? 'text-forge-amber border-forge-amber'
                     : 'text-forge-dim border-transparent hover:text-forge-text'
                     }`}
@@ -250,7 +250,7 @@ export default function AuthPage() {
                                 />
                               ))}
                             </div>
-                            <span className={`font-mono text-[11px] uppercase tracking-wider ${textColor}`}>{label}</span>
+                            <span className={`font-mono text-[13px] uppercase tracking-wider ${textColor}`}>{label}</span>
                           </div>
                           <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                             {([
@@ -298,7 +298,7 @@ export default function AuthPage() {
                       <option value="weekly">Weekly check-in</option>
                       <option value="off">Off (No emails)</option>
                     </select>
-                    <p className="font-mono text-[11px] text-forge-muted mt-1">
+                    <p className="font-mono text-[13px] text-forge-muted mt-1">
                       You can change this later in Settings.
                     </p>
                   </div>
@@ -311,7 +311,7 @@ export default function AuthPage() {
           </div>
         </div>
 
-        <p className="text-center font-mono text-xs text-forge-muted mt-6 tracking-widest uppercase">
+        <p className="text-center font-mono text-sm text-forge-muted mt-6 tracking-widest uppercase">
           No excuses. No shortcuts. Just work.
         </p>
       </motion.div>

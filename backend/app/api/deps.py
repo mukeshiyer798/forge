@@ -94,12 +94,12 @@ def get_spaced_repetition_service(session: SessionDep) -> SpacedRepetitionServic
     goal_repo = GoalRepository(session)
     return SpacedRepetitionService(repo, goal_repo)
 
-def get_reading_service(session: SessionDep) -> ReadingService:
-    repo = ReadingRepository(session)
-    return ReadingService(repo)
-
 def get_ai_service() -> AiService:
     return AiService()
+
+def get_reading_service(session: SessionDep, ai_service: AiService = Depends(get_ai_service)) -> ReadingService:
+    repo = ReadingRepository(session)
+    return ReadingService(repo=repo, ai_service=ai_service)
 
 def get_wisdom_service(session: SessionDep, ai_service: AiService = Depends(get_ai_service)) -> WisdomService:
     repo = WisdomRepository(session)
@@ -110,6 +110,6 @@ ItemServiceDep = Annotated[ItemService, Depends(get_item_service)]
 GoalServiceDep = Annotated[GoalService, Depends(get_goal_service)]
 PomodoroServiceDep = Annotated[PomodoroService, Depends(get_pomodoro_service)]
 SpacedRepetitionServiceDep = Annotated[SpacedRepetitionService, Depends(get_spaced_repetition_service)]
-ReadingServiceDep = Annotated[ReadingService, Depends(get_reading_service)]
 AiServiceDep = Annotated[AiService, Depends(get_ai_service)]
+ReadingServiceDep = Annotated[ReadingService, Depends(get_reading_service)]
 WisdomServiceDep = Annotated[WisdomService, Depends(get_wisdom_service)]

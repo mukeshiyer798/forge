@@ -29,6 +29,7 @@ class UserBase(SQLModel):
     theme_preference: str | None = Field(default=None, max_length=32)
     greeting_preference: str | None = Field(default=None, max_length=100)
     status_message: str | None = Field(default=None, max_length=255)
+    intelligence_keywords: str | None = Field(default=None, max_length=500)
 
 class User(UserBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
