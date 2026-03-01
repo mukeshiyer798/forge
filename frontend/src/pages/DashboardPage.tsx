@@ -29,12 +29,12 @@ export default function DashboardPage() {
       {/* Header: solid background so scrolling content doesn’t layer underneath */}
       <div className="sticky top-0 z-20 bg-forge-surface/98 backdrop-blur-md border-b border-forge-border shadow-[0_1px_0_0_rgba(255,255,255,0.03)] px-4 lg:px-10 py-5 flex items-end justify-between">
         <div>
-          <p className="font-mono text-[13px] uppercase tracking-[0.2em] text-forge-dim mb-1">// {dateStr}</p>
+          <p className="font-mono text-[15px] uppercase tracking-[0.2em] text-forge-dim mb-1">// {dateStr}</p>
           <h2 className="font-display text-3xl lg:text-4xl tracking-widest text-forge-text">
             {period.toUpperCase()}, {displayName.toString().toUpperCase()}
           </h2>
           {user?.statusMessage && (
-            <p className="font-mono text-[13px] uppercase tracking-wider text-forge-amber mt-1">
+            <p className="font-mono text-[15px] uppercase tracking-wider text-forge-amber mt-1">
               {user.statusMessage}
             </p>
           )}
@@ -44,7 +44,7 @@ export default function DashboardPage() {
             <motion.div animate={{ opacity: [1, 0.6, 1] }} transition={{ duration: 2, repeat: Infinity }}
               className="hidden sm:flex items-center gap-1.5 bg-red-950/40 border border-red-900/50 px-3 py-2">
               <Zap size={11} className="text-red-400" />
-              <span className="font-mono text-[13px] uppercase tracking-wider text-red-400">{behindCount} At Risk</span>
+              <span className="font-mono text-[15px] uppercase tracking-wider text-red-400">{behindCount} At Risk</span>
             </motion.div>
           )}
           <div id="pomodoro-header"><PomodoroTimer goals={goals} headerMode /></div>
@@ -69,7 +69,7 @@ export default function DashboardPage() {
               <h3 className="font-condensed font-black text-xl uppercase tracking-wider text-forge-text">Progress Snapshot</h3>
               <button
                 onClick={() => setActiveView('executive')}
-                className="flex items-center gap-1.5 font-mono text-[13px] uppercase tracking-wider text-forge-amber hover:text-forge-text transition-colors"
+                className="flex items-center gap-1.5 font-mono text-[15px] uppercase tracking-wider text-forge-amber hover:text-forge-text transition-colors"
               >
                 Summary view <ArrowRight size={11} />
               </button>
@@ -87,7 +87,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-condensed font-black text-xl uppercase tracking-wider text-forge-text">Recent Goals</h3>
               <button onClick={() => setActiveView('goals')}
-                className="flex items-center gap-1.5 font-mono text-[13px] uppercase tracking-wider text-forge-amber hover:text-forge-text transition-colors">
+                className="flex items-center gap-1.5 font-mono text-[15px] uppercase tracking-wider text-forge-amber hover:text-forge-text transition-colors">
                 View All <ArrowRight size={11} />
               </button>
             </div>
@@ -96,7 +96,7 @@ export default function DashboardPage() {
               <div className="border border-dashed border-forge-border p-10 text-center">
                 <div className="text-3xl mb-3">⚒️</div>
                 <p className="font-condensed font-bold text-base uppercase tracking-wider text-forge-dim mb-1">No goals yet.</p>
-                <p className="font-mono text-[13px] text-forge-muted mb-5">Add one manually or let AI build your roadmap.</p>
+                <p className="font-mono text-[15px] text-forge-muted mb-5">Add one manually or let AI build your roadmap.</p>
                 <button onClick={() => setAddModalOpen(true)} className="forge-btn-primary">Create First Goal</button>
               </div>
             ) : (
@@ -130,7 +130,7 @@ export default function DashboardPage() {
                 <p className="font-condensed font-bold text-base uppercase tracking-wider text-forge-text group-hover:text-forge-amber transition-colors">
                   Generate Roadmap
                 </p>
-                <p className="font-mono text-[13px] text-forge-dim mt-1">
+                <p className="font-mono text-[15px] text-forge-dim mt-1">
                   Describe a topic → get a full structured learning plan
                 </p>
               </button>
@@ -141,7 +141,7 @@ export default function DashboardPage() {
                 <p className="font-condensed font-bold text-base uppercase tracking-wider text-forge-text group-hover:text-forge-amber transition-colors">
                   Reading Room
                 </p>
-                <p className="font-mono text-[13px] text-forge-dim mt-1">
+                <p className="font-mono text-[15px] text-forge-dim mt-1">
                   Curated insights & stories to support your learning
                 </p>
               </button>

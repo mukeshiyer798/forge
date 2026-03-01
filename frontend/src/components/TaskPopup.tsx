@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, Eye, EyeOff, ChevronRight } from 'lucide-react';
+import { X, Check, Eye, EyeOff, ChevronRight, Trash2 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import type { GoalTopic } from '@/types';
 import { cn } from '@/lib/utils';
@@ -14,7 +14,7 @@ interface TaskPopupProps {
 }
 
 export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupProps) {
-  const { toggleTopicSubtopic, toggleTopicBuild, toggleTopicCompleted, addSubtopicToTopic, addResourceToTopic, updateTopicName, updateSubtopicName, updateResourceTitle } = useAppStore();
+  const { toggleTopicSubtopic, toggleTopicBuild, toggleTopicCompleted, addSubtopicToTopic, addResourceToTopic, updateTopicName, updateSubtopicName, updateResourceTitle, updateTopicDescription, deleteTopic } = useAppStore();
   const [revealedAnswers, setRevealedAnswers] = useState<Set<number>>(new Set());
   const [justCompleted, setJustCompleted] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
@@ -105,16 +105,44 @@ export default function TaskPopup({ open, onClose, goalId, topic }: TaskPopupPro
                   onChange={(e) => updateTopicName(goalId, topic.id, e.target.value)}
                 />
               </div>
-              <button onClick={handleClose} className="text-forge-dim hover:text-forge-text transition-colors ml-3">
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-1 ml-3">
+                <button
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to delete this topic?')) {
+                      deleteTopic(goalId, topic.id);
+                      onClose();
+                    }
+                  }}
+                  className="text-forge-dim hover:text-red-500 transition-colors p-2"
+                  title="Delete Topic"
+                >
+                  <Trash2 size={18} />
+                </button>
+                <button onClick={handleClose} className="text-forge-dim hover:text-forge-text transition-colors p-2">
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             <div className="p-6 space-y-5">
               {/* Description */}
-              {topic.description && (
-                <p className="font-mono text-sm text-forge-text leading-relaxed">{topic.description}</p>
-              )}
+              <div className="relative group">
+                <textarea
+                  className="w-full bg-transparent border border-transparent hover:border-forge-border/50 focus:border-forge-amber focus:bg-forge-surface2 rounded font-mono text-sm text-forge-text leading-relaxed p-2 -mx-2 resize-none overflow-hidden transition-colors"
+                  value={topic.description || ''}
+                  placeholder="Add a description for this topic..."
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                    updateTopicDescription(goalId, topic.id, e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                  }}
+                  onFocus={(e: React.FocusEvent<HTMLTextAreaElement>) => {
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                  }}
+                  rows={topic.description ? undefined : 1}
+                />
+              </div>
 
               {/* Pedagogy Note */}
               {topic.pedagogyNote && (

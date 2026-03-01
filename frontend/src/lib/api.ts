@@ -293,6 +293,28 @@ export async function submitSpacedRepetitionReview(
   );
 }
 
+export async function createSpacedRepetitionItem(
+  goalId: string,
+  topicId: string,
+  topicName: string,
+  activeRecallQuestion?: string | null,
+  resources?: string | null
+): Promise<SpacedRepetitionItemPublic> {
+  return apiRequest<SpacedRepetitionItemPublic>(
+    '/spaced-repetition/items',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        goal_id: goalId,
+        topic_id: topicId,
+        topic_name: topicName,
+        active_recall_question: activeRecallQuestion ?? null,
+        resources: resources ?? null,
+      }),
+    }
+  );
+}
+
 // ── Reading Insights API ──────────────────────────────────
 export interface ReadingInsightBackend {
   id: string;

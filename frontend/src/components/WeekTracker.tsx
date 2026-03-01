@@ -76,7 +76,7 @@ export default function WeekTracker() {
             return (
               <div key={day} className="flex flex-col items-center gap-2">
                 <span className={cn(
-                  'font-mono text-[13px] uppercase tracking-wider',
+                  'font-mono text-[12px] uppercase tracking-wider',
                   isToday ? 'text-forge-amber' : 'text-forge-dim'
                 )}>
                   {day}

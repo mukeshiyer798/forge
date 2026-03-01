@@ -175,13 +175,14 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
             {confirmingDelete ? (
               <div className="flex items-center gap-1.5">
                 <span className="font-mono text-[13px] text-red-400 uppercase tracking-wider">Delete?</span>
+                <span className="font-mono text-[14px] text-red-400 uppercase tracking-wider">Delete?</span>
                 <button
                   onClick={() => { deleteGoal(goal.id); setConfirmingDelete(false); }}
-                  className="font-mono text-[13px] text-red-400 hover:text-red-300 border border-red-500/30 px-1.5 py-0.5 uppercase tracking-wider"
+                  className="font-mono text-[14px] text-red-400 hover:text-red-300 border border-red-500/30 px-1.5 py-0.5 uppercase tracking-wider"
                 >Yes</button>
                 <button
                   onClick={() => setConfirmingDelete(false)}
-                  className="font-mono text-[13px] text-forge-dim hover:text-forge-text border border-forge-border px-1.5 py-0.5 uppercase tracking-wider"
+                  className="font-mono text-[14px] text-forge-dim hover:text-forge-text border border-forge-border px-1.5 py-0.5 uppercase tracking-wider"
                 >No</button>
               </div>
             ) : (

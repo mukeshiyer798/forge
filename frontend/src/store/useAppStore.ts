@@ -29,6 +29,10 @@ export function mapBackendUserToUser(backend: {
   greeting_preference?: string | null;
   status_message?: string | null;
   has_openrouter_key?: boolean;
+  email_afternoon_time?: string | null;
+  email_evening_time?: string | null;
+  timezone?: string | null;
+  intelligence_keywords?: string | null;
 }): User {
   const name = backend.full_name || backend.email.split('@')[0] || 'User';
   const displayName = name.charAt(0).toUpperCase() + name.slice(1);
@@ -42,6 +46,7 @@ export function mapBackendUserToUser(backend: {
     greetingPreference: backend.greeting_preference ?? null,
     statusMessage: backend.status_message ?? null,
     hasOpenrouterKey: backend.has_openrouter_key ?? false,
+    intelligenceKeywords: backend.intelligence_keywords ?? null,
   };
 }
 
@@ -151,6 +156,8 @@ interface AppState {
   addResourceToTopic: (goalId: string, topicId: string, title: string, type: 'video' | 'docs' | 'blog' | 'youtube') => void;
   updateResourceTitle: (goalId: string, topicId: string, resourceId: string, title: string) => void;
   updateTopicName: (goalId: string, topicId: string, name: string) => void;
+  updateTopicDescription: (goalId: string, topicId: string, description: string) => void;
+  deleteTopic: (goalId: string, topicId: string) => void;
   deleteGoal: (goalId: string) => void;
   togglePauseGoal: (goalId: string) => void;
 
@@ -597,6 +604,11 @@ export const useAppStore = create<AppState>()(
       },
 
       toggleTopicCompleted: (goalId, topicId) => {
+        // Capture the topic state before toggling to determine if we're completing it
+        const goalBefore = get().goals.find((g) => g.id === goalId);
+        const topicBefore = goalBefore?.topics?.find((t) => t.id === topicId);
+        const wasCompleted = topicBefore?.completed ?? false;
+
         set((state) => ({
           goals: state.goals.map((g) => {
             if (g.id !== goalId || !g.topics) return g;
@@ -614,6 +626,19 @@ export const useAppStore = create<AppState>()(
         const goal = get().goals.find((g) => g.id === goalId);
         if (goal) syncGoalToBackend(goal);
         get().markDayCompleteFromTasks();
+
+        // Auto-create spaced repetition item when topic is NEWLY completed
+        if (!wasCompleted && topicBefore) {
+          import('@/lib/api').then(({ createSpacedRepetitionItem }) => {
+            createSpacedRepetitionItem(
+              goalId,
+              topicId,
+              topicBefore.name,
+              topicBefore.activeRecallQuestion ?? null,
+              topicBefore.resources?.map((r) => r.title).join(', ') ?? null
+            ).catch((err) => console.warn('[FORGE] Failed to create spaced rep item:', err));
+          });
+        }
       },
 
       addTopicsToGoal: (goalId, newTopics) => {
@@ -711,6 +736,35 @@ export const useAppStore = create<AppState>()(
               t.id === topicId ? { ...t, name } : t
             );
             return { ...g, topics };
+          }),
+        }));
+        const goal = get().goals.find((g) => g.id === goalId);
+        if (goal) syncGoalToBackend(goal);
+      },
+
+      updateTopicDescription: (goalId, topicId, description) => {
+        set((state) => ({
+          goals: state.goals.map((g) => {
+            if (g.id !== goalId || !g.topics) return g;
+            const topics = g.topics.map((t) =>
+              t.id === topicId ? { ...t, description } : t
+            );
+            return { ...g, topics };
+          }),
+        }));
+        const goal = get().goals.find((g) => g.id === goalId);
+        if (goal) syncGoalToBackend(goal);
+      },
+
+      deleteTopic: (goalId, topicId) => {
+        set((state) => ({
+          goals: state.goals.map((g) => {
+            if (g.id !== goalId || !g.topics) return g;
+            const topics = g.topics.filter((t) => t.id !== topicId);
+            const updated = { ...g, topics };
+            const progress = calcGoalProgress(updated);
+            const status: GoalStatus = progress >= 70 ? 'on-track' : progress >= 40 ? 'at-risk' : 'behind';
+            return { ...updated, progress, status };
           }),
         }));
         const goal = get().goals.find((g) => g.id === goalId);

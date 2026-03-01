@@ -91,23 +91,23 @@
   }
 
   .forge-btn-primary {
-    @apply bg-forge-amber text-forge-bg font-condensed font-black text-sm tracking-widest uppercase px-5 py-3 transition-all duration-200 hover:bg-amber-400 hover:-translate-y-px cursor-pointer border-none;
+    @apply bg-forge-amber text-forge-bg font-condensed font-black text-base tracking-widest uppercase px-6 py-3.5 transition-all duration-200 hover:bg-amber-400 hover:-translate-y-px cursor-pointer border-none;
   }
 
   .forge-btn-ghost {
-    @apply border border-forge-border text-forge-dim font-mono text-xs uppercase tracking-wider px-4 py-2 transition-all duration-200 hover:border-forge-amber hover:text-forge-amber cursor-pointer bg-transparent;
+    @apply border border-forge-border text-forge-dim font-mono text-sm uppercase tracking-wider px-4 py-2 transition-all duration-200 hover:border-forge-amber hover:text-forge-amber cursor-pointer bg-transparent;
   }
 
   .forge-input {
-    @apply bg-forge-bg border border-forge-border text-forge-text font-body text-sm px-3.5 py-3 outline-none transition-colors duration-200 w-full placeholder:text-forge-muted focus:border-forge-amber;
+    @apply bg-forge-bg border border-forge-border text-forge-text font-body text-base px-4 py-3.5 outline-none transition-colors duration-200 w-full placeholder:text-forge-muted focus:border-forge-amber;
   }
 
   .forge-label {
-    @apply font-mono text-[11px] uppercase tracking-[0.15em] text-forge-dim;
+    @apply font-mono text-[14px] uppercase tracking-[0.15em] text-forge-dim;
   }
 
   .nav-link {
-    @apply flex items-center gap-3 px-3 py-3 font-body font-semibold text-sm text-forge-dim tracking-wide transition-all duration-200 cursor-pointer border-l-2 border-transparent hover:text-forge-text hover:bg-forge-surface2;
+    @apply flex items-center gap-3 px-3 py-3 font-body font-semibold text-base text-forge-dim tracking-wide transition-all duration-200 cursor-pointer border-l-2 border-transparent hover:text-forge-text hover:bg-forge-surface2;
   }
 
   .nav-link.active {
@@ -115,7 +115,7 @@
   }
 
   .type-tag {
-    @apply font-mono text-[10px] uppercase tracking-[0.15em] px-2 py-0.5 inline-block;
+    @apply font-mono text-[13px] uppercase tracking-[0.15em] px-2 py-0.5 inline-block;
   }
 
   .amber-bar {

@@ -144,6 +144,8 @@ def _send_morning_email(session: Session, user: User) -> None:
         "user_name": user_name,
         "goals": plan["goals"],
         "spaced_repetition_count": plan["spaced_repetition_count"],
+        "spaced_repetition_topics": plan.get("spaced_repetition_topics", []),
+        "reading_list": plan.get("reading_list", []),
         "quote": QUOTES[hash(user.email) % len(QUOTES)] if QUOTES else None,
         "dashboard_url": settings.FRONTEND_HOST or "https://dashboard.example.com",
     }

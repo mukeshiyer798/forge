@@ -85,10 +85,20 @@ export default function OnboardingTour() {
     const seen = localStorage.getItem(STORAGE_KEY);
     // Disable tour on mobile/tablet (width < 1024px)
     if (window.innerWidth < 1024) {
-      if (!seen) localStorage.setItem(STORAGE_KEY, 'seen');
       return;
     }
     if (!seen) setTimeout(() => setOpen(true), 600);
+  }, []);
+
+  // Listen for manual restart
+  useEffect(() => {
+    const handler = () => {
+      localStorage.removeItem(STORAGE_KEY);
+      setIdx(0);
+      setOpen(true);
+    };
+    window.addEventListener('forge-restart-tour', handler);
+    return () => window.removeEventListener('forge-restart-tour', handler);
   }, []);
 
   const spotlightTarget = useCallback(() => {
@@ -255,7 +265,7 @@ export default function OnboardingTour() {
           <div className="p-5">
             <div className="flex items-start justify-between gap-3 mb-3">
               <div>
-                <p className="font-mono text-xs text-forge-dim uppercase tracking-wider mb-1">
+                <p className="font-mono text-[13px] text-forge-dim uppercase tracking-wider mb-1">
                   {idx + 1} of {STEPS.length}
                 </p>
                 <h3 className="font-display text-xl tracking-widest text-forge-text">

@@ -75,6 +75,9 @@ class EncryptedString(TypeDecorator):
             try:
                 return _fernet.decrypt(value.encode('utf-8')).decode('utf-8')
             except Exception:
-                # If decryption fails (e.g. legacy plain text), return raw string safely.
-                return value
+                import logging
+                logging.getLogger(__name__).error(
+                    "Failed to decrypt stored value — possible key rotation or data corruption"
+                )
+                return None
         return value

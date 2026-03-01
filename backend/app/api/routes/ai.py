@@ -123,7 +123,11 @@ async def generate_intelligence_feed(
     """Generate phase-aware contextual insights (Layer 2 - Intelligence Feed)."""
     goals_data = _extract_goal_context(current_user)
     try:
-        items = await ai_service.generate_intelligence_feed(goals=goals_data, user=current_user)
+        items = await ai_service.generate_intelligence_feed(
+            goals=goals_data, 
+            keywords=current_user.intelligence_keywords,
+            user=current_user
+        )
         return {"data": items, "count": len(items)}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

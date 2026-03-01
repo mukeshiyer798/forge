@@ -5,14 +5,37 @@ from pydantic import EmailStr, computed_field, model_validator
 from sqlmodel import Field, SQLModel
 from app.entities.user import UserBase
 
+import re
+
+def _validate_password_complexity(password: str) -> str:
+    if not re.search(r'[A-Z]', password):
+        raise ValueError('Password must contain at least one uppercase letter')
+    if not re.search(r'[a-z]', password):
+        raise ValueError('Password must contain at least one lowercase letter')
+    if not re.search(r'\d', password):
+        raise ValueError('Password must contain at least one digit')
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        raise ValueError('Password must contain at least one special character')
+    return password
+
 class UserCreate(UserBase):
     password: str = Field(min_length=8, max_length=128)
+
+    @model_validator(mode='after')
+    def _check_complexity(self) -> 'UserCreate':
+        _validate_password_complexity(self.password)
+        return self
 
 class UserRegister(SQLModel):
     email: EmailStr = Field(max_length=255)
     password: str = Field(min_length=8, max_length=128)
     full_name: str | None = Field(default=None, max_length=255)
     nudge_preference: str = Field(default="daily", max_length=32)
+
+    @model_validator(mode='after')
+    def _check_complexity(self) -> 'UserRegister':
+        _validate_password_complexity(self.password)
+        return self
 
 class UserUpdate(UserBase):
     email: EmailStr | None = Field(default=None, max_length=255)  # type: ignore
@@ -31,6 +54,7 @@ class UserUpdateMe(SQLModel):
     greeting_preference: str | None = Field(default=None, max_length=100)
     status_message: str | None = Field(default=None, max_length=255)
     openrouter_api_key: str | None = Field(default=None)
+    intelligence_keywords: str | None = Field(default=None, max_length=500)
 
 class UpdatePassword(SQLModel):
     current_password: str = Field(min_length=8, max_length=128)

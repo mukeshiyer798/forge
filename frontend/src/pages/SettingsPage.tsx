@@ -12,6 +12,7 @@ export default function SettingsPage() {
   const [afternoonTime, setAfternoonTime] = useState('14:00');
   const [eveningTime, setEveningTime] = useState('20:00');
   const [greeting, setGreeting] = useState('');
+  const [intelligenceKeywords, setIntelligenceKeywords] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -33,7 +34,8 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (user?.greetingPreference) setGreeting(user.greetingPreference);
-  }, [user?.greetingPreference]);
+    if (user?.intelligenceKeywords) setIntelligenceKeywords(user.intelligenceKeywords);
+  }, [user?.greetingPreference, user?.intelligenceKeywords]);
 
   // Load daily task target from first goal (or default)
   useEffect(() => {
@@ -70,7 +72,8 @@ export default function SettingsPage() {
           email_morning_time: morningTime,
           email_afternoon_time: afternoonTime,
           email_evening_time: eveningTime,
-          greeting_preference: greeting || undefined,
+          greeting_preference: greeting.trim() || null,
+          intelligence_keywords: intelligenceKeywords.trim() || null,
         }),
       });
 
@@ -169,7 +172,7 @@ export default function SettingsPage() {
           </h3>
           <div className="space-y-4">
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-forge-dim mb-1">
+              <label className="block font-mono text-sm uppercase tracking-wider text-forge-dim mb-1">
                 Custom greeting
               </label>
               <input
@@ -177,11 +180,37 @@ export default function SettingsPage() {
                 value={greeting}
                 onChange={(e) => setGreeting(e.target.value)}
                 placeholder={user?.name?.split(' ')[0] || 'Your name'}
-                className="w-full px-4 py-2.5 bg-forge-surface2 border border-forge-border rounded text-forge-text font-mono text-sm placeholder:text-forge-muted focus:border-forge-amber focus:outline-none"
+                className="w-full px-4 py-2.5 bg-forge-surface2 border border-forge-border rounded text-forge-text font-mono text-base placeholder:text-forge-muted focus:border-forge-amber focus:outline-none"
+                onKeyDown={(e) => e.key === 'Enter' && handleSave()}
               />
-              <p className="font-mono text-xs text-forge-muted mt-1">
+              <p className="font-mono text-sm text-forge-muted mt-1">
                 Used in dashboard header and emails
               </p>
+            </div>
+            <div>
+              <label className="block font-mono text-sm uppercase tracking-wider text-forge-dim mb-1">
+                Intelligence Feed Keywords
+              </label>
+              <input
+                type="text"
+                value={intelligenceKeywords}
+                onChange={(e) => setIntelligenceKeywords(e.target.value)}
+                placeholder="e.g. AI, Fintech, specific companies..."
+                className="w-full px-4 py-2.5 bg-forge-surface2 border border-forge-border rounded text-forge-text font-mono text-base placeholder:text-forge-muted focus:border-forge-amber focus:outline-none"
+                onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+              />
+              <p className="font-mono text-[13px] text-forge-muted mt-1 leading-relaxed">
+                Comma-separated topics you want to see in your Intelligence Feed (e.g. <code>RBI, Startups, ML Models</code>).
+              </p>
+            </div>
+
+            <div className="pt-2">
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('forge-restart-tour'))}
+                className="font-mono text-sm uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-2 hover:bg-forge-amber/10 transition-colors"
+              >
+                Restart Onboarding Tour
+              </button>
             </div>
           </div>
         </section>
@@ -193,7 +222,7 @@ export default function SettingsPage() {
           </h3>
           <div className="space-y-4">
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-forge-dim mb-1">
+              <label className="block font-mono text-sm uppercase tracking-wider text-forge-dim mb-1">
                 Daily task target
               </label>
               <div className="flex items-center gap-2 flex-wrap">
@@ -212,7 +241,7 @@ export default function SettingsPage() {
                   </button>
                 ))}
               </div>
-              <p className="font-mono text-xs text-forge-muted mt-2 leading-relaxed">
+              <p className="font-mono text-sm text-forge-muted mt-2 leading-relaxed">
                 How many subtopics to complete per day. 2-3 is realistic for most people.
                 This applies to all goals and adjusts AI task granularity.
               </p>
@@ -225,7 +254,7 @@ export default function SettingsPage() {
           <h3 className="font-condensed font-bold text-lg uppercase tracking-wider text-forge-amber mb-4">
             AI Connection
           </h3>
-          <p className="font-mono text-xs text-forge-dim mb-3 leading-relaxed">
+          <p className="font-mono text-sm text-forge-dim mb-3 leading-relaxed">
             Your access code powers AI features — roadmap generation, reading insights, and more. Free codes available.
           </p>
           <div className="space-y-4">
@@ -239,7 +268,8 @@ export default function SettingsPage() {
                 data-lpignore="true"
                 data-1p-ignore="true"
                 spellCheck="false"
-                className="w-full px-4 py-2.5 pr-10 bg-forge-surface2 border border-forge-border rounded text-forge-text font-mono text-sm placeholder:text-forge-muted focus:border-forge-amber focus:outline-none"
+                className="w-full px-4 py-2.5 pr-10 bg-forge-surface2 border border-forge-border rounded text-forge-text font-mono text-base placeholder:text-forge-muted focus:border-forge-amber focus:outline-none"
+                onKeyDown={(e) => e.key === 'Enter' && handleTestGemini()}
               />
               <button
                 onClick={() => setShowKey(!showKey)}
@@ -252,7 +282,7 @@ export default function SettingsPage() {
               <button
                 onClick={handleTestGemini}
                 disabled={(!geminiKey.trim() && !user?.hasOpenrouterKey) || geminiTesting}
-                className="font-mono text-xs uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-2 min-h-[44px] hover:bg-forge-amber/10 transition-colors disabled:opacity-40"
+                className="font-mono text-sm uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-2 min-h-[44px] hover:bg-forge-amber/10 transition-colors disabled:opacity-40"
               >
                 {geminiTesting ? 'Testing...' : (user?.hasOpenrouterKey && !geminiKey.trim() ? 'Test Existing Key' : 'Test Key')}
               </button>
@@ -270,18 +300,18 @@ export default function SettingsPage() {
                     console.debug('[FORGE] API key cleared');
                   } catch { }
                 }}
-                className="font-mono text-xs uppercase tracking-wider text-forge-dim border border-forge-border px-3 py-2 min-h-[44px] hover:text-red-400 hover:border-red-500/30 transition-colors"
+                className="font-mono text-sm uppercase tracking-wider text-forge-dim border border-forge-border px-3 py-2 min-h-[44px] hover:text-red-400 hover:border-red-500/30 transition-colors"
               >
                 Clear Key
               </button>
               {geminiStatus === 'ok' && (
-                <span className="font-mono text-xs text-green-400">✓ Connected Server</span>
+                <span className="font-mono text-sm text-green-400">✓ Connected Server</span>
               )}
               {geminiStatus === 'fail' && (
-                <span className="font-mono text-xs text-red-400">✗ Failed — check key</span>
+                <span className="font-mono text-sm text-red-400">✗ Failed — check key</span>
               )}
               {geminiStatus === 'idle' && user?.hasOpenrouterKey && !geminiKey.trim() && (
-                <span className="font-mono text-xs text-forge-dim">✓ API Key securely stored on server</span>
+                <span className="font-mono text-sm text-forge-dim">✓ API Key securely stored on server</span>
               )}
             </div>
             <a
@@ -303,7 +333,7 @@ export default function SettingsPage() {
 
           {goals.length === 0 && (
             <div className="border border-dashed border-forge-border px-4 py-3 mb-4">
-              <p className="font-mono text-xs text-forge-dim leading-relaxed">
+              <p className="font-mono text-sm text-forge-dim leading-relaxed">
                 <Mail size={12} className="inline mr-1 text-forge-amber" />
                 Add goals first, then enable daily emails to get your morning plan, afternoon check-in, and evening review delivered to <span className="text-forge-text">{user?.email || 'your inbox'}</span>.
               </p>
@@ -324,7 +354,7 @@ export default function SettingsPage() {
               <>
                 <div className="grid grid-cols-3 gap-3 pl-6">
                   <div>
-                    <label className="block font-mono text-xs uppercase tracking-wider text-forge-dim mb-1">
+                    <label className="block font-mono text-sm uppercase tracking-wider text-forge-dim mb-1">
                       Morning
                     </label>
                     <input
@@ -335,7 +365,7 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div>
-                    <label className="block font-mono text-xs uppercase tracking-wider text-forge-dim mb-1">
+                    <label className="block font-mono text-sm uppercase tracking-wider text-forge-dim mb-1">
                       Afternoon
                     </label>
                     <input
@@ -346,7 +376,7 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div>
-                    <label className="block font-mono text-xs uppercase tracking-wider text-forge-dim mb-1">
+                    <label className="block font-mono text-sm uppercase tracking-wider text-forge-dim mb-1">
                       Evening
                     </label>
                     <input
@@ -363,20 +393,20 @@ export default function SettingsPage() {
                   <button
                     onClick={handleTestEmail}
                     disabled={testingEmail}
-                    className="font-mono text-xs uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-2 min-h-[44px] hover:bg-forge-amber/10 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+                    className="font-mono text-sm uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-2 min-h-[44px] hover:bg-forge-amber/10 transition-colors disabled:opacity-40 flex items-center gap-1.5"
                   >
                     <Send size={11} />
                     {testingEmail ? 'Sending...' : 'Send Test Email'}
                   </button>
                   {emailTestResult === 'sent' && (
-                    <span className="font-mono text-xs text-green-400">✓ Check your inbox</span>
+                    <span className="font-mono text-sm text-green-400">✓ Check your inbox</span>
                   )}
                   {emailTestResult === 'fail' && (
-                    <span className="font-mono text-xs text-red-400">✗ Failed — check email config</span>
+                    <span className="font-mono text-sm text-red-400">✗ Failed — check email config</span>
                   )}
                 </div>
 
-                <p className="font-mono text-xs text-forge-muted pl-6 leading-relaxed">
+                <p className="font-mono text-sm text-forge-muted pl-6 leading-relaxed">
                   You'll get 3 emails per day: a morning plan with today's tasks, an afternoon check-in, and an evening review.
                   Check with a test email to confirm delivery.
                 </p>

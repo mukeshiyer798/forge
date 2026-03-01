@@ -66,12 +66,12 @@ function InsightCard({ item, index }: { item: AIInsight; index: number }) {
             <span className={cn('font-mono text-[10px] uppercase tracking-wider px-1.5 py-0 border', freshnessStyle)}>
               {item.freshness}
             </span>
+            {item.category && (
+              <span className="font-mono text-[10px] text-forge-muted uppercase tracking-wider border border-forge-border px-1.5 py-0">
+                {item.category}
+              </span>
+            )}
           </div>
-          {item.relevantGoal && item.relevantGoal !== 'general' && (
-            <span className="font-mono text-[10px] text-forge-amber uppercase tracking-wider border border-forge-amber/30 bg-amber-500/5 px-1.5 py-0 shrink-0">
-              {item.relevantGoal}
-            </span>
-          )}
         </div>
 
         <h3 className="font-condensed font-black text-base uppercase tracking-wide text-forge-text mb-1 leading-tight">
@@ -79,9 +79,16 @@ function InsightCard({ item, index }: { item: AIInsight; index: number }) {
         </h3>
         <p className="font-mono text-[13px] text-forge-dim mb-2">{item.source}</p>
 
-        <div className="border-l-2 border-forge-amber pl-3 bg-amber-500/5 py-1.5 pr-3 mb-2">
-          <p className="text-sm text-forge-text font-body font-semibold leading-relaxed">{item.keyTakeaway}</p>
-        </div>
+        {/* Hook teaser */}
+        {item.hook ? (
+          <div className="border-l-2 border-forge-amber pl-3 bg-amber-500/5 py-1.5 pr-3 mb-2">
+            <p className="text-sm text-forge-text font-body font-semibold leading-relaxed">{item.hook}</p>
+          </div>
+        ) : item.keyTakeaway ? (
+          <div className="border-l-2 border-forge-amber pl-3 bg-amber-500/5 py-1.5 pr-3 mb-2">
+            <p className="text-sm text-forge-text font-body font-semibold leading-relaxed">{item.keyTakeaway}</p>
+          </div>
+        ) : null}
 
         <button onClick={() => setExpanded(!expanded)}
           className="flex items-center gap-1 font-mono text-[13px] uppercase tracking-wider text-forge-amber hover:text-forge-text transition-colors">
@@ -93,11 +100,35 @@ function InsightCard({ item, index }: { item: AIInsight; index: number }) {
           {expanded && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
-              <p className="text-sm text-forge-dim leading-relaxed mt-2 mb-2 font-body">{item.summary}</p>
-              <div className="border border-forge-border bg-forge-surface2 px-3 py-2">
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-forge-amber mb-0.5">Action</p>
-                <p className="text-sm text-forge-text font-body leading-relaxed">{item.actionItem}</p>
-              </div>
+              {item.before && (
+                <div className="mt-3 space-y-2">
+                  <div className="border border-forge-border p-3">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-forge-muted mb-1">Before</p>
+                    <p className="text-sm text-forge-dim leading-relaxed font-body">{item.before}</p>
+                  </div>
+                  {item.after && (
+                    <div className="border border-forge-amber/30 p-3">
+                      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-forge-amber mb-1">After</p>
+                      <p className="text-sm text-forge-text leading-relaxed font-body">{item.after}</p>
+                    </div>
+                  )}
+                  {item.whyItMatters && (
+                    <div className="border border-forge-border bg-forge-surface2 p-3">
+                      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-forge-amber mb-1">Why It Matters</p>
+                      <p className="text-sm text-forge-text leading-relaxed font-body">{item.whyItMatters}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              {!item.before && (
+                <p className="text-sm text-forge-dim leading-relaxed mt-2 mb-2 font-body">{item.summary}</p>
+              )}
+              {item.actionItem && (
+                <div className="border border-forge-border bg-forge-surface2 px-3 py-2 mt-2">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-forge-amber mb-0.5">Action</p>
+                  <p className="text-sm text-forge-text font-body leading-relaxed">{item.actionItem}</p>
+                </div>
+              )}
               {item.url && (
                 <a href={item.url} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 font-mono text-sm text-forge-amber hover:text-forge-text hover:underline mt-2">
@@ -281,14 +312,18 @@ export default function ReadingPage() {
           addReadingInsight({
             title: item.title ?? 'Untitled',
             source: item.source ?? 'Intelligence Feed',
-            category: 'tech',
-            type: 'industry_move',
-            summary: item.whyItMatters ?? '',
-            keyTakeaway: item.phaseConnection ?? '',
+            category: item.category ?? 'tech',
+            type: item.type ?? 'industry_move',
+            summary: item.whyItMatters ?? item.summary ?? '',
+            keyTakeaway: item.hook ?? item.phaseConnection ?? '',
             actionItem: item.actionItem ?? '',
-            relevantGoal: item.goalName ?? 'general',
+            relevantGoal: 'general',
             url: item.url ?? null,
             freshness: item.eventDate ?? 'this week',
+            hook: item.hook ?? undefined,
+            before: item.before ?? undefined,
+            after: item.after ?? undefined,
+            whyItMatters: item.whyItMatters ?? undefined,
           });
         });
       } else {

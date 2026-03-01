@@ -1,90 +1,92 @@
 """
-FORGE Intelligence Feed — Phase-aware contextual insights.
+FORGE Intelligence Feed — Enhanced Strategic Research Analyst.
 
-Connects what the learner is studying RIGHT NOW to real-world events,
-announcements, and case studies happening this week.
+Connects the learner's Core Interests (goals and custom keywords) to 
+real-world events, announcements, and case studies happening this week.
 """
 
-
-def build_intelligence_feed_prompt(goals: list[dict]) -> str:
+def build_intelligence_feed_prompt(goals: list[dict], keywords: str | None = None) -> str:
     """
-    Build a prompt for generating contextual, phase-aware insights.
+    Build a prompt for generating contextual intelligence.
+    Extracts goal names and merges them with keywords to form "Core Interests".
+    """
+    interest_items = []
+    if goals:
+        for g in goals:
+            interest_items.append(f"- LEARNING GOAL: {g.get('name')}")
     
-    Each goal dict should have:
-      - name: str
-      - description: str
-      - current_phase: int (1-based)
-      - current_topics: list[str] (names of active/in-progress topics)
-    """
-    if not goals:
-        return _fallback_prompt()
+    if keywords:
+        val = [k.strip() for k in keywords.split(",")]
+        for k in val:
+            if k:
+                interest_items.append(f"- CUSTOM INTEREST: {k}")
 
-    goal_sections = []
-    for g in goals:
-        phase = g.get("current_phase", 1)
-        topics = g.get("current_topics", [])
-        topics_str = ", ".join(topics) if topics else "general overview"
-        goal_sections.append(
-            f"- **{g.get('name')}** (Phase {phase}): Currently studying: {topics_str}.\n"
-            f"  Description: {g.get('description', 'No description')}"
-        )
+    core_interests = "\n".join(interest_items) if interest_items else "- General Tech & Finance Innovation"
 
-    goals_context = "\n".join(goal_sections)
+    return f"""You are my Research Analyst and Strategic Intelligence Officer. I want you to act like a strategist who reads regulatory papers, academic research, industry whitepapers, engineering blogs, and breaking news — then explains them in a digestible, exciting, and actionable way.
 
-    return f"""You are FORGE's Intelligence Feed Engine — a hyper-contextual research analyst.
+## My Core Interests (Focus your research on these areas):
+{core_interests}
 
-Your job is NOT generic news aggregation. Your job is CONTEXTUAL RELEVANCE: connect what the learner is studying RIGHT NOW to real-world events, industry moves, and case studies from the last 7 days.
+## Your Task
 
-## LEARNER'S ACTIVE LEARNING CONTEXT
+1. Source Intelligence
+Fetch the most relevant and recent documents (from the last 7-14 days for deep-dives, or 24-48 hours for breaking news) matching my Core Interests. Prioritize sources like:
+- Regulators: MAS, RBI, SEBI, IFSCA, BIS, ECB, Fed (if relevant)
+- Global Institutions: World Bank, IMF, IFC (if relevant)
+- Industry: McKinsey, BCG, Bain, a16z, Protocol Labs, Stripe Engineering
+- Market Media: FT, Bloomberg, The Economist, Finextra, TechCrunch
 
-{goals_context}
+2. Presentation Format
+For each document, define:
+- Title
+- Source / Publisher
+- Date (DD MMM YYYY)
+- Direct Link
+- Before: How this area/process worked in the "old world" (1-2 sentences)
+- After: What has changed or is changing — the new paradigm or regulation
+- Why It Matters: Concrete implications (e.g. for fintechs, lenders, engineers)
+- Hook: A "make me want to read this" teaser highlighting a counterintuitive insight.
 
----
+3. Grouping & Categorization
+Categorize the insight into one of the following:
+- "Regulatory Updates & Policy"
+- "Industry Reports & Whitepapers"
+- "Tech & Engineering Insights"
+- "Academic / Research Papers"
+- "Breaking News"
 
-## YOUR TASK
+4. Style Guide
+Tone: Newsletter editor meets Bloomberg Terminal analyst — sharp, credible, slightly persuasive.
+Structure: Always use the Before → After → Why it matters framework.
+Length: Each entry should be scannable but rich.
 
-Generate 4-6 intelligence items. Each must:
-
-1. **CONNECT to a specific topic** the learner is actively studying. Reference the exact phase and topic name.
-2. **BE CURRENT** — from the last 7 days. Reference a REAL event, announcement, report, or case study.
-3. **EXPLAIN THE CONNECTION** — Don't just report news. Explain WHY this matters for what they're learning.
-4. **BE SPECIFIC** — Name companies, people, numbers, dates. No vague "industry trends."
-
-## EXAMPLES OF GREAT INTELLIGENCE ITEMS
-
-- "You're on Phase 2 of your PM roadmap studying user research — Spotify just A/B tested a controversial Discover Weekly redesign. Here's the PM decision framework they used and why it's a live case study for your current module."
-- "You're learning React state management — Vercel just released a new caching strategy in Next.js 15.2. This directly impacts how you think about server state vs client state."
-- "You're studying fintech regulations — RBI released draft guidelines on digital lending this week. Here's how it changes the compliance landscape you're learning about."
-- "You're learning knitting colorwork — Wool & The Gang just released a collaboration with a Japanese indigo dyer. Here's how traditional shibori techniques cross-pollinate with Nordic colorwork."
-
----
-
-## OUTPUT FORMAT
-
-Return ONLY a valid JSON array:
+5. JSON OUTPUT FORMAT ONLY
+You MUST return ONLY a valid JSON array matching this exact schema:
 
 [
   {{
-    "id": "string",
-    "title": "string — punchy, specific headline",
-    "source": "string — real source name",
-    "phaseConnection": "string — e.g. 'Phase 2: User Research'",
-    "goalName": "string — which goal this connects to",
-    "whyItMatters": "string — 2-3 sentences explaining the direct connection to what they're learning",
-    "actionItem": "string — what to read/do with this knowledge",
-    "url": "string or null — direct link if known",
-    "eventDate": "string — approximate date (e.g. 'Feb 2026', 'This week')"
+    "id": "string (unique identifier)",
+    "title": "string (punchy headline)",
+    "source": "string (real publisher name)",
+    "eventDate": "string (e.g., '14 Feb 2026', 'This week')",
+    "url": "string or null (direct URL)",
+    "hook": "string (the 2-3 line hook teaser)",
+    "before": "string (old paradigm description)",
+    "after": "string (new paradigm description)",
+    "whyItMatters": "string (implications)",
+    "category": "string (the grouping category name)",
+    "type": "string (must be one of: 'industry_move', 'skill_insight', 'career_intel', 'tool_discovery', 'learning_resource')"
   }}
 ]
 
-CRITICAL:
-- Every item MUST reference a SPECIFIC phase and topic the learner is on.
-- Every item MUST reference a REAL, specific recent event (not hypothetical).
-- If you can't find something real and recent for a goal, skip that goal rather than fabricating.
-- Quality over quantity. 4 excellent items beats 8 mediocre ones."""
+CRITICAL RULES:
+- If an interest has NO highly relevant real news or papers recently, SKIP IT. Do NOT hallucinate fake papers or force irrelevant news into an interest.
+- Quality over quantity. Output 3 to 6 top-tier items.
+- DO NOT wrap the JSON in markdown code blocks. Just output the raw JSON array.
+"""
 
 
 def _fallback_prompt() -> str:
-    return """Generate 4 notable tech/business developments from the last 7 days.
-Return ONLY valid JSON array:
-[{{"id":"f1","title":"string","source":"string","phaseConnection":"General","goalName":"General","whyItMatters":"string","actionItem":"string","url":null,"eventDate":"This week"}}]"""
+    return """You are a Research Analyst. Output a valid JSON array of general notable tech developments mimicking the requested schema. Ensure the schema keys are: id, title, source, eventDate, url, hook, before, after, whyItMatters, category, type."""
+

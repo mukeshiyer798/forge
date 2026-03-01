@@ -88,7 +88,7 @@ if settings.SENTRY_DSN and settings.ENVIRONMENT != "local":
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    openapi_url=f"{settings.API_V1_STR}/openapi.json" if settings.ENVIRONMENT != "production" else None,
     generate_unique_id_function=custom_generate_unique_id,
     lifespan=lifespan,
 )
@@ -108,11 +108,9 @@ if settings.all_cors_origins:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        # Liberal regex for Vercel previews - handles dots correctly
-        allow_origin_regex=r"https://.*\.vercel\.app",
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "Accept"],
     )
 
 from fastapi import HTTPException
@@ -120,11 +118,8 @@ from fastapi.responses import JSONResponse
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    # Log the exact source of 401/403 errors to find the "Not authenticated" trigger
     if exc.status_code in [401, 403]:
         logger.warning(f"Auth Error {exc.status_code} at {request.url.path}: {exc.detail}")
-        # Log headers to see if something unexpected is being sent
-        logger.debug(f"Request Headers: {dict(request.headers)}")
     return JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail},

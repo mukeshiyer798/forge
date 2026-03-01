@@ -83,10 +83,10 @@ class AiService:
             return response
         return response.get("mindset", response.get("lessons", []))
 
-    async def generate_intelligence_feed(self, goals: list[dict], user: User) -> list[dict]:
+    async def generate_intelligence_feed(self, goals: list[dict], user: User, keywords: str | None = None) -> list[dict]:
         """Generate phase-aware contextual insights (Layer 2)."""
         from app.prompts.intelligence_feed import build_intelligence_feed_prompt
-        prompt = build_intelligence_feed_prompt(goals)
+        prompt = build_intelligence_feed_prompt(goals, keywords)
         response = await self.generate_response(prompt, user)
         if isinstance(response, list):
             return response

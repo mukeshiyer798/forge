@@ -44,7 +44,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {items.map((t) => (
           <Toast.Root
             key={t.id}
-            className={`border px-4 py-3 shadow-xl data-[state=open]:animate-in data-[state=closed]:animate-out ${toneClasses(
+            className={`border px-5 py-4 shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out ${toneClasses(
               t.tone
             )}`}
             duration={3500}
@@ -52,11 +52,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               if (!open) setItems((prev) => prev.filter((x) => x.id !== t.id));
             }}
           >
-            <Toast.Title className="font-condensed font-black uppercase tracking-wider text-sm">
+            <Toast.Title className="font-condensed font-black uppercase tracking-wider text-base">
               {t.title}
             </Toast.Title>
             {t.description ? (
-              <Toast.Description className="font-mono text-xs text-forge-dim mt-1">
+              <Toast.Description className="font-mono text-sm text-forge-dim mt-1.5">
                 {t.description}
               </Toast.Description>
             ) : null}
@@ -71,7 +71,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 export function useToast(): ToastApi {
   const ctx = useContext(ToastContext);
   if (!ctx) {
-    return { toast: () => {} };
+    return { toast: () => { } };
   }
   return ctx;
 }

@@ -78,6 +78,7 @@ dependencies = [
     { name = "pyjwt" },
     { name = "python-multipart" },
     { name = "sentry-sdk", extra = ["fastapi"] },
+    { name = "sib-api-v3-sdk" },
     { name = "slowapi" },
     { name = "sqlmodel" },
     { name = "tenacity" },
@@ -109,6 +110,7 @@ requires-dist = [
     { name = "pyjwt", specifier = ">=2.8.0,<3.0.0" },
     { name = "python-multipart", specifier = ">=0.0.7,<1.0.0" },
     { name = "sentry-sdk", extras = ["fastapi"], specifier = ">=2.0.0,<3.0.0" },
+    { name = "sib-api-v3-sdk", specifier = ">=3.0.0" },
     { name = "slowapi", specifier = ">=0.1.9" },
     { name = "sqlmodel", specifier = ">=0.0.21,<1.0.0" },
     { name = "tenacity", specifier = ">=8.2.3,<9.0.0" },
@@ -2126,6 +2128,18 @@ sdist = { url = "https://files.pythonhosted.org/packages/58/15/8b3609fd3830ef7b2
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e0/f9/0595336914c5619e5f28a1fb793285925a8cd4b432c9da0a987836c7f822/shellingham-1.5.4-py2.py3-none-any.whl", hash = "sha256:7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686", size = 9755, upload-time = "2023-10-24T04:13:38.866Z" },
 ]
+
+[[package]]
+name = "sib-api-v3-sdk"
+version = "7.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "certifi" },
+    { name = "python-dateutil" },
+    { name = "six" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/23/e6/44b6ca7c63cc72e5baf0b9a570e115913fb96e9f97201c2195b8bf4f5d71/sib-api-v3-sdk-7.6.0.tar.gz", hash = "sha256:8975108c4a66ca2280532017190150f98ac826eacdda6c2f859ff104d2828266", size = 265002, upload-time = "2023-03-20T06:21:08.403Z" }
 
 [[package]]
 name = "six"
