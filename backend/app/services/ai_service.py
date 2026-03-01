@@ -10,14 +10,20 @@ logger = logging.getLogger(__name__)
 
 OPENROUTER_URL = settings.OPENROUTER_URL
 MODEL = "google/gemini-2.0-flash-001"
+ADMIN_MODEL = "perplexity/sonar-pro"
 
 class AiService:
-    async def generate_response(self, prompt: str, user: User, model: str = "google/gemini-2.0-flash-001") -> dict:
-        api_key = decrypt_api_key(user.encrypted_openrouter_key)
+    async def generate_response(self, prompt: str, user: User, model: str = "google/gemini-2.0-flash-001", api_key_override: str | None = None) -> dict:
+        api_key = api_key_override or decrypt_api_key(user.encrypted_openrouter_key)
 
         if not api_key:
             logger.error(f"[AI] User {user.id} — no API key configured. encrypted_key_exists={bool(user.encrypted_openrouter_key)}")
             raise ValueError("You have not configured an OpenRouter API key. Please add one in your settings.")
+
+        # Superusers get a better model by default
+        if user.is_superuser and model == MODEL:
+            model = ADMIN_MODEL
+            logger.info(f"[AI] Superuser {user.id} — upgraded model to {ADMIN_MODEL}")
 
         masked = f"{api_key[:8]}...{api_key[-4:]}" if len(api_key) > 12 else "***"
         logger.info(f"[AI] User {user.id} — generating response with model={model}, key={masked}, prompt_len={len(prompt)}")
@@ -36,7 +42,7 @@ class AiService:
             ],
             "response_format": {"type": "json_object"},
         }
-
+        
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(OPENROUTER_URL, headers=headers, json=payload)
@@ -60,9 +66,9 @@ class AiService:
             logger.error(f"OpenRouter HTTP error: {e.response.status_code} - {e.response.text}")
             raise ConnectionError(f"AI Provider Error: {e.response.status_code}")
 
-    async def generate_insights(self, goal_names: list[str], goal_types: list[str], industries: list[str], user: User) -> list[dict]:
+    async def generate_insights(self, goals: list[dict], industries: list[str], user: User) -> list[dict]:
         from app.prompts.reading_insights import build_reading_insights_prompt
-        prompt = build_reading_insights_prompt(goal_names, goal_types, industries)
+        prompt = build_reading_insights_prompt(goals, industries)
         response = await self.generate_response(prompt, user)
         # response should be the list of insights directly or under a "insights" key
         if isinstance(response, list):
@@ -76,6 +82,24 @@ class AiService:
         if isinstance(response, list):
             return response
         return response.get("mindset", response.get("lessons", []))
+
+    async def generate_intelligence_feed(self, goals: list[dict], user: User, keywords: str | None = None) -> list[dict]:
+        """Generate phase-aware contextual insights (Layer 2)."""
+        from app.prompts.intelligence_feed import build_intelligence_feed_prompt
+        prompt = build_intelligence_feed_prompt(goals, keywords)
+        response = await self.generate_response(prompt, user)
+        if isinstance(response, list):
+            return response
+        return response.get("items", response.get("feed", []))
+
+    async def generate_frameworks(self, goals: list[dict], user: User) -> list[dict]:
+        """Generate applied mental frameworks (Layer 3)."""
+        from app.prompts.applied_frameworks import build_applied_framework_prompt
+        prompt = build_applied_framework_prompt(goals)
+        response = await self.generate_response(prompt, user)
+        if isinstance(response, list):
+            return response
+        return response.get("frameworks", [])
 
     async def test_key(self, api_key: str) -> bool:
         """Tests an API key directly without needing a user DB entry."""
@@ -101,12 +125,10 @@ class AiService:
                 if "error" in data and data["error"]:
                     return False
                 return True
-        except Exception as e:
-            logger.warning(f"[AI] Live API key test failed: {e}")
-            return False
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse AI JSON response: {e}")
             raise ValueError("AI returned malformed JSON data")
         except Exception as e:
             logger.error(f"Unexpected AI proxy error: {e}")
-            raise RuntimeError("Internal server error during AI generation")
+            return False
+

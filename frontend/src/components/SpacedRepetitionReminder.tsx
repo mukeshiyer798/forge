@@ -68,7 +68,7 @@ export default function SpacedRepetitionReminder() {
     >
       <div className="px-4 py-3 border-b border-forge-border flex items-center gap-2">
         <BookOpen size={14} className="text-forge-amber" />
-        <span className="font-mono text-xs uppercase tracking-wider text-forge-amber">
+        <span className="font-mono text-sm uppercase tracking-wider text-forge-amber">
           Review Due ({items.length})
         </span>
       </div>
@@ -83,13 +83,13 @@ export default function SpacedRepetitionReminder() {
               exit={{ opacity: 0 }}
               className="border border-forge-border p-3 bg-forge-surface2/50"
             >
-              <p className="font-condensed font-bold text-sm text-forge-text mb-2">
+              <p className="font-condensed font-bold text-base text-forge-text mb-2">
                 {item.topic_name}
               </p>
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={() => handleCopy(item)}
-                  className="flex items-center gap-1.5 px-2 py-1.5 border border-forge-amber/50 hover:bg-forge-amber/10 text-forge-amber font-mono text-xs uppercase tracking-wider transition-colors"
+                  className="flex items-center gap-1.5 px-2 py-1.5 border border-forge-amber/50 hover:bg-forge-amber/10 text-forge-amber font-mono text-sm uppercase tracking-wider transition-colors"
                 >
                   {copiedId === item.id ? (
                     <>
@@ -103,16 +103,16 @@ export default function SpacedRepetitionReminder() {
                     </>
                   )}
                 </button>
-                <span className="font-mono text-[11px] text-forge-dim">Then:</span>
+                <span className="font-mono text-[13px] text-forge-dim">Then:</span>
                 <button
                   onClick={() => handleReviewed(item, true)}
-                  className="px-2 py-1.5 border border-green-500/50 hover:bg-green-500/10 text-green-400 font-mono text-xs uppercase tracking-wider transition-colors"
+                  className="px-2 py-1.5 border border-green-500/50 hover:bg-green-500/10 text-green-400 font-mono text-sm uppercase tracking-wider transition-colors"
                 >
                   Got it
                 </button>
                 <button
                   onClick={() => handleReviewed(item, false)}
-                  className="px-2 py-1.5 border border-forge-border hover:bg-forge-surface2 text-forge-dim font-mono text-xs uppercase tracking-wider transition-colors"
+                  className="px-2 py-1.5 border border-forge-border hover:bg-forge-surface2 text-forge-dim font-mono text-sm uppercase tracking-wider transition-colors"
                 >
                   Review again
                 </button>

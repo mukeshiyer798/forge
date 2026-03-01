@@ -22,6 +22,7 @@ dependencies = [
     "apscheduler>=3.10.0",
     "slowapi>=0.1.9",
     "cryptography>=42.0.0",
+    "sib-api-v3-sdk>=3.0.0",
 ]
 
 [dependency-groups]

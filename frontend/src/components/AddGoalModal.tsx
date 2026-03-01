@@ -137,6 +137,31 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
     setGeminiLoading(false);
   };
 
+  const handleSaveInlineKey = async () => {
+    if (!inlineApiKey.trim()) return;
+    setGeminiLoading(true);
+    try {
+      const ok = await callGemini(
+        "Verify this key. Return only JSON: {\"ok\": true}",
+        "google/gemini-2.0-flash-001",
+        inlineApiKey.trim()
+      );
+      if (ok) {
+        // Backend saves during generate/test calls if api_key is present
+        const updatedUser = await getCurrentUser();
+        if (updatedUser) {
+          useAppStore.getState().updateUser(mapBackendUserToUser(updatedUser));
+          setInlineApiKey('');
+          toast({ title: 'Key active', description: 'Your access code is saved.', tone: 'success' });
+        }
+      }
+    } catch (e) {
+      toast({ title: 'Invalid key', description: 'Could not verify the access code.', tone: 'error' });
+    } finally {
+      setGeminiLoading(false);
+    }
+  };
+
   const handleClose = () => { reset(); onClose(); };
 
   const todayIso = useMemo(() => new Date().toISOString().split('T')[0], []);
@@ -450,16 +475,16 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                       <div className="flex items-center gap-2 mb-2">
                         <Sparkles size={15} className="text-forge-amber" />
                         <span className="font-condensed font-bold text-sm uppercase tracking-wider text-forge-amber">
-                          Unlock 1-Click Generation
+                          Connect AI for Instant Roadmaps
                         </span>
                       </div>
                       <p className="font-body text-sm text-forge-dim leading-relaxed mb-4">
-                        Add an <strong className="text-forge-text">OpenRouter API key</strong> to generate roadmaps instantly. OpenRouter gives you access to GPT-4, Claude, Gemini and more.
+                        Paste a free <strong className="text-forge-text">access code</strong> to generate personalized study plans in one click. Get one at openrouter.ai/keys — it takes 30 seconds.
                       </p>
 
                       <div className="space-y-3">
                         <div className="flex flex-col gap-1.5">
-                          <label className="font-mono text-[10px] uppercase tracking-widest text-forge-amber">Paste Key to Save & Generate</label>
+                          <label className="font-mono text-[13px] uppercase tracking-widest text-forge-amber">Paste Access Code</label>
                           <div className="flex gap-2">
                             <input
                               type="password"
@@ -467,12 +492,13 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                               placeholder="sk-or-v1-..."
                               value={inlineApiKey}
                               onChange={e => setInlineApiKey(e.target.value)}
+                              onKeyDown={e => e.key === 'Enter' && handleSaveInlineKey()}
                             />
                             <a
                               href="https://openrouter.ai/keys"
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="h-9 flex items-center justify-center border border-forge-border px-3 font-mono text-[10px] text-forge-muted hover:text-forge-amber transition-colors uppercase"
+                              className="h-9 flex items-center justify-center border border-forge-border px-3 font-mono text-[13px] text-forge-muted hover:text-forge-amber transition-colors uppercase"
                             >
                               Get Key
                             </a>
@@ -480,7 +506,7 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                         </div>
 
                         <div className="flex items-center gap-4 pt-1">
-                          <p className="font-mono text-[10px] text-forge-muted">
+                          <p className="font-mono text-[13px] text-forge-muted">
                             No key? You can still copy the prompt below manually.
                           </p>
                         </div>
@@ -498,13 +524,15 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                   <div className="flex flex-col gap-1.5">
                     <label className="forge-label">Background *</label>
                     <input className="forge-input" placeholder="e.g. 2 years Excel, zero coding, works in finance"
-                      value={learnerBackground} onChange={e => setLearnerBackground(e.target.value)} />
+                      value={learnerBackground} onChange={e => setLearnerBackground(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleCopyPrompt()} />
                   </div>
 
                   <div className="flex flex-col gap-1.5">
                     <label className="forge-label">What do you want to learn? (One goal only) *</label>
                     <input className="forge-input" placeholder="e.g. Master React and build a portfolio"
-                      value={learnerGoal} onChange={e => setLearnerGoal(e.target.value)} />
+                      value={learnerGoal} onChange={e => setLearnerGoal(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleCopyPrompt()} />
                     <p className="font-mono text-[11px] text-forge-amber/80 mt-1">
                       Focusing on one goal at a time gives the AI better context to generate actionable steps.
                     </p>
@@ -513,7 +541,8 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                   <div className="flex flex-col gap-1.5">
                     <label className="forge-label">Why it matters *</label>
                     <input className="forge-input" placeholder="e.g. Hate my current job, want to build things, better pay"
-                      value={learnerWhyItMatters} onChange={e => setLearnerWhyItMatters(e.target.value)} />
+                      value={learnerWhyItMatters} onChange={e => setLearnerWhyItMatters(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleCopyPrompt()} />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="forge-label">Preferred learning style *</label>
@@ -528,7 +557,8 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                   <div className="flex flex-col gap-1.5">
                     <label className="forge-label">Hours per week</label>
                     <input className="forge-input" placeholder="e.g. 10 hours"
-                      value={learnerHoursPerWeek} onChange={e => setLearnerHoursPerWeek(e.target.value)} />
+                      value={learnerHoursPerWeek} onChange={e => setLearnerHoursPerWeek(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleCopyPrompt()} />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="forge-label">Previously quit / dropped?</label>
@@ -538,7 +568,7 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
 
                   <div className="flex flex-col gap-1.5">
                     <label className="forge-label">Preferred Resources <span className="text-forge-muted">(optional)</span></label>
-                    <textarea className="forge-input font-mono text-[11px] resize-none min-h-[80px]"
+                    <textarea className="forge-input font-mono text-[14px] resize-none min-h-[80px]"
                       placeholder="e.g. Effective Java, YouTube channels like Fireship, official docs..."
                       value={learnerPreferredResources} onChange={e => setLearnerPreferredResources(e.target.value)} />
                     <p className="font-mono text-[11px] text-forge-muted mt-1">List any specific books, courses, or resources you prefer. These will be prioritized in your roadmap.</p>
@@ -547,7 +577,8 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                   <div className="flex flex-col gap-1.5">
                     <label className="forge-label">Daily Goal Target *</label>
                     <input type="number" min={1} max={20} className="forge-input" placeholder="e.g. 3"
-                      value={dailyTaskRequirement} onChange={e => setDailyTaskRequirement(e.target.value)} />
+                      value={dailyTaskRequirement} onChange={e => setDailyTaskRequirement(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleCopyPrompt()} />
                     <p className="font-mono text-[11px] text-forge-muted mt-1">Subtopics to complete per day. 2-3 is realistic for most people. This gets sent to the AI so it can adjust task granularity.</p>
                   </div>
 
@@ -555,7 +586,7 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                     <button type="button" onClick={handleClose} className="forge-btn-ghost">Cancel</button>
                     <div className="flex items-center gap-3">
                       {!hasGeminiKey() && (
-                        <p className="font-mono text-[10px] text-forge-muted text-right max-w-[200px]">
+                        <p className="font-mono text-[13px] text-forge-muted text-right max-w-[200px]">
                           For maximum results, copy prompt and paste it in the LLM of your liking (ChatGPT, Claude).
                         </p>
                       )}
@@ -564,9 +595,11 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                         disabled={!learnerGoal.trim() || geminiLoading}
                         onClick={handleCopyPrompt}
                         className={cn('flex items-center gap-2 border px-4 py-2.5 font-condensed font-black text-sm uppercase tracking-wider transition-all duration-200',
-                          learnerGoal.trim() && !geminiLoading
-                            ? 'border-forge-amber text-forge-amber hover:bg-amber-500/5 cursor-pointer'
-                            : 'border-forge-border text-forge-muted cursor-not-allowed opacity-40')}
+                          geminiLoading
+                            ? 'border-forge-amber text-forge-amber cursor-wait opacity-80'
+                            : learnerGoal.trim()
+                              ? 'border-forge-amber text-forge-amber hover:bg-amber-500/5 cursor-pointer'
+                              : 'border-forge-border text-forge-muted cursor-not-allowed opacity-40')}
                       >
                         {geminiLoading ? (
                           <><Loader2 size={14} className="animate-spin" /> Generating...</>
@@ -624,7 +657,7 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                   <div className="flex items-center gap-2">
                     {['Learner profile', 'Copy prompt', 'Use AI assistant', 'Add your plan'].map((s, i) => (
                       <React.Fragment key={s}>
-                        <div className={cn('font-mono text-[11px] uppercase tracking-wider px-2 py-1',
+                        <div className={cn('font-mono text-[13px] uppercase tracking-wider px-2 py-1',
                           i <= 2 ? 'text-green-400 border border-green-800 bg-green-500/5' : 'text-forge-amber border border-forge-amber bg-amber-500/5')}>
                           {i < 3 ? '✓' : '4.'} {s}
                         </div>

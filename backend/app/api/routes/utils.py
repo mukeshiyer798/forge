@@ -1,22 +1,32 @@
 from fastapi import APIRouter, Depends
 from pydantic.networks import EmailStr
 
-from app.api.deps import get_current_active_superuser
+from app.api.deps import get_current_active_superuser, SessionDep, CurrentUser
 from app.models import Message
 from app.utils import generate_test_email, send_email
 
 router = APIRouter(prefix="/utils", tags=["utils"])
 
 
+from pydantic import BaseModel
+
+class EmailTestRequest(BaseModel):
+    email_to: EmailStr
+
 @router.post(
     "/test-email/",
-    dependencies=[Depends(get_current_active_superuser)],
     status_code=201,
 )
-def test_email(email_to: EmailStr) -> Message:
+def test_email(
+    request: EmailTestRequest,
+    current_user: CurrentUser,
+) -> Message:
     """
     Test emails.
     """
+    email_to = request.email_to
+    import logging
+    logging.getLogger(__name__).info(f"Test email request received for {email_to} from {current_user.email}")
     email_data = generate_test_email(email_to=email_to)
     send_email(
         email_to=email_to,
@@ -29,3 +39,17 @@ def test_email(email_to: EmailStr) -> Message:
 @router.get("/health-check/")
 async def health_check() -> bool:
     return True
+
+
+@router.post(
+    "/test-morning-email/",
+    status_code=201,
+)
+def test_morning_email(
+    session: SessionDep,
+    current_user: CurrentUser,
+) -> Message:
+    """Send the morning plan email to yourself for testing."""
+    from app.tasks.email_scheduler import _send_morning_email
+    _send_morning_email(session, current_user)
+    return Message(message="Morning email sent")

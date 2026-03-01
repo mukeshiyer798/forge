@@ -14,7 +14,7 @@ export default function Tooltip({
         <TooltipPrimitive.Portal>
           <TooltipPrimitive.Content
             sideOffset={8}
-            className="z-[70] max-w-[280px] border border-forge-border bg-forge-surface2 px-3 py-2 text-[11px] text-forge-text shadow-xl"
+            className="z-[70] max-w-[280px] border border-forge-border bg-forge-surface2 px-3 py-2 text-[13px] text-forge-text shadow-xl"
           >
             {content}
             <TooltipPrimitive.Arrow className="fill-forge-surface2" />
