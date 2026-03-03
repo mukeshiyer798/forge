@@ -250,6 +250,10 @@ export async function fetchPomodoroStats(): Promise<{
   return apiRequest('/pomodoro/stats');
 }
 
+export async function fetchActivePomodoroSessionApi(): Promise<PomodoroSessionBackend | null> {
+  return apiRequest<PomodoroSessionBackend | null>('/pomodoro/active');
+}
+
 // ── Spaced Repetition API ──────────────────────────────────
 export interface SpacedRepetitionItemPublic {
   id: string;

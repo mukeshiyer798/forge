@@ -32,3 +32,17 @@ class PomodoroRepository:
             )
         )
         return self.session.exec(sessions_statement).all()
+
+    def get_active_session(self, owner_id: uuid.UUID) -> PomodoroSession | None:
+        statement = (
+            select(PomodoroSession)
+            .where(
+                and_(
+                    PomodoroSession.owner_id == owner_id,
+                    PomodoroSession.completed == False,
+                )
+            )
+            .order_by(col(PomodoroSession.start_time).desc())
+            .limit(1)
+        )
+        return self.session.exec(statement).first()

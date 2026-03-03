@@ -62,28 +62,30 @@ Structure: Always use the Before → After → Why it matters framework.
 Length: Each entry should be scannable but rich.
 
 5. JSON OUTPUT FORMAT ONLY
-You MUST return ONLY a valid JSON array matching this exact schema:
+You MUST return ONLY a valid JSON object matching this exact schema:
 
-[
-  {{
-    "id": "string (unique identifier)",
-    "title": "string (punchy headline)",
-    "source": "string (real publisher name)",
-    "eventDate": "string (e.g., '14 Feb 2026', 'This week')",
-    "url": "string or null (direct URL)",
-    "hook": "string (the 2-3 line hook teaser)",
-    "before": "string (old paradigm description)",
-    "after": "string (new paradigm description)",
-    "whyItMatters": "string (implications)",
-    "category": "string (the grouping category name)",
-    "type": "string (must be one of: 'industry_move', 'skill_insight', 'career_intel', 'tool_discovery', 'learning_resource')"
-  }}
-]
+{{
+  "items": [
+    {{
+      "id": "string (unique identifier)",
+      "title": "string (punchy headline)",
+      "source": "string (real publisher name)",
+      "eventDate": "string (e.g., '14 Feb 2026', 'This week')",
+      "url": "string or null (direct URL)",
+      "hook": "string (the 2-3 line hook teaser)",
+      "before": "string (old paradigm description)",
+      "after": "string (new paradigm description)",
+      "whyItMatters": "string (implications)",
+      "category": "string (the grouping category name)",
+      "type": "string (must be one of: 'industry_move', 'skill_insight', 'career_intel', 'tool_discovery', 'learning_resource')"
+    }}
+  ]
+}}
 
 CRITICAL RULES:
 - If an interest has NO highly relevant real news or papers recently, SKIP IT. Do NOT hallucinate fake papers or force irrelevant news into an interest.
 - Quality over quantity. Output 3 to 6 top-tier items.
-- DO NOT wrap the JSON in markdown code blocks. Just output the raw JSON array.
+- DO NOT wrap the JSON in markdown code blocks. Just output the raw JSON object.
 """
 
 

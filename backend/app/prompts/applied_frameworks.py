@@ -88,24 +88,27 @@ GOOD (applied): "You just completed the OOP topic. Apply the Feynman Technique t
 
 ## OUTPUT FORMAT
 
-Return ONLY a valid JSON array:
+Return ONLY a valid JSON object:
 
-[
-  {{
-    "id": "string",
-    "frameworkName": "string — e.g. 'The 2-Minute Rule'",
-    "book": "string — source book",
-    "author": "string",
-    "goalName": "string — which goal this applies to",
-    "category": "consistency | retention | focus | motivation | learning_speed",
-    "coreIdea": "string — 1 sentence: what the framework says",
-    "appliedTo": "string — 2-3 sentences: how it SPECIFICALLY applies to this learner's current situation and goal",
-    "fiveMinuteAction": "string — concrete action they can do in the next 5 minutes"
-  }}
-]
+{{
+  "frameworks": [
+    {{
+      "id": "string",
+      "frameworkName": "string — e.g. 'The 2-Minute Rule'",
+      "book": "string — source book",
+      "author": "string",
+      "goalName": "string — which goal this applies to",
+      "category": "consistency | retention | focus | motivation | learning_speed",
+      "coreIdea": "string — 1 sentence: what the framework says",
+      "appliedTo": "string — 2-3 sentences: how it SPECIFICALLY applies to this learner's current situation and goal",
+      "fiveMinuteAction": "string — concrete action they can do in the next 5 minutes"
+    }}
+  ]
+}}
 
 CRITICAL:
 - Every framework MUST be applied to a SPECIFIC goal the learner has.
 - Don't recommend books. EXTRACT the technique and APPLY it.
 - Each card should feel like a personal coach giving tailored advice.
-- Mix categories: don't give 3 consistency frameworks. Vary the types."""
+- Mix categories: don't give 3 consistency frameworks. Vary the types.
+- DO NOT wrap the JSON in markdown code blocks. Just output the raw JSON object."""

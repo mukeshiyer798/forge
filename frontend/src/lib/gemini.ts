@@ -20,29 +20,17 @@ export const hasGeminiKey = hasApiKey;
 
 // ── Core call ────────────────────────────────────────────────
 
-async function fetchFromBackendProxy(prompt: string, model?: string, apiKey?: string) {
-    const token = getAccessToken();
-    if (!token) throw new Error("Authentication required for AI features");
+import { apiRequest } from './api';
 
+async function fetchFromBackendProxy(prompt: string, model?: string, apiKey?: string) {
     const payload: { prompt: string, model?: string, api_key?: string } = { prompt };
     if (model) payload.model = model;
     if (apiKey) payload.api_key = apiKey;
 
-    const res = await fetch(`${API_BASE}/api/v1/ai/generate`, {
+    return await apiRequest<any>('/ai/generate', {
         method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-        },
         body: JSON.stringify(payload),
     });
-
-    if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Backend error ${res.status}`);
-    }
-
-    return await res.json();
 }
 
 /**
@@ -82,20 +70,10 @@ export async function callGeminiForInsights<T = unknown>(prompt: string, model?:
  */
 export async function testGeminiConnection(apiKey?: string): Promise<boolean> {
     try {
-        const token = getAccessToken();
-        if (!token) throw new Error("Authentication required");
-
-        const res = await fetch(`${API_BASE}/api/v1/ai/test`, {
+        const result = await apiRequest<{ ok: boolean }>('/ai/test', {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify({ api_key: apiKey || '' }),
         });
-
-        if (!res.ok) return false;
-        const result = await res.json();
         return result?.ok === true;
     } catch {
         return false;

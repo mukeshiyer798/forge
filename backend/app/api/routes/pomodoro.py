@@ -41,7 +41,7 @@ def read_pomodoro_sessions(
 ) -> Any:
     """Get pomodoro sessions for the current user."""
     sessions, count = pomodoro_service.get_sessions(user=current_user, skip=skip, limit=limit)
-    return PomodoroSessionsPublic(data=sessions, count=count)
+    return PomodoroSessionsPublic(data=[PomodoroSessionPublic.model_validate(s) for s in sessions], count=count)
 
 
 @router.put("/sessions/{id}", response_model=PomodoroSessionPublic)
@@ -71,4 +71,13 @@ def get_pomodoro_stats(
 ) -> Any:
     """Get pomodoro statistics for the current user."""
     return pomodoro_service.get_stats(user=current_user)
+
+
+@router.get("/active", response_model=PomodoroSessionPublic | None)
+def get_active_pomodoro_session(
+    pomodoro_service: PomodoroServiceDep,
+    current_user: CurrentUser,
+) -> Any:
+    """Get the currently active pomodoro session for the current user."""
+    return pomodoro_service.get_active_session(user=current_user)
 

@@ -120,28 +120,31 @@ For each insight, follow these rules:
 
 ## OUTPUT FORMAT
 
-Return ONLY a valid JSON array.
+Return ONLY a valid JSON object:
 
-[
-  {{
-    "id": "string — unique",
-    "title": "string — Punchy & Specific (e.g., 'Gartner 2024: The Rise of Agentic AI in Fintech')",
-    "source": "string — Actual entity/source name",
-    "category": "tech | finance | health | productivity | career | design | marketing | art | research",
-    "type": "industry_move | skill_insight | career_intel | research_paper | industry_report | blog_deep_dive",
-    "summary": "string — 3-4 sentences. Detailed explanation of the technical/strategic finding and WHY it directly impacts the specific goal it's mapped to.",
-    "keyTakeaway": "string — one sentence: the core lesson or discovery",
-    "actionItem": "string — concrete advice on what to read or apply from this source",
-    "relevantGoal": "string — the goal name this maps to",
-    "url": "string or null — Direct link or a specific search query if direct URL is unknown",
-    "freshness": "string — 'this week' | 'this month' | 'recent'"
-  }}
-]
+{{
+  "insights": [
+    {{
+      "id": "string — unique",
+      "title": "string — Punchy & Specific (e.g., 'Gartner 2024: The Rise of Agentic AI in Fintech')",
+      "source": "string — Actual entity/source name",
+      "category": "tech | finance | health | productivity | career | design | marketing | art | research",
+      "type": "industry_move | skill_insight | career_intel | research_paper | industry_report | blog_deep_dive",
+      "summary": "string — 3-4 sentences. Detailed explanation of the technical/strategic finding and WHY it directly impacts the specific goal it's mapped to.",
+      "keyTakeaway": "string — one sentence: the core lesson or discovery",
+      "actionItem": "string — concrete advice on what to read or apply from this source",
+      "relevantGoal": "string — the goal name this maps to",
+      "url": "string or null — Direct link or a specific search query if direct URL is unknown",
+      "freshness": "string — 'this week' | 'this month' | 'recent'"
+    }}
+  ]
+}}
 
 CRITICAL RULES:
 - BE EXTREMELY SPECIFIC.
 - ACT AS A DEEP SUBJECT MATTER EXPERT FOR EACH GOAL.
 - DO NOT provide generic self-help unless explicitly goal-related.
+- DO NOT wrap the JSON in markdown code blocks. Just output the raw JSON object.
 """
 
 def build_mindset_prompt() -> str:
@@ -166,23 +169,26 @@ For each, give:
 - The single key lesson (one sentence)
 - How to apply it TODAY (concrete action)
 
-Return ONLY valid JSON array:
+Return ONLY valid JSON object:
 
-[
-  {
-    "id": "m1",
-    "title": "The 40% Rule",
-    "book": "Can't Hurt Me",
-    "author": "David Goggins",
-    "category": "resilience | habits | mindset | discipline | motivation | leadership",
-    "summary": "When your mind tells you you're done, you're only at 40% of your capacity. Goggins discovered this through Navy SEAL training.",
-    "keyLesson": "You are capable of far more than your mind tells you. Push past the mental barrier.",
-    "howToApply": "Next time you want to quit a workout, study session, or hard task — do 10 more minutes. Train your brain that 'done' is negotiable."
-  }
-]
+{
+  "mindset": [
+    {
+      "id": "m1",
+      "title": "The 40% Rule",
+      "book": "Can't Hurt Me",
+      "author": "David Goggins",
+      "category": "resilience | habits | mindset | discipline | motivation | leadership",
+      "summary": "When your mind tells you you're done, you're only at 40% of your capacity. Goggins discovered this through Navy SEAL training.",
+      "keyLesson": "You are capable of far more than your mind tells you. Push past the mental barrier.",
+      "howToApply": "Next time you want to quit a workout, study session, or hard task — do 10 more minutes. Train your brain that 'done' is negotiable."
+    }
+  ]
+}
 
 RULES:
 - Mix different books. Don't use the same book twice.
 - Each lesson should be a specific, named concept from the book (not generic advice).
 - "howToApply" must be actionable TODAY.
-- Keep it varied: mix resilience, habits, mindset, discipline."""
+- KEEP it varied: mix resilience, habits, mindset, discipline.
+- DO NOT wrap the JSON in markdown code blocks. Just output the raw JSON object."""

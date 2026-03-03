@@ -41,6 +41,7 @@ export default function App() {
         // Fetch user's goals from backend (RBAC-scoped)
         useAppStore.getState().fetchGoalsFromBackend();
         useAppStore.getState().fetchReadingInsightsFromBackend();
+        useAppStore.getState().fetchActivePomodoroFromBackend();
         useAppStore.getState().validateStreak();
         // Start auto token refresh (every 50 min, token expires in 60)
         setupTokenRefresh((newToken) => setAccessToken(newToken));
