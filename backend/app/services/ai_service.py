@@ -132,20 +132,22 @@ class AiService:
             "response_format": {"type": "json_object"},
         }
         masked = f"{api_key[:8]}...{api_key[-4:]}" if len(api_key) > 12 else "***"
-        logger.info(f"[AI] Testing API key: {masked}")
+        print(f"[FORGE-DEBUG] test_key — key={masked}, key_len={len(api_key)}, referer={settings.FRONTEND_HOST}", flush=True)
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 response = await client.post(OPENROUTER_URL, headers=headers, json=payload)
+                print(f"[FORGE-DEBUG] test_key — OpenRouter status={response.status_code}, body={response.text[:200]}", flush=True)
                 if response.status_code != 200:
                     return False
                 data = response.json()
                 if "error" in data and data["error"]:
+                    print(f"[FORGE-DEBUG] test_key — API error: {data['error']}", flush=True)
                     return False
                 return True
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse AI JSON response: {e}")
+            print(f"[FORGE-DEBUG] test_key — JSON decode error: {e}", flush=True)
             raise ValueError("AI returned malformed JSON data")
         except Exception as e:
-            logger.error(f"Unexpected AI proxy error: {e}")
+            print(f"[FORGE-DEBUG] test_key — Exception: {type(e).__name__}: {e}", flush=True)
             return False
 
