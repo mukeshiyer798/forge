@@ -32,25 +32,31 @@ export default function PomodoroTimer({
     setShowReflection(true);
   }, [setShowReflection]);
 
-  useEffect(() => {
-    if (!activePomodoro) return;
+  const calculateRemaining = useCallback(() => {
+    if (!activePomodoro) return 0;
     const start = new Date(activePomodoro.startTime).getTime();
     const elapsed = Math.floor((Date.now() - start) / 1000);
-    const remaining = Math.max(0, totalSeconds - elapsed);
-    setSecondsLeft(remaining);
+    return Math.max(0, totalSeconds - elapsed);
+  }, [activePomodoro, totalSeconds]);
+
+  useEffect(() => {
+    if (!activePomodoro) return;
+
+    // Initial sync
+    setSecondsLeft(calculateRemaining());
 
     const interval = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          handleComplete();
-          return 0;
-        }
-        return prev - 1;
-      });
+      const remaining = calculateRemaining();
+      setSecondsLeft(remaining);
+
+      if (remaining <= 0) {
+        clearInterval(interval);
+        handleComplete();
+      }
     }, 1000);
+
     return () => clearInterval(interval);
-  }, [activePomodoro?.id, activePomodoro?.startTime, totalSeconds, handleComplete]);
+  }, [activePomodoro?.id, activePomodoro?.startTime, totalSeconds, handleComplete, calculateRemaining]);
 
   const progress = activePomodoro ? 1 - secondsLeft / totalSeconds : 0;
   const mins = Math.floor(secondsLeft / 60);

@@ -16,6 +16,7 @@ import {
   createReadingInsightApi,
   deleteReadingInsightApi,
   togglePauseGoalApi,
+  fetchActivePomodoroSessionApi,
   type GoalPublicBackend,
 } from '@/lib/api';
 
@@ -166,6 +167,7 @@ interface AppState {
   fetchReadingInsightsFromBackend: () => Promise<void>;
   addReadingInsight: (insight: Omit<AIInsight, 'id'>) => void;
   deleteReadingInsight: (id: string) => void;
+  fetchActivePomodoroFromBackend: () => Promise<void>;
 
   toggleDay: (dayIndex: number) => void;
   resetStreak: () => void;
@@ -1011,6 +1013,27 @@ export const useAppStore = create<AppState>()(
           .catch((err) => console.error('Failed to update pomodoro on backend:', err));
       },
       cancelPomodoro: () => set({ activePomodoro: null, showReflection: false }),
+
+      fetchActivePomodoroFromBackend: async () => {
+        try {
+          const session = await fetchActivePomodoroSessionApi();
+          if (session) {
+            set({
+              activePomodoro: {
+                id: session.id,
+                goalId: session.goal_id || undefined,
+                topicId: session.topic_id || undefined,
+                duration: session.duration,
+                startTime: session.start_time || new Date().toISOString(),
+                completed: session.completed,
+                type: (session.session_type as 'focus' | 'short-break' | 'long-break') || 'focus',
+              }
+            });
+          }
+        } catch (err) {
+          console.error('[FORGE] Failed to fetch active pomodoro:', err);
+        }
+      },
     }),
     {
       name: 'forge-storage',

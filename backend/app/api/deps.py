@@ -49,16 +49,25 @@ def get_current_user(session: SessionDep, token: TokenDep) -> User:
             token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
         )
         token_data = TokenPayload(**payload)
-    except (InvalidTokenError, ValidationError):
+    except (InvalidTokenError, ValidationError) as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        # DIAGNOSTIC: Log the error type and a masked version of the SECRET_KEY to verify environment setup
+        masked_key = f"{settings.SECRET_KEY[:4]}...{settings.SECRET_KEY[-4:]}" if len(settings.SECRET_KEY) > 8 else "***"
+        print(f"[FORGE-DEBUG] AUTH FAILED: {type(e).__name__} - {e}. SECRET_KEY prefix: {masked_key}", flush=True)
+        logger.warning(f"[AUTH-DEBUG] JWT validation failed: {type(e).__name__} - {e}. Using SECRET_KEY prefix: {masked_key}")
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
         )
     user = session.get(User, token_data.sub)
     if not user:
+        print(f"[FORGE-DEBUG] AUTH: User not found for sub={token_data.sub}", flush=True)
         raise HTTPException(status_code=404, detail="User not found")
     if not user.is_active:
+        print(f"[FORGE-DEBUG] AUTH: Inactive user {user.id}", flush=True)
         raise HTTPException(status_code=400, detail="Inactive user")
+    print(f"[FORGE-DEBUG] AUTH OK: user={user.id}, is_superuser={user.is_superuser}", flush=True)
     return user
 
 

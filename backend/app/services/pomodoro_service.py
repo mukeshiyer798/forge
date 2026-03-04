@@ -64,3 +64,6 @@ class PomodoroService:
             "total_minutes": total_minutes,
             "by_goal": goal_counts,
         }
+
+    def get_active_session(self, user: User) -> PomodoroSession | None:
+        return self.repo.get_active_session(user.id)
