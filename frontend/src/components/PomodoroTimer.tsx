@@ -55,7 +55,23 @@ export default function PomodoroTimer({
       }
     }, 1000);
 
-    return () => clearInterval(interval);
+    // Re-sync when tab becomes visible (setInterval is throttled in background tabs)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const remaining = calculateRemaining();
+        setSecondsLeft(remaining);
+        if (remaining <= 0) {
+          clearInterval(interval);
+          handleComplete();
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [activePomodoro?.id, activePomodoro?.startTime, totalSeconds, handleComplete, calculateRemaining]);
 
   const progress = activePomodoro ? 1 - secondsLeft / totalSeconds : 0;

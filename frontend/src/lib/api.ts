@@ -329,6 +329,10 @@ export interface ReadingInsightBackend {
   key_takeaways: string | null;
   actionable_advice: string | null;
   read_time_minutes: number | null;
+  hook?: string | null;
+  before?: string | null;
+  after?: string | null;
+  why_it_matters?: string | null;
   created_at: string | null;
 }
 
@@ -353,6 +357,10 @@ export async function createReadingInsightApi(data: {
   key_takeaways?: string | null;
   actionable_advice?: string | null;
   read_time_minutes?: number | null;
+  hook?: string | null;
+  before?: string | null;
+  after?: string | null;
+  why_it_matters?: string | null;
 }): Promise<ReadingInsightBackend> {
   return apiRequest<ReadingInsightBackend>('/readings/insights', {
     method: 'POST',

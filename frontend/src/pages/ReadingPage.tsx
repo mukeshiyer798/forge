@@ -130,9 +130,9 @@ function InsightCard({ item, index }: { item: AIInsight; index: number }) {
                 </div>
               )}
               {item.url && (
-                <a href={item.url} target="_blank" rel="noopener noreferrer"
+                <a href={item.url.startsWith('http') ? item.url : `https://www.google.com/search?q=${encodeURIComponent(item.url)}`} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 font-mono text-sm text-forge-amber hover:text-forge-text hover:underline mt-2">
-                  Source <ExternalLink size={9} />
+                  {item.url.startsWith('http') ? 'Source' : 'Search'} <ExternalLink size={9} />
                 </a>
               )}
             </motion.div>

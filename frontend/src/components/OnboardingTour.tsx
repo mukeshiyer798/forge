@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useAppStore, type ViewId } from '@/store/useAppStore';
 
-const STORAGE_KEY = 'forge-onboarding-v3';
+const STORAGE_KEY = 'forge-onboarding-v4';
 
 type TourStep = {
   title: string;
@@ -25,17 +25,8 @@ const STEPS: TourStep[] = [
     cta: 'Start Tour →',
   },
   {
-    title: 'Connect AI ✨',
-    body: 'Paste a free access code here so the app can build personalized study plans for you. Get one at openrouter.ai/keys — it takes 30 seconds.',
-    targetId: 'settings-api-key',
-    view: 'settings',
-    position: 'top',
-    cta: 'Next →',
-    waitMs: 300,
-  },
-  {
     title: 'Create Your First Goal',
-    body: 'Click this button to create a goal — use AI to auto-generate a roadmap, or set one up manually in 30 seconds.',
+    body: 'Click this button to create a goal — use AI to auto-generate a personalized roadmap, or set one up manually in 30 seconds.',
     targetId: 'btn-new-goal',
     view: 'dashboard',
     position: 'bottom',
@@ -43,7 +34,7 @@ const STEPS: TourStep[] = [
     waitMs: 300,
   },
   {
-    title: 'Focus Timer',
+    title: 'Focus Timer ⏱',
     body: 'Start a Pomodoro session here. Pick your duration (15–60 min), link it to a goal, and get a reflection prompt when time\'s up.',
     targetId: 'pomodoro-header',
     view: 'dashboard',
@@ -51,16 +42,41 @@ const STEPS: TourStep[] = [
     cta: 'Next →',
   },
   {
-    title: 'Reading Room',
-    body: 'Curated motivation stories and AI-powered articles from top blogs — tailored to your interests.',
+    title: 'Summary & Insights 📊',
+    body: 'Track your overall progress here — see activity heatmaps, focus time stats, goal health, and trend charts all in one place.',
+    targetId: 'nav-executive',
+    view: 'dashboard',
+    position: 'right',
+    cta: 'Next →',
+  },
+  {
+    title: 'Reading Room & Self-Help 📚',
+    body: 'Get AI-powered intelligence feeds tailored to your goals, plus Applied Frameworks from the best self-help books (Atomic Habits, Deep Work, Can\'t Hurt Me and more).',
     targetId: 'nav-reading',
     view: 'dashboard',
     position: 'right',
     cta: 'Next →',
   },
   {
-    title: 'You\'re All Set!',
-    body: 'Head to Settings to connect AI, then create your first goal. Consistency over ambition — show up every day.',
+    title: 'Customize Your Feed ⚙️',
+    body: 'Head to Settings to add Intelligence Feed Keywords — this personalises your reading content to topics you care about beyond your goals.',
+    targetId: 'nav-settings',
+    view: 'dashboard',
+    position: 'right',
+    cta: 'Next →',
+  },
+  {
+    title: 'Connect AI ✨',
+    body: 'Paste a free access code here so the app can build personalized study plans and generate intelligence feeds for you. Get one at openrouter.ai/keys — it takes 30 seconds.',
+    targetId: 'settings-api-key',
+    view: 'settings',
+    position: 'top',
+    cta: 'Next →',
+    waitMs: 300,
+  },
+  {
+    title: 'You\'re All Set! ⚒️',
+    body: 'Create your first goal, start a focus session, and check back daily. Consistency over ambition — show up every day.',
     targetId: 'nav-dashboard',
     view: 'dashboard',
     position: 'right',
@@ -76,19 +92,21 @@ interface SpotlightRect {
 }
 
 export default function OnboardingTour() {
-  const { setActiveView } = useAppStore();
+  const { setActiveView, user } = useAppStore();
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(0);
   const [rect, setRect] = useState<SpotlightRect | null>(null);
 
   useEffect(() => {
+    // Wait for user to be authenticated before showing the tour
+    if (!user) return;
     const seen = localStorage.getItem(STORAGE_KEY);
     // Disable tour on mobile/tablet (width < 1024px)
     if (window.innerWidth < 1024) {
       return;
     }
-    if (!seen) setTimeout(() => setOpen(true), 600);
-  }, []);
+    if (!seen) setTimeout(() => setOpen(true), 800);
+  }, [user]);
 
   // Listen for manual restart
   useEffect(() => {

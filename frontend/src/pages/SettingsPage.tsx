@@ -64,7 +64,8 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // 1. Save email preferences
+      // 1. Save email preferences (auto-detect timezone)
+      const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
       await apiRequest('/email-preferences', {
         method: 'PUT',
         body: JSON.stringify({
@@ -72,6 +73,7 @@ export default function SettingsPage() {
           email_morning_time: morningTime,
           email_afternoon_time: afternoonTime,
           email_evening_time: eveningTime,
+          timezone: detectedTimezone,
           greeting_preference: greeting.trim() || null,
           intelligence_keywords: intelligenceKeywords.trim() || null,
         }),

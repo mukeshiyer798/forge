@@ -1,7 +1,8 @@
-import { BarChart3, Clock, ShieldAlert, Target, Timer, CheckCircle, BookOpen } from 'lucide-react';
+import { BarChart3, Clock, ShieldAlert, Target, BookOpen, Flame } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import MetricsCard from '@/components/MetricsCard';
-import ProgressChart from '@/components/ProgressChart';
+import WeeklyGoalTracker from '@/components/WeeklyGoalTracker';
+import DailyActivityChart from '@/components/DailyActivityChart';
 import { useAppStore } from '@/store/useAppStore';
 import { getDueSpacedRepetitionItems } from '@/lib/api';
 
@@ -27,51 +28,16 @@ export default function ExecutiveDashboard() {
       ? Math.round(activeGoals.reduce((acc, g) => acc + (g.progress || 0), 0) / total)
       : 0;
 
-    const dailyTarget = activeGoals.reduce((acc, g) => acc + (g.dailyTaskRequirement || 0), 0);
-    const roiProxy = dailyTarget > 0 ? Math.round((avgProgress / dailyTarget) * 10) / 10 : null;
-
-    // Task completions this week
     const weekCompletions = weekData.days.filter(Boolean).length;
 
-    // Pomodoro stats — only completed sessions
     const sessions = pomodoroSessions ?? [];
     const completedSessions = sessions.filter((s) => s.completed);
     const totalPomodoros = completedSessions.length;
     const totalFocusMinutes = completedSessions.reduce((acc: number, s) => acc + (s.duration || 25), 0);
     const totalFocusHours = Math.round(totalFocusMinutes / 60 * 10) / 10;
 
-    return { total, onTrack, atRisk, behind, avgProgress, dailyTarget, roiProxy, weekCompletions, totalPomodoros, totalFocusHours };
+    return { total, onTrack, atRisk, behind, avgProgress, weekCompletions, totalPomodoros, totalFocusHours };
   }, [goals, weekData, pomodoroSessions]);
-
-  const chartPoints = useMemo(() => {
-    const STORAGE_KEY = 'forge-progress-history';
-    const now = new Date();
-    const todayLabel = now.toLocaleDateString(undefined, { month: 'short', day: '2-digit' });
-
-    // Load existing history from localStorage
-    let history: Array<{ label: string; value: number }> = [];
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) history = JSON.parse(stored);
-    } catch { /* ignore */ }
-
-    // Update or append today's entry
-    const existingIdx = history.findIndex((p) => p.label === todayLabel);
-    if (existingIdx >= 0) {
-      history[existingIdx].value = metrics.avgProgress;
-    } else {
-      history.push({ label: todayLabel, value: metrics.avgProgress });
-    }
-
-    // Keep only last 14 entries
-    if (history.length > 14) history = history.slice(-14);
-
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-    } catch { /* ignore */ }
-
-    return history;
-  }, [metrics.avgProgress]);
 
   return (
     <div className="flex flex-col">
@@ -80,18 +46,19 @@ export default function ExecutiveDashboard() {
         <h2 className="font-display text-3xl lg:text-4xl tracking-widest text-forge-text">SUMMARY DASHBOARD</h2>
       </div>
 
-      <div className="px-4 lg:px-10 py-8 flex flex-col gap-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="px-4 lg:px-10 py-8 flex flex-col gap-6 w-full">
+        {/* Key metrics */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <MetricsCard
             label="Active goals"
             value={metrics.total}
-            hint="Total goals currently tracked"
+            hint="Currently tracked"
             icon={<Target size={18} />}
           />
           <MetricsCard
-            label="Average progress"
+            label="Progress"
             value={`${metrics.avgProgress}%`}
-            hint="Across all active goals"
+            hint="Average across goals"
             icon={<BarChart3 size={18} />}
             tone={metrics.avgProgress >= 70 ? 'good' : metrics.avgProgress >= 40 ? 'warn' : 'risk'}
           />
@@ -102,42 +69,49 @@ export default function ExecutiveDashboard() {
             icon={<ShieldAlert size={18} />}
             tone={metrics.atRisk + metrics.behind > 0 ? 'warn' : 'good'}
           />
-        </div>
-
-        {/* Focus & Completion metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <MetricsCard
-            label="Week completions"
-            value={`${metrics.weekCompletions}/7`}
-            hint="Days with all tasks done"
-            icon={<CheckCircle size={18} />}
+            label="Activity"
+            value={metrics.weekCompletions * 2 + metrics.totalPomodoros}
+            hint={`${metrics.weekCompletions}/7 days + ${metrics.totalPomodoros} sessions`}
+            icon={<Flame size={18} />}
             tone={metrics.weekCompletions >= 5 ? 'good' : metrics.weekCompletions >= 3 ? 'warn' : 'risk'}
           />
           <MetricsCard
-            label="Focus sessions"
-            value={metrics.totalPomodoros}
-            hint="Completed pomodoro sessions"
-            icon={<Timer size={18} />}
-          />
-          <MetricsCard
-            label="Focus time"
+            label="Deep work"
             value={`${metrics.totalFocusHours}h`}
-            hint="Total deep work hours logged"
+            hint="Focus hours logged"
             icon={<Clock size={18} />}
             tone={metrics.totalFocusHours >= 10 ? 'good' : metrics.totalFocusHours >= 5 ? 'warn' : 'risk'}
           />
           <MetricsCard
-            label="Reviews due"
+            label="Reviews"
             value={reviewsDue}
-            hint="Spaced repetition items to review"
+            hint="Spaced repetition due"
             icon={<BookOpen size={18} />}
             tone={reviewsDue === 0 ? 'good' : reviewsDue <= 3 ? 'warn' : 'risk'}
           />
         </div>
 
-        <ProgressChart title="Overall progress trend" points={chartPoints} />
+        {/* Dual Visualizations — 25% Weekly Grid / 75% Bar Chart */}
+        <div style={{ display: 'flex', flexDirection: 'row', gap: '24px', width: '100%', height: '600px', marginTop: '16px' }}>
+          <div style={{ width: '25%', flexShrink: 0, minWidth: 0, height: '100%' }}>
+            <WeeklyGoalTracker />
+          </div>
+          <div style={{ width: '75%', minWidth: 0, height: '100%' }}>
+            <DailyActivityChart />
+          </div>
+        </div>
 
-        <div className="border-t border-forge-border pt-6 text-center">
+        {/* Shared color legend */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '10px', justifyContent: 'flex-end' }}>
+          <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', color: '#333', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Less</span>
+          {['#1e1e1e', '#cb2006', '#fd5a00', '#ffa200', '#ffd100'].map((c, i) => (
+            <div key={i} style={{ width: '14px', height: '14px', backgroundColor: c, borderRadius: '2px' }} />
+          ))}
+          <span style={{ fontFamily: '"DM Mono", monospace', fontSize: '9px', color: '#333', textTransform: 'uppercase', letterSpacing: '0.1em' }}>More</span>
+        </div>
+
+        <div className="border-t border-forge-border mt-8 pt-6 text-center">
           <p className="font-mono text-[13px] uppercase tracking-[0.3em] text-forge-muted">
             FORGE — BUILD THE PERSON YOU NEED TO BE
           </p>

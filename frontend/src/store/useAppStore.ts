@@ -387,6 +387,10 @@ export const useAppStore = create<AppState>()(
             relevantGoal: 'general',
             url: item.url,
             freshness: 'recent',
+            hook: item.hook ?? undefined,
+            before: item.before ?? undefined,
+            after: item.after ?? undefined,
+            whyItMatters: item.why_it_matters ?? undefined,
           }));
           console.debug('[FORGE] Fetched reading insights from backend:', mapped.length);
           set({ readingInsights: mapped });
@@ -406,6 +410,10 @@ export const useAppStore = create<AppState>()(
           content_summary: insight.summary,
           key_takeaways: JSON.stringify([insight.keyTakeaway]),
           actionable_advice: JSON.stringify([insight.actionItem]),
+          hook: insight.hook,
+          before: insight.before,
+          after: insight.after,
+          why_it_matters: insight.whyItMatters,
         })
           .then((backendInsight) => {
             set((state) => ({
@@ -543,6 +551,8 @@ export const useAppStore = create<AppState>()(
         }));
         const goal = get().goals.find((g) => g.id === goalId);
         if (goal) syncGoalToBackend(goal);
+        // Auto-update streak when daily target is met
+        get().markDayCompleteFromTasks();
       },
 
       toggleTopicSubtopic: (goalId, topicId, subtopicId) => {

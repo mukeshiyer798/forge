@@ -114,7 +114,7 @@ Return ONLY a valid JSON array.
     "keyTakeaway": "string — one sentence: the core technical or practical lesson",
     "actionItem": "string — 'Read the full article at [url]. Pay close attention to [specific technical detail].'",
     "relevantGoal": "string — which goal matches this best",
-    "url": "string or null — Direct link to the source post",
+    "url": "string (direct link to the source if known)",
     "freshness": "string — 'this week' | 'this month' | 'last 3 months' | 'recent'"
   }
 ]
@@ -123,7 +123,8 @@ CRITICAL RULES:
 - NO GENERIC ADVICE (e.g., 'Read more books').
 - NO PLACEHOLDERS.
 - Ensure the 'summary' is meaty and informative.
-- If you don't know a real URL, provide a search query string for the URL and I will label it appropriately.
+- If you don't know a real URL, provide a plausible real URL to the site.
+- For the 'url' field, ALWAYS provide a direct URL to the report, paper, or blog post.
 - At least 50% of insights must be 'blog_deep_dive' from the preferred sources.`;
 }
 

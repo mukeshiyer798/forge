@@ -134,7 +134,7 @@ Return ONLY a valid JSON object:
       "keyTakeaway": "string — one sentence: the core lesson or discovery",
       "actionItem": "string — concrete advice on what to read or apply from this source",
       "relevantGoal": "string — the goal name this maps to",
-      "url": "string or null — Direct link or a specific search query if direct URL is unknown",
+      "url": "string (a concise Google search query to find this article, NOT a direct URL)",
       "freshness": "string — 'this week' | 'this month' | 'recent'"
     }}
   ]
@@ -144,6 +144,7 @@ CRITICAL RULES:
 - BE EXTREMELY SPECIFIC.
 - ACT AS A DEEP SUBJECT MATTER EXPERT FOR EACH GOAL.
 - DO NOT provide generic self-help unless explicitly goal-related.
+- For the 'url' field, ALWAYS provide a concise Google search query (e.g., 'Stripe engineering blog API design 2025'). NEVER provide a direct URL.
 - DO NOT wrap the JSON in markdown code blocks. Just output the raw JSON object.
 """
 

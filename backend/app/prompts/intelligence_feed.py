@@ -42,7 +42,7 @@ For each document, define:
 - Title
 - Source / Publisher
 - Date (DD MMM YYYY)
-- Direct Link
+- Direct Link: DO NOT provide a fake URL if you do not know the real one. Instead, try to provide a plausible URL that points to the actual document or a verified source (like a company's newsroom).
 - Before: How this area/process worked in the "old world" (1-2 sentences)
 - After: What has changed or is changing — the new paradigm or regulation
 - Why It Matters: Concrete implications (e.g. for fintechs, lenders, engineers)
@@ -71,7 +71,7 @@ You MUST return ONLY a valid JSON object matching this exact schema:
       "title": "string (punchy headline)",
       "source": "string (real publisher name)",
       "eventDate": "string (e.g., '14 Feb 2026', 'This week')",
-      "url": "string or null (direct URL)",
+      "url": "string (direct link to the source if known)",
       "hook": "string (the 2-3 line hook teaser)",
       "before": "string (old paradigm description)",
       "after": "string (new paradigm description)",
