@@ -7,6 +7,9 @@ from app.entities.spaced_repetition import SpacedRepetitionItem
 from app.entities.user import User
 from app.utils.prompt_generator import generate_review_prompt
 from app.utils.spaced_repetition import calculate_next_interval
+from app.core.logging import get_logger
+
+logger = get_logger("services.spaced_repetition")
 
 class SpacedRepetitionService:
     def __init__(self, repo: SpacedRepetitionRepository, goal_repo: GoalRepository):
@@ -16,21 +19,38 @@ class SpacedRepetitionService:
     def get_due_items(self, user: User) -> list[SpacedRepetitionItem]:
         now = datetime.now(timezone.utc)
         end_of_day = now.replace(hour=23, minute=59, second=59, microsecond=999999)
-        return self.repo.get_due_items(user.id, end_of_day)
+        items = self.repo.get_due_items(user.id, end_of_day)
+        logger.debug("sr.due_items.fetched", extra={
+            "user_id": str(user.id),
+            "count": len(items),
+        })
+        return items
 
     def get_item(self, id: uuid.UUID, user: User) -> SpacedRepetitionItem | None:
         item = self.repo.get_by_id(id)
         if not item:
             return None
         if item.owner_id != user.id:
+            logger.warning("sr.item.permission_denied", extra={
+                "user_id": str(user.id),
+                "item_id": str(id),
+            })
             raise PermissionError("Not enough permissions")
         return item
 
     def create(self, item_in: SpacedRepetitionItemCreate, user: User) -> SpacedRepetitionItem:
         goal = self.goal_repo.get_by_id(item_in.goal_id)
         if not goal:
+            logger.warning("sr.create.goal_not_found", extra={
+                "user_id": str(user.id),
+                "goal_id": str(item_in.goal_id),
+            })
             raise ValueError("Goal not found")
         if goal.owner_id != user.id:
+            logger.warning("sr.create.permission_denied", extra={
+                "user_id": str(user.id),
+                "goal_id": str(item_in.goal_id),
+            })
             raise PermissionError("Not enough permissions to use this goal")
 
         next_review = datetime.now(timezone.utc) + timedelta(days=1)
@@ -44,7 +64,14 @@ class SpacedRepetitionService:
             resources=item_in.resources,
             next_review_at=next_review,
         )
-        return self.repo.save(db_item)
+        saved = self.repo.save(db_item)
+        logger.info("sr.item.created", extra={
+            "user_id": str(user.id),
+            "item_id": str(saved.id),
+            "topic_name": item_in.topic_name,
+            "next_review_at": str(next_review),
+        })
+        return saved
 
     def submit_review(self, id: uuid.UUID, review: SpacedRepetitionReview, user: User) -> SpacedRepetitionItem | None:
         item = self.get_item(id, user)
@@ -72,7 +99,16 @@ class SpacedRepetitionService:
         else:
             item.consecutive_correct = 0
 
-        return self.repo.save(item)
+        saved = self.repo.save(item)
+        logger.info("sr.review.submitted", extra={
+            "user_id": str(user.id),
+            "item_id": str(id),
+            "correct": review.correct,
+            "next_interval_days": next_interval,
+            "new_ease": new_ease,
+            "review_count": saved.review_count,
+        })
+        return saved
 
     def get_review_prompt(self, id: uuid.UUID, user: User) -> tuple[str, str] | None:
         item = self.get_item(id, user)
@@ -84,4 +120,8 @@ class SpacedRepetitionService:
             resources=item.resources,
             active_recall_question=item.active_recall_question,
         )
+        logger.debug("sr.prompt.generated", extra={
+            "item_id": str(id),
+            "topic_name": item.topic_name,
+        })
         return prompt, item.topic_name

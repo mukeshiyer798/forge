@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutDashboard, Target, BookOpen, Settings, LogOut, Menu, X, BarChart3, Sun, Moon } from 'lucide-react';
+import { useClerk } from '@clerk/react';
 import { useAppStore, type ViewId } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
@@ -15,7 +16,7 @@ const NAV_ITEMS: { id: ViewId; label: string; icon: React.ElementType; descripti
 function useTheme() {
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('forge-theme');
-    return saved ? saved === 'dark' : false;
+    return saved ? saved === 'dark' : true; // Default to dark mode
   });
 
   useEffect(() => {
@@ -30,6 +31,7 @@ function useTheme() {
 
 function NavContent({ onClose }: { onClose?: () => void }) {
   const { user, streak, activeView, setActiveView, setMobileNavOpen, logout } = useAppStore();
+  const { signOut } = useClerk();
   const { isDark, toggle: toggleTheme } = useTheme();
 
   const handleNav = (id: ViewId) => {
@@ -108,7 +110,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
           <motion.span animate={{ rotate: [-4, 4, -4] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
             className="text-2xl inline-block">🔥</motion.span>
           <div>
-            <div className="font-display text-3xl text-forge-fire leading-none">{streak}</div>
+            <div className="font-display text-3xl text-[#1a1a1a] dark:text-forge-fire leading-none">{streak}</div>
             <div className="font-mono text-base uppercase tracking-[0.15em] text-forge-dim">Day Streak</div>
           </div>
         </div>
@@ -116,7 +118,11 @@ function NavContent({ onClose }: { onClose?: () => void }) {
 
       {/* Logout */}
       <div className="px-3 pb-4 border-t border-forge-border pt-3">
-        <button onClick={() => { logout(); onClose?.(); }} className="nav-link w-full text-left">
+        <button onClick={async () => {
+          await signOut();
+          logout();
+          onClose?.();
+        }} className="nav-link w-full text-left">
           <LogOut size={14} strokeWidth={2} />
           <span className="text-sm">Logout</span>
         </button>
@@ -135,12 +141,12 @@ export default function Sidebar() {
   return (
     <>
       {/* Desktop */}
-      <aside className="hidden lg:flex w-[260px] min-h-screen bg-forge-surface border-r border-forge-border flex-col sticky top-0 h-screen flex-shrink-0">
+      <aside className="hidden lg:flex w-[260px] min-h-screen bg-forge-surface2 dark:bg-forge-surface border-r border-forge-border flex-col sticky top-0 h-screen flex-shrink-0">
         <NavContent />
       </aside>
 
       {/* Mobile top bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-forge-surface border-b border-forge-border px-4 py-3 flex items-center justify-between">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-forge-surface2 dark:bg-forge-surface border-b border-forge-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => setMobileNavOpen(true)} className="text-forge-dim hover:text-forge-text transition-colors p-1">
             <Menu size={20} />
@@ -149,7 +155,7 @@ export default function Sidebar() {
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-lg">🔥</span>
-          <span className="font-display text-xl text-forge-fire">{streak}</span>
+          <span className="font-display text-xl text-[#1a1a1a] dark:text-forge-fire">{streak}</span>
         </div>
       </div>
 
@@ -171,7 +177,7 @@ export default function Sidebar() {
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-            className="lg:hidden fixed left-0 top-0 bottom-0 w-[280px] bg-forge-surface border-r border-forge-border z-50 flex flex-col overflow-y-auto pointer-events-auto">
+            className="lg:hidden fixed left-0 top-0 bottom-0 w-[280px] bg-forge-surface2 dark:bg-forge-surface border-r border-forge-border z-50 flex flex-col overflow-y-auto pointer-events-auto">
             <NavContent onClose={() => setMobileNavOpen(false)} />
           </motion.div>
         )}

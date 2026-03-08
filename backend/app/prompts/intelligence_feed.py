@@ -5,7 +5,7 @@ Connects the learner's Core Interests (goals and custom keywords) to
 real-world events, announcements, and case studies happening this week.
 """
 
-def build_intelligence_feed_prompt(goals: list[dict], keywords: str | None = None) -> str:
+def build_intelligence_feed_prompt(goals: list[dict], keywords: str | None = None, current_date: str = "2026-03-07") -> str:
     """
     Build a prompt for generating contextual intelligence.
     Extracts goal names and merges them with keywords to form "Core Interests".
@@ -24,6 +24,9 @@ def build_intelligence_feed_prompt(goals: list[dict], keywords: str | None = Non
     core_interests = "\n".join(interest_items) if interest_items else "- General Tech & Finance Innovation"
 
     return f"""You are my Research Analyst and Strategic Intelligence Officer. I want you to act like a strategist who reads regulatory papers, academic research, industry whitepapers, engineering blogs, and breaking news — then explains them in a digestible, exciting, and actionable way.
+
+TODAY'S DATE: {current_date}
+CRITICAL: Prioritize REAL events and documents from 2025 and 2026. If something is from 2024, it is LIKELY STALE context unless it's a major foundational shift.
 
 ## My Core Interests (Focus your research on these areas):
 {core_interests}

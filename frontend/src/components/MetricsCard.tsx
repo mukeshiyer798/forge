@@ -16,11 +16,11 @@ export default function MetricsCard({
 }) {
   const toneCls =
     tone === 'good'
-      ? 'border-green-900/40 bg-green-950/10'
+      ? 'border-green-200 bg-green-50 dark:border-green-900/40 dark:bg-green-950/10'
       : tone === 'warn'
-        ? 'border-amber-900/40 bg-amber-950/10'
+        ? 'border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/10'
         : tone === 'risk'
-          ? 'border-red-900/40 bg-red-950/10'
+          ? 'border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-950/10'
           : 'border-forge-border bg-forge-surface';
 
   return (

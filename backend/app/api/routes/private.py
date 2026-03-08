@@ -5,10 +5,13 @@ from pydantic import BaseModel
 
 from app.api.deps import SessionDep
 from app.core.security import get_password_hash
+from app.core.logging import get_logger
 from app.models import (
     User,
     UserPublic,
 )
+
+logger = get_logger("routes.private")
 
 router = APIRouter(tags=["private"], prefix="/private")
 

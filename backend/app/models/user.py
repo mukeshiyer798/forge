@@ -46,9 +46,8 @@ class UserUpdateMe(SQLModel):
     email: EmailStr | None = Field(default=None, max_length=255)
     nudge_preference: str | None = Field(default=None, max_length=32)
     email_daily_plan_enabled: bool | None = None
+    email_frequency: str | None = Field(default=None, max_length=32)
     email_morning_time: str | None = Field(default=None, max_length=5)
-    email_afternoon_time: str | None = Field(default=None, max_length=5)
-    email_evening_time: str | None = Field(default=None, max_length=5)
     timezone: str | None = Field(default=None, max_length=64)
     theme_preference: str | None = Field(default=None, max_length=32)
     greeting_preference: str | None = Field(default=None, max_length=100)

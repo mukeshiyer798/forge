@@ -1,4 +1,7 @@
 import { create } from 'zustand';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Store');
 import { persist } from 'zustand/middleware';
 import type { User, Goal, GoalStatus, GoalType, PomodoroSession, SubTopic, GoalTopic, GoalCapstone, AIInsight } from '@/types';
 import { generateId, getTodayIndex, calcGoalProgress } from '@/lib/utils';
@@ -8,7 +11,6 @@ import {
   createGoalApi,
   updateGoalApi,
   deleteGoalApi,
-  clearTokenRefresh,
   createPomodoroSessionApi,
   fetchPomodoroSessions,
   updatePomodoroSessionApi,
@@ -30,8 +32,8 @@ export function mapBackendUserToUser(backend: {
   greeting_preference?: string | null;
   status_message?: string | null;
   has_openrouter_key?: boolean;
-  email_afternoon_time?: string | null;
-  email_evening_time?: string | null;
+  email_frequency?: 'daily' | 'every_3_days' | 'weekly' | null;
+  email_morning_time?: string | null;
   timezone?: string | null;
   intelligence_keywords?: string | null;
 }): User {
@@ -48,6 +50,9 @@ export function mapBackendUserToUser(backend: {
     statusMessage: backend.status_message ?? null,
     hasOpenrouterKey: backend.has_openrouter_key ?? false,
     intelligenceKeywords: backend.intelligence_keywords ?? null,
+    emailFrequency: backend.email_frequency || 'daily',
+    emailMorningTime: backend.email_morning_time ?? null,
+    timezone: backend.timezone ?? null,
   };
 }
 
@@ -221,10 +226,11 @@ async function syncGoalToBackend(goal: Goal): Promise<void> {
       capstone: goal.capstone ? JSON.stringify(goal.capstone) : null,
       future_look: (goal as unknown as Record<string, unknown>).futureLook ?? null,
     };
-    console.debug('[FORGE] Syncing goal to backend:', goal.id, Object.keys(payload));
+    log.debug('goal.sync.started', { goalId: goal.id, fields: Object.keys(payload) });
     await updateGoalApi(goal.id, payload);
+    log.info('goal.sync.success', { goalId: goal.id });
   } catch (err) {
-    console.error('[FORGE] Failed to sync goal to backend:', err);
+    log.error('goal.sync.failed', { goalId: goal.id }, err);
   }
 }
 
@@ -261,9 +267,9 @@ export const useAppStore = create<AppState>()(
         const prevUserId = get().user?.id;
         if (prevUserId && prevUserId !== user.id) {
           try { localStorage.removeItem('forge-storage'); } catch { /* ignore */ }
-          console.debug('[FORGE] Login — user switched, cleared localStorage');
+          log.info('auth.user_switch_clear', { prevUserId, newUserId: user.id });
         }
-        console.debug('[FORGE] Login — setting user:', user.id);
+        log.info('auth.login_success', { userId: user.id });
         set({
           user,
           isAuthenticated: true,
@@ -285,11 +291,10 @@ export const useAppStore = create<AppState>()(
 
       // CRITICAL FIX: Logout clears ALL user-specific state
       logout: () => {
-        clearTokenRefresh();
         clearAccessToken();
         // PRODUCTION-GRADE: Wipe localStorage to prevent data leaks
         try { localStorage.removeItem('forge-storage'); } catch { /* ignore */ }
-        console.debug('[FORGE] Logout — cleared all user data and localStorage');
+        log.info('auth.logout');
         set({
           user: null,
           isAuthenticated: false,
@@ -335,9 +340,10 @@ export const useAppStore = create<AppState>()(
       fetchGoalsFromBackend: async (page = 0) => {
         try {
           const skip = page * GOALS_PER_PAGE;
+          log.debug('goals.fetch.started', { page, skip });
           const res = await fetchGoals(skip, GOALS_PER_PAGE);
           const mapped = res.data.map(mapBackendGoalToGoal);
-          console.debug('[FORGE] Fetched goals from backend:', mapped.length, 'total:', res.count);
+          log.info('goals.fetch.success', { count: mapped.length, total: res.count });
           if (page === 0) {
             set({ goals: mapped, goalsLoaded: true, goalsPage: 0, goalsTotalCount: res.count });
           } else {
@@ -348,7 +354,7 @@ export const useAppStore = create<AppState>()(
             }));
           }
         } catch (err) {
-          console.error('Failed to fetch goals from backend:', err);
+          log.error('goals.fetch.failed', { page }, err);
           set({ goalsLoaded: true }); // Mark as loaded even on error
         }
 
@@ -472,8 +478,15 @@ export const useAppStore = create<AppState>()(
               ),
             }));
           })
-          .catch((err) => {
+          .catch((err: any) => {
             console.error('Failed to create goal on backend:', err);
+            // Rollback optimistic update
+            set((state) => ({
+              goals: state.goals.filter((g) => g.id !== tempId),
+            }));
+            const detail = err?.detail || 'Failed to create goal';
+            // Alert user so they aren't confused
+            alert(typeof detail === 'string' ? detail : JSON.stringify(detail));
           });
       },
 
@@ -514,7 +527,15 @@ export const useAppStore = create<AppState>()(
                 ),
               }));
             })
-            .catch((err) => console.error('Failed to sync goal:', err));
+            .catch((err: any) => {
+              console.error('Failed to sync goal:', err);
+              // Rollback optimistic update for this goal
+              set((state) => ({
+                goals: state.goals.filter((g) => g.id !== tempId),
+              }));
+              const detail = err?.detail || 'Failed to sync goal';
+              alert(typeof detail === 'string' ? detail : JSON.stringify(detail));
+            });
         }
       },
 

@@ -22,14 +22,14 @@ class UserBase(SQLModel):
     full_name: str | None = Field(default=None, max_length=255)
     nudge_preference: str = Field(default="daily", max_length=32)
     email_daily_plan_enabled: bool = Field(default=True)
+    email_frequency: str = Field(default="daily", max_length=32)  # daily, every_3_days, weekly
     email_morning_time: str = Field(default=settings.DEFAULT_EMAIL_MORNING_TIME, max_length=5)
-    email_afternoon_time: str = Field(default=settings.DEFAULT_EMAIL_AFTERNOON_TIME, max_length=5)
-    email_evening_time: str = Field(default=settings.DEFAULT_EMAIL_EVENING_TIME, max_length=5)
     timezone: str = Field(default="UTC", max_length=64)
     theme_preference: str | None = Field(default=None, max_length=32)
     greeting_preference: str | None = Field(default=None, max_length=100)
     status_message: str | None = Field(default=None, max_length=255)
     intelligence_keywords: str | None = Field(default=None, max_length=500)
+    clerk_id: str | None = Field(default=None, unique=True, index=True, max_length=255)
 
 class User(UserBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -38,6 +38,10 @@ class User(UserBase, table=True):
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc,
         sa_type=DateTime(timezone=True),  # type: ignore
+    )
+    last_email_sent_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True), # type: ignore
     )
     items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
     goals: list["Goal"] = Relationship(back_populates="owner", cascade_delete=True)

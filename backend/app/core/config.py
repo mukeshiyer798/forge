@@ -15,12 +15,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import Self
 
 
-import json
+import orjson
 def parse_cors(v: Any) -> list[str] | str:
     if isinstance(v, str) and not v.startswith("["):
         return [i.strip() for i in v.split(",") if i.strip()]
     elif isinstance(v, str) and v.startswith("["):
-        return json.loads(v)
+        return orjson.loads(v)
     elif isinstance(v, list):
         return v
     raise ValueError(v)
@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
     FRONTEND_HOST: str = "http://localhost:5173"
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
+    APP_VERSION: str = "0.1.0"
+    LOG_LEVEL: str = "INFO"
 
     BACKEND_CORS_ORIGINS: Annotated[
         list[AnyUrl] | str, BeforeValidator(parse_cors)
@@ -56,7 +58,7 @@ class Settings(BaseSettings):
         ]
 
     PROJECT_NAME: str
-    SENTRY_DSN: HttpUrl | None = None
+    SENTRY_DSN: str = ""
     POSTGRES_SERVER: str
     POSTGRES_PORT: int = 5432
     POSTGRES_USER: str
@@ -64,6 +66,10 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = ""
     OPENROUTER_API_KEY: str | None = None
     OPENROUTER_URL: str = "https://openrouter.ai/api/v1/chat/completions"
+
+    # ── Clerk config ──
+    CLERK_SECRET_KEY: str | None = None
+    CLERK_PUBLISHABLE_KEY: str | None = None
 
     # ── Mailgun config ──
     MAILGUN_API_KEY: str | None = None
@@ -75,7 +81,7 @@ class Settings(BaseSettings):
     BREVO_API_URL: str = "https://api.brevo.com/v3/smtp/email"
 
     # ── Goal constraints (used by GoalService) ──
-    MAX_ACTIVE_GOALS: int = 3
+    MAX_ACTIVE_GOALS: int = 7
     GOAL_ALLOWED_TYPES: list[str] = ["learn", "build", "habit", "fitness"]
     GOAL_ALLOWED_STATUSES: list[str] = ["on-track", "at-risk", "behind", "paused", "completed"]
 

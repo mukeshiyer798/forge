@@ -16,13 +16,15 @@ dependencies = [
     "psycopg[binary]<4.0.0,>=3.1.13",
     "sqlmodel<1.0.0,>=0.0.21",
     "pydantic-settings<3.0.0,>=2.2.1",
-    "sentry-sdk[fastapi]>=2.0.0,<3.0.0",
     "pyjwt<3.0.0,>=2.8.0",
     "pwdlib[argon2,bcrypt]>=0.3.0",
     "apscheduler>=3.10.0",
     "slowapi>=0.1.9",
     "cryptography>=42.0.0",
     "sib-api-v3-sdk>=3.0.0",
+    "orjson>=3.10.0",
+    "clerk-backend-api>=1.0.0",
+    "python-json-logger>=2.0.0",
 ]
 
 [dependency-groups]

@@ -11,6 +11,9 @@ import { useToast } from '@/lib/toast';
 import { callGemini, hasGeminiKey } from '@/lib/gemini';
 import { getCurrentUser } from '@/lib/api';
 import { mapBackendUserToUser } from '@/store/useAppStore';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('GoalModal');
 
 interface AddGoalModalProps {
   open: boolean;
@@ -143,6 +146,7 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
   const handleSaveInlineKey = async () => {
     if (!inlineApiKey.trim()) return;
     setGeminiLoading(true);
+    log.info('goal_modal.save_key.started');
     try {
       const ok = await callGemini(
         "Verify this key. Return only JSON: {\"ok\": true}",
@@ -156,10 +160,12 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
           useAppStore.getState().updateUser(mapBackendUserToUser(updatedUser));
           setInlineApiKey('');
           setInlineKeyStatus('success');
+          log.info('goal_modal.save_key.success');
           toast({ title: 'Key active', description: 'Your access code is saved.', tone: 'success' });
         }
       }
     } catch (e) {
+      log.error('goal_modal.save_key.failed', {}, e);
       setInlineKeyStatus('error');
       toast({ title: 'Invalid key', description: 'Could not verify the access code.', tone: 'error' });
     } finally {
@@ -201,6 +207,11 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
     if (hasGeminiKey() || keyToUse) {
       setGeminiLoading(true);
       setImportError('');
+      log.info('goal_modal.roadmap_gen.started', {
+        hasGlobalKey: hasGeminiKey(),
+        hasInlineKey: !!keyToUse,
+        goal: learnerGoal.slice(0, 50)
+      });
       try {
         const result = await callGemini<{ goals?: Array<Record<string, unknown>>; phaseRoadmap?: Record<string, string[]> }>(
           prompt,
@@ -210,6 +221,7 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
         if (result) {
           const goalsArray = result.goals || (Array.isArray(result) ? result as unknown as Array<Record<string, unknown>> : []);
           if (goalsArray.length > 0) {
+            log.info('goal_modal.roadmap_gen.success', { count: goalsArray.length });
             const mapped = goalsArray.map((raw) => mapForgeCoachGoalToGoal(raw, fallbackDeadline));
             setParsedGoalsForReview(mapped);
             setReviewSource('ai-prompt');
@@ -232,6 +244,7 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
         }
         setImportError('AI returned no goals — prompt copied, paste into any AI.');
       } catch (err) {
+        log.error('goal_modal.roadmap_gen.failed', {}, err);
         setImportError(`AI error: ${err instanceof Error ? err.message : 'Unknown'} — prompt copied.`);
       }
       setGeminiLoading(false);
@@ -333,6 +346,10 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
       topics: (g.topics || []).filter(t => (t.taskNumber || 0) <= 5)
     }));
 
+    log.info('goal_modal.confirm_create.clicked', {
+      source: reviewSource,
+      count: goalsToCreate.length
+    });
     addGoals(goalsToCreate as Goal[]);
     toast({
       title: 'Goals created',

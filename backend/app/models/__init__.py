@@ -6,8 +6,10 @@ from app.models.pomodoro import PomodoroSessionCreate, PomodoroSessionUpdate, Po
 from app.models.spaced_repetition import SpacedRepetitionItemCreate, SpacedRepetitionReview, SpacedRepetitionItemPublic, SpacedRepetitionItemsPublic
 from app.models.reading import ReadingInsightCreate, ReadingInsightPublic, ReadingInsightsPublic
 from app.models.wisdom import WisdomPublic, WisdomsPublic
+from app.models.idempotency import IdempotencyRecordCreate, IdempotencyRecordRead
 
 from app.entities import User, Item, Goal, PomodoroSession, SpacedRepetitionItem, ReadingInsight, Reading, Wisdom
+from app.entities.idempotency import IdempotencyRecord
 
 __all__ = [
     "Message", "Token", "TokenPayload", "NewPassword",
@@ -19,4 +21,5 @@ __all__ = [
     "ReadingInsightCreate", "ReadingInsightPublic", "ReadingInsightsPublic",
     "WisdomPublic", "WisdomsPublic",
     "User", "Item", "Goal", "PomodoroSession", "SpacedRepetitionItem", "ReadingInsight", "Reading", "Wisdom",
+    "IdempotencyRecordCreate", "IdempotencyRecordRead", "IdempotencyRecord",
 ]

@@ -1,5 +1,8 @@
 import { BarChart3, Clock, ShieldAlert, Target, BookOpen, Flame } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Executive');
 import MetricsCard from '@/components/MetricsCard';
 import WeeklyGoalTracker from '@/components/WeeklyGoalTracker';
 import DailyActivityChart from '@/components/DailyActivityChart';
@@ -12,9 +15,16 @@ export default function ExecutiveDashboard() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
+    log.info('executive.dashboard.mounted');
     getDueSpacedRepetitionItems()
-      .then((res) => setReviewsDue(res.count))
-      .catch(() => setReviewsDue(0));
+      .then((res) => {
+        log.debug('executive.reviews_due.fetched', { count: res.count });
+        setReviewsDue(res.count);
+      })
+      .catch((err) => {
+        log.error('executive.reviews_due.failed', {}, err);
+        setReviewsDue(0);
+      });
   }, [isAuthenticated]);
 
   const metrics = useMemo(() => {

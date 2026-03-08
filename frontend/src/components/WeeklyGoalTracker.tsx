@@ -122,7 +122,7 @@ export default function WeeklyGoalTracker() {
 
     return (
         <div style={{
-            background: '#0b0b0b',
+            background: 'rgb(var(--forge-surface))',
             border: '1px solid rgb(var(--forge-border))',
             borderRadius: '12px',
             padding: '20px',

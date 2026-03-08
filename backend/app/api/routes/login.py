@@ -8,9 +8,12 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.api.deps import CurrentUser, SessionDep, get_current_active_superuser, UserServiceDep
 from app.core import security
 from app.core.config import settings
+from app.core.logging import get_logger
 from app.models.core import Message, NewPassword, Token
 from app.models.user import UserPublic
 from app.core.rate_limit import limiter
+
+logger = get_logger("routes.login")
 
 router = APIRouter(tags=["login"])
 

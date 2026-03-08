@@ -2,7 +2,7 @@
 Generate daily plan data for email templates.
 """
 
-import json
+import orjson
 import logging
 from datetime import datetime, timezone
 from typing import Any
@@ -19,8 +19,8 @@ def _parse_json_field(raw: str | None) -> Any:
     if not raw:
         return []
     try:
-        return json.loads(raw)
-    except (json.JSONDecodeError, TypeError):
+        return orjson.loads(raw)
+    except (orjson.JSONDecodeError, TypeError):
         return []
 
 
@@ -81,7 +81,9 @@ def get_todays_plan(session: Session, user: User) -> dict[str, Any]:
                 "subtopics": subtopics,
                 "resources": resources,
             })
-            if len(current_topics) >= 3:  # Limit to top 3 incomplete topics
+            
+            task_limit = tasks_today if tasks_today > 0 else 3
+            if len(current_topics) >= task_limit:  # Limit topics based on daily requirement
                 break
 
         goals_data.append({

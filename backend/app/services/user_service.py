@@ -1,4 +1,3 @@
-import logging
 import uuid
 
 from app.repositories.user_repository import UserRepository
@@ -6,9 +5,10 @@ from app.models.user import UserCreate, UserUpdate, UserUpdateMe, UpdatePassword
 from app.entities.user import User
 from app.core.security import get_password_hash, verify_password, encrypt_api_key
 from app.core.config import settings
+from app.core.logging import get_logger
 from app.utils import generate_new_account_email, send_email
 
-logger = logging.getLogger(__name__)
+logger = get_logger("services.user")
 
 class UserService:
     def __init__(self, repo: UserRepository):
@@ -28,6 +28,10 @@ class UserService:
             user_create, update={"hashed_password": get_password_hash(user_create.password)}
         )
         user = self.repo.save(db_obj)
+        logger.info("user.created", extra={
+            "user_id": str(user.id),
+            "email_domain": user_create.email.split("@")[-1] if user_create.email else "unknown",
+        })
         
         if settings.emails_enabled and user_create.email:
             email_data = generate_new_account_email(
@@ -58,19 +62,22 @@ class UserService:
             if api_key is None:
                 # Explicit clear — user pressed "Clear" button
                 extra_data["encrypted_openrouter_key"] = None
-                logger.info(f"[API_KEY] User {db_user.id} — cleared OpenRouter API key")
+                logger.info("user.api_key.cleared", extra={"user_id": str(db_user.id)})
             elif api_key == "":
                 # Empty string = no change, skip
-                logger.debug(f"[API_KEY] User {db_user.id} — empty key ignored (no change)")
+                logger.debug("user.api_key.no_change", extra={"user_id": str(db_user.id)})
             else:
                 extra_data["encrypted_openrouter_key"] = encrypt_api_key(api_key)
-                logger.info(f"[API_KEY] User {db_user.id} — encrypted and stored new OpenRouter API key")
+                logger.info("user.api_key.stored", extra={"user_id": str(db_user.id)})
         else:
-            logger.debug(f"[API_KEY] User {db_user.id} — update_me called without API key field")
+            logger.debug("user.api_key.not_in_payload", extra={"user_id": str(db_user.id)})
             
         db_user.sqlmodel_update(user_data, update=extra_data)
         saved = self.repo.save(db_user)
-        logger.debug(f"[USER] User {db_user.id} — profile updated. Fields changed: {list(user_data.keys())} + {list(extra_data.keys())}")
+        logger.info("user.profile.updated", extra={
+            "user_id": str(db_user.id),
+            "fields_changed": list(user_data.keys()) + list(extra_data.keys()),
+        })
         return saved
 
     def update_password(self, db_user: User, body: UpdatePassword) -> bool:
@@ -84,6 +91,7 @@ class UserService:
         return True
 
     def delete(self, user: User) -> None:
+        logger.info("user.deleted", extra={"user_id": str(user.id)})
         self.repo.delete(user)
 
     def register(self, user_in: UserRegister) -> User:
@@ -112,17 +120,20 @@ class UserService:
     def authenticate(self, email: str, password: str) -> User | None:
         db_user = self.get_by_email(email)
         if not db_user:
-            logger.debug(f"[AUTH] Login attempt for unknown email (timing-safe reject)")
+            logger.info("auth.login.unknown_email")
             verify_password(password, settings.DUMMY_HASH)
             return None
         verified, updated_password_hash = verify_password(password, db_user.hashed_password)
         if not verified:
-            logger.warning(f"[AUTH] Failed login for user {db_user.id}")
+            logger.warning("auth.login.failed", extra={"user_id": str(db_user.id)})
             return None
         if updated_password_hash:
             db_user.hashed_password = updated_password_hash
             self.repo.save(db_user)
-        logger.info(f"[AUTH] Successful login for user {db_user.id} — has_api_key={bool(db_user.encrypted_openrouter_key)}")
+        logger.info("auth.login.success", extra={
+            "user_id": str(db_user.id),
+            "has_api_key": bool(db_user.encrypted_openrouter_key),
+        })
         return db_user
 
     def recover_password(self, email: str) -> None:

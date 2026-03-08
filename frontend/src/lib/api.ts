@@ -1,7 +1,16 @@
-import { getAuthHeaders } from './auth';
+// Clerk Token Injection Logic
+import { createLogger } from '@/lib/logger';
+import { getSessionId } from '@/lib/monitoring';
+
+const log = createLogger('API');
+
+let clerkTokenProvider: (() => Promise<string | null>) | null = null;
+
+export function setClerkTokenProvider(provider: () => Promise<string | null>) {
+  clerkTokenProvider = provider;
+}
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
-
 const API_V1 = `${API_BASE}/api/v1`;
 
 export interface ApiError {
@@ -9,44 +18,91 @@ export interface ApiError {
   status: number;
 }
 
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 500;
+
 export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
   const url = endpoint.startsWith('http') ? endpoint : `${API_V1}${endpoint}`;
+  const method = options.method?.toUpperCase() || 'GET';
+
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),
-    ...getAuthHeaders(),
   };
 
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      ...headers,
-      ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-    },
-  });
-
-  if (!res.ok) {
-    let detail: string | Record<string, unknown> = res.statusText;
-    try {
-      const json = await res.json();
-      if (json.detail) detail = json.detail;
-    } catch {
-      // ignore
+  // Inject Clerk Token
+  if (clerkTokenProvider) {
+    const token = await clerkTokenProvider();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
-    const err: ApiError = { detail, status: res.status };
-    throw err;
   }
 
-  const text = await res.text();
-  if (!text) return {} as T;
-  return JSON.parse(text) as T;
-}
+  // 1. Idempotency Key Injection
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    if (!headers['Idempotency-Key']) {
+      headers['Idempotency-Key'] = crypto.randomUUID();
+    }
+  }
 
-export interface TokenResponse {
-  access_token: string;
-  token_type: string;
+  // 1b. Session ID for cross-stack correlation
+  headers['x-session-id'] = getSessionId();
+
+  // 2. Exponential Backoff Retry Loop
+  let attempt = 0;
+  while (true) {
+    try {
+      const res = await fetch(url, {
+        ...options,
+        headers: {
+          ...headers,
+          ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+        },
+      });
+
+      if (!res.ok) {
+        // Retry on 5xx server errors, but throw immediately on 4xx client errors
+        if (res.status >= 500 && res.status < 600 && attempt < MAX_RETRIES) {
+          log.warn('api.retry', { url: endpoint, status: res.status, attempt });
+          throw new Error(`Server error ${res.status}, forcing retry`);
+        }
+
+        let detail: string | Record<string, unknown> = res.statusText;
+        try {
+          const json = await res.json();
+          if (json.detail) detail = json.detail;
+        } catch {
+          // ignore
+        }
+        const err: ApiError = { detail, status: res.status };
+        throw err; // Genuine error, exit loop
+      }
+
+      const text = await res.text();
+      if (!text) return {} as T;
+      return JSON.parse(text) as T;
+
+    } catch (err) {
+      if (err && typeof err === 'object' && 'status' in err) {
+        throw err;
+      }
+
+      attempt++;
+      if (attempt > MAX_RETRIES) {
+        log.error('api.max_retries_exceeded', { url: endpoint, method, attempt }, err);
+        throw err;
+      }
+
+      const baseDelay = Math.pow(2, attempt) * BASE_DELAY_MS;
+      const jitter = Math.random() * 200;
+      const delay = baseDelay + jitter;
+
+      console.warn(`[Network] Request to ${url} failed. Retrying (Attempt ${attempt}/${MAX_RETRIES}) in ${Math.round(delay)}ms. Error:`, err);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
 }
 
 export interface UserPublic {
@@ -62,61 +118,8 @@ export interface UserPublic {
   has_openrouter_key?: boolean;
 }
 
-export async function login(email: string, password: string): Promise<TokenResponse> {
-  const form = new FormData();
-  form.append('username', email);
-  form.append('password', password);
-  return apiRequest<TokenResponse>('/login/access-token', {
-    method: 'POST',
-    body: form,
-  });
-}
-
-export async function signup(data: {
-  email: string;
-  password: string;
-  full_name?: string | null;
-  nudge_preference?: string;
-}): Promise<UserPublic> {
-  return apiRequest<UserPublic>('/users/signup', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
-
 export async function getCurrentUser(): Promise<UserPublic> {
   return apiRequest<UserPublic>('/users/me');
-}
-
-export async function testToken(): Promise<UserPublic> {
-  return apiRequest<UserPublic>('/login/test-token', { method: 'POST' });
-}
-
-export async function refreshToken(): Promise<TokenResponse> {
-  return apiRequest<TokenResponse>('/login/refresh-token', { method: 'POST' });
-}
-
-// ── Token auto-refresh (every 50 minutes, token expires in 60) ──
-let _refreshInterval: ReturnType<typeof setInterval> | null = null;
-
-export function setupTokenRefresh(onRefreshed: (token: string) => void) {
-  clearTokenRefresh();
-  _refreshInterval = setInterval(async () => {
-    try {
-      const res = await refreshToken();
-      onRefreshed(res.access_token);
-    } catch {
-      // Token expired or invalid — user will be logged out on next API call
-      console.warn('Token refresh failed');
-    }
-  }, 50 * 60 * 1000); // 50 minutes
-}
-
-export function clearTokenRefresh() {
-  if (_refreshInterval) {
-    clearInterval(_refreshInterval);
-    _refreshInterval = null;
-  }
 }
 
 // ── Goals API ──────────────────────────────────────────────
@@ -281,6 +284,15 @@ export async function getSpacedRepetitionPrompt(
 ): Promise<{ prompt: string; topic_name: string }> {
   return apiRequest<{ prompt: string; topic_name: string }>(
     `/spaced-repetition/prompt/${id}`
+  );
+}
+
+export async function generateSpacedRepetitionExplanation(
+  id: string
+): Promise<{ explanation: string }> {
+  return apiRequest<{ explanation: string }>(
+    `/spaced-repetition/generate-explanation/${id}`,
+    { method: 'POST' }
   );
 }
 

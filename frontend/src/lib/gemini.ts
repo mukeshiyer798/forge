@@ -6,6 +6,9 @@ import { getAccessToken } from '@/lib/auth';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 import { useAppStore } from '@/store/useAppStore';
+import { createLogger } from './logger';
+
+const log = createLogger('AI');
 
 // ── Obsolete Key management (kept as stubs for backwards compatibility in components) ──
 export function getApiKey(): string | null { return "proxied-via-backend"; }
@@ -38,10 +41,12 @@ async function fetchFromBackendProxy(prompt: string, model?: string, apiKey?: st
  */
 export async function callGemini<T = unknown>(prompt: string, model?: string, apiKey?: string): Promise<T | null> {
     try {
+        log.info('gemini.call.started', { model });
         const data = await fetchFromBackendProxy(prompt, model, apiKey);
+        log.info('gemini.call.success', { model });
         return data as T;
     } catch (e) {
-        console.error("AI Generation Error:", e);
+        log.error('gemini.call.failed', { model }, e);
         throw e;
     }
 }
@@ -51,16 +56,28 @@ export async function callGemini<T = unknown>(prompt: string, model?: string, ap
  */
 export async function callGeminiForInsights<T = unknown>(prompt: string, model?: string, apiKey?: string): Promise<T[] | null> {
     try {
+        log.info('gemini.insights.started', { model });
         const parsed = await fetchFromBackendProxy(prompt, model, apiKey);
-        if (Array.isArray(parsed)) return parsed as T[];
-        // Unwrap common wrapper keys
-        const keys = Object.keys(parsed);
-        for (const k of keys) {
-            if (Array.isArray(parsed[k])) return parsed[k] as T[];
+        let result: T[] = [];
+        if (Array.isArray(parsed)) {
+            result = parsed as T[];
+        } else {
+            // Unwrap common wrapper keys
+            const keys = Object.keys(parsed);
+            let found = false;
+            for (const k of keys) {
+                if (Array.isArray(parsed[k])) {
+                    result = parsed[k] as T[];
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) result = [parsed as T];
         }
-        return [parsed as T];
+        log.info('gemini.insights.success', { model, count: result.length });
+        return result;
     } catch (e) {
-        console.error("AI Insights Error:", e);
+        log.error('gemini.insights.failed', { model }, e);
         throw e;
     }
 }

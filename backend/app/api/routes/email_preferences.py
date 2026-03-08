@@ -4,6 +4,9 @@ from fastapi import APIRouter
 
 from app.api.deps import CurrentUser, UserServiceDep
 from app.models import UserUpdateMe
+from app.core.logging import get_logger
+
+logger = get_logger("routes.email_preferences")
 
 router = APIRouter(prefix="/email-preferences", tags=["email-preferences"])
 
@@ -13,9 +16,8 @@ def get_email_preferences(current_user: CurrentUser) -> dict:
     """Get current user's email preferences."""
     return {
         "email_daily_plan_enabled": current_user.email_daily_plan_enabled,
+        "email_frequency": current_user.email_frequency,
         "email_morning_time": current_user.email_morning_time,
-        "email_afternoon_time": current_user.email_afternoon_time,
-        "email_evening_time": current_user.email_evening_time,
         "timezone": current_user.timezone,
     }
 

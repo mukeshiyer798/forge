@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Timer, X, Play, Square, Minus, Plus, Brain } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Pomodoro');
 import type { Goal } from '@/types';
 
 interface PomodoroTimerProps {
@@ -79,6 +82,10 @@ export default function PomodoroTimer({
   const secs = secondsLeft % 60;
 
   const handleDismissReflection = () => {
+    log.info('pomodoro.session.completed', {
+      duration: activePomodoro?.duration,
+      goalId: activePomodoro?.goalId
+    });
     setShowReflection(false);
     completePomodoro();
   };
@@ -205,7 +212,13 @@ export default function PomodoroTimer({
               <Square size={14} />
             </button>
             <button
-              onClick={cancelPomodoro}
+              onClick={() => {
+                log.info('pomodoro.session.cancelled', {
+                  goalId: activePomodoro.goalId,
+                  elapsedMins: Math.floor((totalSeconds - secondsLeft) / 60)
+                });
+                cancelPomodoro();
+              }}
               className="p-2 border border-forge-border hover:bg-forge-surface2 text-forge-dim transition-colors"
               title="Cancel"
             >
@@ -261,7 +274,11 @@ export default function PomodoroTimer({
 
               {/* Quick start */}
               <button
-                onClick={() => { startPomodoro({ duration: selectedDuration }); setShowGoalPicker(false); }}
+                onClick={() => {
+                  log.info('pomodoro.session.started', { duration: selectedDuration, goalId: null });
+                  startPomodoro({ duration: selectedDuration });
+                  setShowGoalPicker(false);
+                }}
                 className="w-full flex items-center justify-center gap-2 py-2.5 bg-forge-amber/10 border border-forge-amber/30 hover:border-forge-amber text-forge-amber font-mono text-base uppercase tracking-wider transition-colors mb-3"
               >
                 <Play size={13} />

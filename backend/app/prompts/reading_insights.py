@@ -53,7 +53,7 @@ INDUSTRY_SOURCES = {
     ],
 }
 
-def build_reading_insights_prompt(goals: list[dict], industries: list[str]) -> str:
+def build_reading_insights_prompt(goals: list[dict], industries: list[str], current_date: str = "2026-03-07") -> str:
     if goals:
         goal_context = "\n".join([
             f"- {g.get('name')}: {g.get('description', 'No description provided.')}"
@@ -92,6 +92,9 @@ def build_reading_insights_prompt(goals: list[dict], industries: list[str]) -> s
     sources_list = "\n".join([f"  - {s}" for s in unique_sources])
 
     return f"""You are a specialized Research Librarian and Knowledge Curator for FORGE. Your job is to surface the most relevant, high-authority, and practical insights happening RIGHT NOW in the specific subject areas this learner cares about.
+    
+TODAY'S DATE: {current_date}
+IMPORTANT: Prioritize events, papers, and updates from 2025 and early 2026. DO NOT provide articles from 2023 or 2024 unless they are foundational.
 
 ## THE LEARNER'S SPECIFIC GOALS (Context for each)
 {goal_context}

@@ -22,16 +22,25 @@
 
   /* ── Light theme ───────────────────────────────────── */
   .light {
-    --forge-bg: 245 243 239;
-    --forge-surface: 255 255 255;
-    --forge-surface2: 240 237 232;
-    --forge-border: 214 208 196;
-    --forge-amber: 217 119 6;
-    --forge-amber-dim: 146 64 14;
-    --forge-fire: 234 88 12;
-    --forge-text: 28 25 23;
-    --forge-dim: 82 78 73;
-    --forge-muted: 130 125 120;
+    --forge-bg: 255 255 255;
+    /* Pure white background */
+    --forge-surface: 248 247 245;
+    /* #f8f7f5 - Soft warm grey cards/grids */
+    --forge-surface2: 240 238 233;
+    /* #f0eee9 - Slightly darker for secondary blocks */
+    --forge-border: 229 226 220;
+    /* #e5e2dc - Soft, clean border */
+    --forge-amber: 245 158 11;
+    /* #f59e0b - Standard amber for excellent contrast on white */
+    --forge-amber-dim: 217 119 6;
+    /* darker amber */
+    --forge-fire: 245 158 11;
+    --forge-text: 24 24 27;
+    /* #18181b - Very dark zinc instead of pure black */
+    --forge-dim: 113 113 122;
+    /* #71717a - Zinc 500 */
+    --forge-muted: 161 161 170;
+    /* #a1a1aa - Zinc 400 */
     color-scheme: light;
   }
 
@@ -99,7 +108,7 @@
   }
 
   .forge-input {
-    @apply bg-forge-bg border border-forge-border text-forge-text font-body text-base px-4 py-3.5 outline-none transition-colors duration-200 w-full placeholder:text-forge-muted focus:border-forge-amber;
+    @apply bg-forge-surface border border-forge-border text-forge-text font-body text-base px-4 py-3.5 outline-none transition-colors duration-200 w-full placeholder:text-forge-muted focus:border-forge-amber;
   }
 
   .forge-label {

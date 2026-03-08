@@ -7,7 +7,7 @@ export default function HeroBanner() {
   return (
     <div className="relative bg-forge-surface border-b border-forge-border px-4 lg:px-10 py-10 lg:py-12 overflow-hidden">
       <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none select-none overflow-hidden hidden lg:block">
-        <span className="font-display text-[200px] text-forge-text/[0.06] leading-none tracking-widest">FORGE</span>
+        <span className="font-display text-[200px] text-[#f0ebe0]/[0.04] dark:text-forge-text/[0.06] leading-none tracking-widest">FORGE</span>
       </div>
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-forge-amber/30 to-transparent" />
       <div className="absolute top-0 left-10 w-40 h-40 bg-amber-500/5 blur-[60px] pointer-events-none" />

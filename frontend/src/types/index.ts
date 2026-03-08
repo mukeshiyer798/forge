@@ -92,6 +92,9 @@ export interface User {
   statusMessage?: string | null;
   hasOpenrouterKey?: boolean;
   intelligenceKeywords?: string | null;
+  emailFrequency?: 'daily' | 'every_3_days' | 'weekly';
+  emailMorningTime?: string | null;
+  timezone?: string | null;
 }
 
 export interface WeekDay {

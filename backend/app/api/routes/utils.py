@@ -3,7 +3,10 @@ from pydantic.networks import EmailStr
 
 from app.api.deps import get_current_active_superuser, SessionDep, CurrentUser
 from app.models import Message
+from app.core.logging import get_logger
 from app.utils import generate_test_email, send_email
+
+logger = get_logger("routes.utils")
 
 router = APIRouter(prefix="/utils", tags=["utils"])
 
@@ -25,8 +28,10 @@ def test_email(
     Test emails.
     """
     email_to = request.email_to
-    import logging
-    logging.getLogger(__name__).info(f"Test email request received for {email_to} from {current_user.email}")
+    logger.info("route.utils.test_email", extra={
+        "email_to_domain": email_to.split("@")[-1],
+        "user_id": str(current_user.id) if hasattr(current_user, 'id') else "unknown",
+    })
     email_data = generate_test_email(email_to=email_to)
     send_email(
         email_to=email_to,
