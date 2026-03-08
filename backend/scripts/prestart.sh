@@ -3,6 +3,10 @@
 set -e
 set -x
 
+# In Docker, WORKDIR is set to /app/backend/ in the Dockerfile
+# Ensure we can see the 'app' module
+ls -d app
+
 # Let the DB start
 python app/backend_pre_start.py
 

@@ -21,58 +21,15 @@ from app.middleware.request_logging import RequestLoggingMiddleware
 setup_logging(level=settings.LOG_LEVEL)
 logger = get_logger(__name__)
 
-# ── 2. Alembic (after logging, before app) ──
-
-from alembic import command
-from alembic.config import Config
-from app import initial_data
-from app.api.main import api_router
-from app.core.db import engine, Session
-
+# ── 2. Cleanup (api_router is already imported) ──
 import os
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("app.startup", extra={"environment": settings.ENVIRONMENT, "version": settings.APP_VERSION})
 
-    # Run database migrations and initial data automatically
-    if settings.ENVIRONMENT != "local":
-        try:
-            logger.info("db.migrations.starting")
-            # Calculate absolute path to alembic.ini (it's in the backend root)
-            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            alembic_ini_path = os.path.join(project_root, "alembic.ini")
-
-            # Log the connection target (masking password)
-            logger.info("db.connecting", extra={
-                "host": settings.POSTGRES_SERVER,
-                "database": settings.POSTGRES_DB,
-                "user": settings.POSTGRES_USER,
-            })
-
-            alembic_cfg = Config(alembic_ini_path)
-
-            # Formulate the absolute path for the migrations folder (backend/app/alembic)
-            alembic_scripts_path = os.path.join(project_root, "app", "alembic")
-            logger.info("db.alembic_scripts", extra={"path": alembic_scripts_path})
-            alembic_cfg.set_main_option("script_location", alembic_scripts_path)
-
-            logger.info("db.migrations.executing")
-            command.upgrade(alembic_cfg, "head")
-            logger.info("db.migrations.completed")
-
-            # SANITY CHECK: Basic confirmation of table creation
-            from sqlalchemy import text
-            with Session(engine) as session:
-                table_count = session.exec(text("SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public'")).first()
-                logger.info("db.verification", extra={"table_count": table_count})
-
-            logger.info("db.initial_data.starting")
-            initial_data.init()
-            logger.info("db.initial_data.completed")
-        except Exception as e:
-            logger.error("db.initialization.failed", exc_info=True)
-            raise e  # Force the deployment to fail if migrations cannot run!
+    # Database migrations and initial data are now handled by a pre-deploy script
+    # to avoid race conditions with multiple worker processes.
 
     start_email_scheduler()
     yield
