@@ -6,7 +6,8 @@ Respects per-user timezone and preferred email times.
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+from app.utils.date_utils import get_datetime_utc
 
 try:
     from zoneinfo import ZoneInfo
@@ -102,38 +103,41 @@ def _check_and_send_emails() -> None:
             local_now = _get_user_local_time(user)
 
             morning_h, morning_m = _parse_time(user.email_morning_time or settings.DEFAULT_EMAIL_MORNING_TIME)
-            afternoon_h, afternoon_m = _parse_time(user.email_afternoon_time or settings.DEFAULT_EMAIL_AFTERNOON_TIME)
-            evening_h, evening_m = _parse_time(user.email_evening_time or settings.DEFAULT_EMAIL_EVENING_TIME)
+
+            # Frequency Check
+            should_send = False
+            now_utc = get_datetime_utc()
+            
+            if not user.last_email_sent_at:
+                should_send = True
+            else:
+                delta = now_utc - user.last_email_sent_at
+                if user.email_frequency == "every_3_days":
+                    if delta >= timedelta(days=3):
+                        should_send = True
+                elif user.email_frequency == "weekly":
+                    if delta >= timedelta(days=7):
+                        should_send = True
+                else: # Default: daily
+                    if delta >= timedelta(hours=20): # Using 20h to allow for small scheduler drifts
+                        should_send = True
 
             # Morning email
             morning_key = _get_sent_key(user_id, "morning")
-            if morning_key not in sent and _is_time_in_window(local_now, morning_h, morning_m):
+            if should_send and morning_key not in sent and _is_time_in_window(local_now, morning_h, morning_m):
                 try:
                     _send_morning_email(session, user)
                     sent.add(morning_key)
-                    logger.info(f"Sent morning email to {user.email} (local: {local_now.strftime('%H:%M')})")
+                    # Update last_sent_at
+                    user.last_email_sent_at = now_utc
+                    session.add(user)
+                    session.commit()
+                    logger.info(f"Sent {user.email_frequency} morning email to {user.email} (local: {local_now.strftime('%H:%M')})")
                 except Exception as e:
                     logger.exception(f"Failed morning email to {user.email}: {e}")
 
-            # Afternoon email
-            afternoon_key = _get_sent_key(user_id, "afternoon")
-            if afternoon_key not in sent and _is_time_in_window(local_now, afternoon_h, afternoon_m):
-                try:
-                    _send_afternoon_email(session, user)
-                    sent.add(afternoon_key)
-                    logger.info(f"Sent afternoon email to {user.email} (local: {local_now.strftime('%H:%M')})")
-                except Exception as e:
-                    logger.exception(f"Failed afternoon email to {user.email}: {e}")
-
-            # Evening email
-            evening_key = _get_sent_key(user_id, "evening")
-            if evening_key not in sent and _is_time_in_window(local_now, evening_h, evening_m):
-                try:
-                    _send_evening_email(session, user)
-                    sent.add(evening_key)
-                    logger.info(f"Sent evening email to {user.email} (local: {local_now.strftime('%H:%M')})")
-                except Exception as e:
-                    logger.exception(f"Failed evening email to {user.email}: {e}")
+            # Afternoon and Evening emails are currently disabled per user request
+            pass
 
 
 def _send_morning_email(session: Session, user: User) -> None:

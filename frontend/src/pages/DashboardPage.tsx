@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, ArrowRight, Zap, Wand2 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Dashboard');
 import WeekTracker from '@/components/WeekTracker';
 import NudgePanel from '@/components/NudgePanel';
 import HeroBanner from '@/components/HeroBanner';
@@ -42,13 +45,13 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2">
           {behindCount > 0 && (
             <motion.div animate={{ opacity: [1, 0.6, 1] }} transition={{ duration: 2, repeat: Infinity }}
-              className="hidden sm:flex items-center gap-1.5 bg-red-950/40 border border-red-900/50 px-3 py-2">
-              <Zap size={11} className="text-red-400" />
-              <span className="font-mono text-[15px] uppercase tracking-wider text-red-400">{behindCount} At Risk</span>
+              className="hidden sm:flex items-center gap-1.5 bg-red-500/10 border border-red-500/30 dark:bg-red-950/40 dark:border-red-900/50 px-3 py-2">
+              <Zap size={11} className="text-[#d9381e] dark:text-red-400" />
+              <span className="font-mono text-[15px] uppercase tracking-wider text-[#d9381e] dark:text-red-400">{behindCount} At Risk</span>
             </motion.div>
           )}
           <div id="pomodoro-header"><PomodoroTimer goals={goals} headerMode /></div>
-          <button id="btn-new-goal" onClick={() => setAddModalOpen(true)} className="forge-btn-primary flex items-center gap-1.5">
+          <button id="btn-new-goal" onClick={() => { log.info('dashboard.new_goal.clicked'); setAddModalOpen(true); }} className="forge-btn-primary flex items-center gap-1.5">
             <Plus size={13} strokeWidth={2.5} />
             <span className="hidden sm:inline">New Goal</span>
             <span className="sm:hidden">+</span>
@@ -68,7 +71,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-condensed font-black text-xl uppercase tracking-wider text-forge-text">Progress Snapshot</h3>
               <button
-                onClick={() => setActiveView('executive')}
+                onClick={() => { log.info('dashboard.executive_view.clicked'); setActiveView('executive'); }}
                 className="flex items-center gap-1.5 font-mono text-[15px] uppercase tracking-wider text-forge-amber hover:text-forge-text transition-colors"
               >
                 Summary view <ArrowRight size={11} />
@@ -86,7 +89,7 @@ export default function DashboardPage() {
           <section>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-condensed font-black text-xl uppercase tracking-wider text-forge-text">Recent Goals</h3>
-              <button onClick={() => setActiveView('goals')}
+              <button onClick={() => { log.info('dashboard.goals_view.clicked'); setActiveView('goals'); }}
                 className="flex items-center gap-1.5 font-mono text-[15px] uppercase tracking-wider text-forge-amber hover:text-forge-text transition-colors">
                 View All <ArrowRight size={11} />
               </button>
@@ -121,7 +124,7 @@ export default function DashboardPage() {
           <section>
             <h3 className="font-condensed font-black text-xl uppercase tracking-wider text-forge-text mb-4">Fuel Up</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button onClick={() => setAddModalOpen(true)}
+              <button onClick={() => { log.info('dashboard.roadmap_gen.clicked'); setAddModalOpen(true); }}
                 className="bg-amber-500/5 border border-amber-500/20 hover:border-forge-amber p-5 text-left transition-all duration-200 group">
                 <div className="flex items-center gap-2 mb-2">
                   <Wand2 size={16} className="text-forge-amber" />
@@ -135,7 +138,7 @@ export default function DashboardPage() {
                 </p>
               </button>
 
-              <button onClick={() => setActiveView('reading')}
+              <button onClick={() => { log.info('dashboard.reading_room.clicked'); setActiveView('reading'); }}
                 className="bg-forge-surface border border-forge-border hover:border-forge-amber p-5 text-left transition-all duration-200 group">
                 <div className="text-2xl mb-2">📚</div>
                 <p className="font-condensed font-bold text-base uppercase tracking-wider text-forge-text group-hover:text-forge-amber transition-colors">

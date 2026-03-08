@@ -84,12 +84,6 @@ services:
     environment:
       - DOMAIN=localhost
 
-  mailcatcher:
-    image: schickling/mailcatcher
-    ports:
-      - "1080:1080"
-      - "1025:1025"
-
   frontend:
     restart: "no"
     ports:
@@ -99,7 +93,13 @@ services:
       dockerfile: frontend/Dockerfile
       args:
         - VITE_API_URL=http://localhost:8000
+        - VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}
         - NODE_ENV=development
+
+  grafana:
+    ports:
+      - "3000:3000"
+
 
 networks:
   traefik-public:

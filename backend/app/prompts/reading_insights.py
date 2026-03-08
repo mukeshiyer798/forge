@@ -53,7 +53,7 @@ INDUSTRY_SOURCES = {
     ],
 }
 
-def build_reading_insights_prompt(goals: list[dict], industries: list[str]) -> str:
+def build_reading_insights_prompt(goals: list[dict], industries: list[str], current_date: str = "2026-03-07") -> str:
     if goals:
         goal_context = "\n".join([
             f"- {g.get('name')}: {g.get('description', 'No description provided.')}"
@@ -92,6 +92,9 @@ def build_reading_insights_prompt(goals: list[dict], industries: list[str]) -> s
     sources_list = "\n".join([f"  - {s}" for s in unique_sources])
 
     return f"""You are a specialized Research Librarian and Knowledge Curator for FORGE. Your job is to surface the most relevant, high-authority, and practical insights happening RIGHT NOW in the specific subject areas this learner cares about.
+    
+TODAY'S DATE: {current_date}
+IMPORTANT: Prioritize events, papers, and updates from 2025 and early 2026. DO NOT provide articles from 2023 or 2024 unless they are foundational.
 
 ## THE LEARNER'S SPECIFIC GOALS (Context for each)
 {goal_context}
@@ -134,7 +137,7 @@ Return ONLY a valid JSON object:
       "keyTakeaway": "string — one sentence: the core lesson or discovery",
       "actionItem": "string — concrete advice on what to read or apply from this source",
       "relevantGoal": "string — the goal name this maps to",
-      "url": "string or null — Direct link or a specific search query if direct URL is unknown",
+      "url": "string (a concise Google search query to find this article, NOT a direct URL)",
       "freshness": "string — 'this week' | 'this month' | 'recent'"
     }}
   ]
@@ -144,6 +147,7 @@ CRITICAL RULES:
 - BE EXTREMELY SPECIFIC.
 - ACT AS A DEEP SUBJECT MATTER EXPERT FOR EACH GOAL.
 - DO NOT provide generic self-help unless explicitly goal-related.
+- For the 'url' field, ALWAYS provide a concise Google search query (e.g., 'Stripe engineering blog API design 2025'). NEVER provide a direct URL.
 - DO NOT wrap the JSON in markdown code blocks. Just output the raw JSON object.
 """
 

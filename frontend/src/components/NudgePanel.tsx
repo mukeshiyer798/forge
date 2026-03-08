@@ -22,10 +22,10 @@ export default function NudgePanel() {
         exit={{ opacity: 0, height: 0 }}
         transition={{ duration: 0.3 }}
         className={`border p-5 flex items-start gap-4 relative overflow-hidden ${isNuclear
-            ? 'bg-red-950/30 border-red-900/50'
-            : isStern
-              ? 'bg-amber-950/30 border-amber-900/40'
-              : 'bg-blue-950/20 border-blue-900/30'
+          ? 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-900/50'
+          : isStern
+            ? 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900/40'
+            : 'bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/30'
           }`}
       >
         {/* Pulse bar */}
@@ -37,7 +37,7 @@ export default function NudgePanel() {
         </div>
 
         <div className="flex-1 min-w-0">
-          <h4 className={`font-condensed font-black text-lg uppercase tracking-wide mb-1 ${isNuclear ? 'text-red-400' : isStern ? 'text-amber-400' : 'text-blue-400'
+          <h4 className={`font-condensed font-black text-lg uppercase tracking-wide mb-1 ${isNuclear ? 'text-red-700 dark:text-red-400' : isStern ? 'text-amber-700 dark:text-amber-400' : 'text-blue-700 dark:text-blue-400'
             }`}>
             {isNuclear
               ? 'This is embarrassing. Really.'
@@ -45,7 +45,7 @@ export default function NudgePanel() {
                 ? "You're slipping, soldier."
                 : "Haven't seen you today 👀"}
           </h4>
-          <p className={`text-base leading-relaxed ${isNuclear ? 'text-red-300/70' : isStern ? 'text-amber-300/70' : 'text-blue-300/70'
+          <p className={`text-base leading-relaxed ${isNuclear ? 'text-red-600/90 dark:text-red-300/70' : isStern ? 'text-amber-600/90 dark:text-amber-300/70' : 'text-blue-600/90 dark:text-blue-300/70'
             }`}>
             {isNuclear
               ? `${daysBehind} days since you touched "${laggingGoal.name}". Someone with your exact dream is working on it right now. The gap is growing.`
@@ -59,7 +59,7 @@ export default function NudgePanel() {
           <button onClick={logProgressNudge} className="forge-btn-primary text-sm py-2 px-4 whitespace-nowrap">
             Log Progress
           </button>
-          <button onClick={dismissNudge} className="forge-btn-ghost text-sm py-1.5 px-3 whitespace-nowrap">
+          <button onClick={dismissNudge} className="forge-btn-ghost text-sm py-1.5 px-3 whitespace-nowrap bg-forge-surface2 border-none">
             Dismiss
           </button>
         </div>

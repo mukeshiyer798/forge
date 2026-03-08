@@ -9,8 +9,7 @@ export default function SettingsPage() {
   const { user, goals } = useAppStore();
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [morningTime, setMorningTime] = useState('07:00');
-  const [afternoonTime, setAfternoonTime] = useState('14:00');
-  const [eveningTime, setEveningTime] = useState('20:00');
+  const [emailFrequency, setEmailFrequency] = useState<'daily' | 'every_3_days' | 'weekly'>('daily');
   const [greeting, setGreeting] = useState('');
   const [intelligenceKeywords, setIntelligenceKeywords] = useState('');
   const [saving, setSaving] = useState(false);
@@ -48,15 +47,13 @@ export default function SettingsPage() {
   useEffect(() => {
     apiRequest<{
       email_daily_plan_enabled: boolean;
+      email_frequency: 'daily' | 'every_3_days' | 'weekly';
       email_morning_time: string;
-      email_afternoon_time: string;
-      email_evening_time: string;
     }>('/email-preferences')
       .then((prefs) => {
         setEmailEnabled(prefs.email_daily_plan_enabled ?? true);
         setMorningTime(prefs.email_morning_time || '07:00');
-        setAfternoonTime(prefs.email_afternoon_time || '14:00');
-        setEveningTime(prefs.email_evening_time || '20:00');
+        setEmailFrequency(prefs.email_frequency || 'daily');
       })
       .catch(() => { });
   }, []);
@@ -64,14 +61,15 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // 1. Save email preferences
+      // 1. Save email preferences (auto-detect timezone)
+      const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
       await apiRequest('/email-preferences', {
         method: 'PUT',
         body: JSON.stringify({
           email_daily_plan_enabled: emailEnabled,
+          email_frequency: emailFrequency,
           email_morning_time: morningTime,
-          email_afternoon_time: afternoonTime,
-          email_evening_time: eveningTime,
+          timezone: detectedTimezone,
           greeting_preference: greeting.trim() || null,
           intelligence_keywords: intelligenceKeywords.trim() || null,
         }),
@@ -207,7 +205,7 @@ export default function SettingsPage() {
             <div className="pt-2">
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent('forge-restart-tour'))}
-                className="font-mono text-sm uppercase tracking-wider text-forge-amber border border-forge-amber/30 px-3 py-2 hover:bg-forge-amber/10 transition-colors"
+                className="font-mono text-sm uppercase tracking-wider text-forge-amber border border-forge-amber/50 px-3 py-2 bg-amber-500/10 dark:bg-transparent hover:bg-amber-500/20 dark:hover:bg-forge-amber/10 transition-colors"
               >
                 Restart Onboarding Tour
               </button>
@@ -233,8 +231,8 @@ export default function SettingsPage() {
                     className={cn(
                       'w-11 h-11 font-condensed font-bold text-base border transition-colors',
                       dailyTaskTarget === n
-                        ? 'border-forge-amber text-forge-amber bg-amber-500/10'
-                        : 'border-forge-border text-forge-dim hover:border-forge-dim'
+                        ? 'border-forge-amber text-forge-bg bg-forge-amber dark:border-forge-amber dark:text-forge-amber dark:bg-amber-500/10'
+                        : 'border-forge-border text-forge-dim bg-forge-surface2 dark:bg-transparent hover:border-forge-dim'
                     )}
                   >
                     {n}
@@ -352,38 +350,30 @@ export default function SettingsPage() {
             </label>
             {emailEnabled && (
               <>
-                <div className="grid grid-cols-3 gap-3 pl-6">
+                <div className="grid grid-cols-2 gap-3 pl-6">
                   <div>
                     <label className="block font-mono text-sm uppercase tracking-wider text-forge-dim mb-1">
-                      Morning
+                      Frequency
+                    </label>
+                    <select
+                      value={emailFrequency}
+                      onChange={(e) => setEmailFrequency(e.target.value as any)}
+                      className="w-full px-3 py-2 bg-forge-surface2 border border-forge-border rounded text-forge-text font-mono text-sm h-[44px]"
+                    >
+                      <option value="daily">Daily</option>
+                      <option value="every_3_days">Every 3 Days</option>
+                      <option value="weekly">Weekly</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-mono text-sm uppercase tracking-wider text-forge-dim mb-1">
+                      Morning Time
                     </label>
                     <input
                       type="time"
                       value={morningTime}
                       onChange={(e) => setMorningTime(e.target.value)}
-                      className="w-full px-3 py-2 bg-forge-surface2 border border-forge-border rounded text-forge-text font-mono text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-mono text-sm uppercase tracking-wider text-forge-dim mb-1">
-                      Afternoon
-                    </label>
-                    <input
-                      type="time"
-                      value={afternoonTime}
-                      onChange={(e) => setAfternoonTime(e.target.value)}
-                      className="w-full px-3 py-2 bg-forge-surface2 border border-forge-border rounded text-forge-text font-mono text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-mono text-sm uppercase tracking-wider text-forge-dim mb-1">
-                      Evening
-                    </label>
-                    <input
-                      type="time"
-                      value={eveningTime}
-                      onChange={(e) => setEveningTime(e.target.value)}
-                      className="w-full px-3 py-2 bg-forge-surface2 border border-forge-border rounded text-forge-text font-mono text-sm"
+                      className="w-full px-3 py-2 bg-forge-surface2 border border-forge-border rounded text-forge-text font-mono text-sm h-[44px]"
                     />
                   </div>
                 </div>
@@ -407,7 +397,7 @@ export default function SettingsPage() {
                 </div>
 
                 <p className="font-mono text-sm text-forge-muted pl-6 leading-relaxed">
-                  You'll get 3 emails per day: a morning plan with today's tasks, an afternoon check-in, and an evening review.
+                  You'll get a morning plan with today's tasks based on your selected frequency.
                   Check with a test email to confirm delivery.
                 </p>
               </>

@@ -10,6 +10,7 @@ from app.api.deps import (
     UserServiceDep
 )
 from app.core.rate_limit import limiter
+from app.core.logging import get_logger
 from app.models import (
     Message,
     UpdatePassword,
@@ -20,6 +21,8 @@ from app.models import (
     UserUpdateMe,
     UserUpdate
 )
+
+logger = get_logger("routes.users")
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -54,17 +57,8 @@ def update_user_me(*, user_service: UserServiceDep, user_in: UserUpdateMe, curre
     updated_user = user_service.update_me(db_user=current_user, user_in=user_in)
     return updated_user
 
-@router.patch("/me/password", response_model=Message)
-def update_password_me(*, user_service: UserServiceDep, body: UpdatePassword, current_user: CurrentUser) -> Any:
-    """
-    Update own password.
-    """
-    if body.current_password == body.new_password:
-        raise HTTPException(status_code=400, detail="New password cannot be the same as the current one")
-    success = user_service.update_password(db_user=current_user, body=body)
-    if not success:
-        raise HTTPException(status_code=400, detail="Incorrect password")
-    return Message(message="Password updated successfully")
+    updated_user = user_service.update_me(db_user=current_user, user_in=user_in)
+    return updated_user
 
 @router.get("/me", response_model=UserPublic)
 def read_user_me(current_user: CurrentUser) -> Any:
@@ -82,24 +76,6 @@ def delete_user_me(user_service: UserServiceDep, current_user: CurrentUser) -> A
         raise HTTPException(status_code=403, detail="Super users are not allowed to delete themselves")
     user_service.delete(current_user)
     return Message(message="User deleted successfully")
-
-@router.post("/signup", response_model=UserPublic)
-@limiter.limit("5/minute")
-def register_user(request: Request, user_service: UserServiceDep, user_in: UserRegister) -> Any:
-    """
-    Create new user without the need to be logged in.
-    """
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info(f"Signup attempt started for email: {user_in.email}")
-    
-    user = user_service.get_by_email(email=user_in.email)
-    if user:
-        logger.warning(f"Signup failed: User already exists - {user_in.email}")
-        raise HTTPException(status_code=400, detail="The user with this email already exists in the system")
-    user = user_service.register(user_in=user_in)
-    logger.info(f"Signup success for: {user_in.email}")
-    return user
 
 @router.get("/{user_id}", response_model=UserPublic)
 def read_user_by_id(user_id: uuid.UUID, user_service: UserServiceDep, current_user: CurrentUser) -> Any:

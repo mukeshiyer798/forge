@@ -1,8 +1,7 @@
 """
 Generate copyable review prompts for spaced repetition.
 """
-
-import json
+import orjson
 
 
 def generate_review_prompt(
@@ -19,12 +18,12 @@ def generate_review_prompt(
     resources_list: list[str] = []
     if resources:
         try:
-            parsed = json.loads(resources)
+            parsed = orjson.loads(resources)
             if isinstance(parsed, list):
                 resources_list = [str(r) for r in parsed]
             elif isinstance(parsed, str):
                 resources_list = [parsed]
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             resources_list = [resources]
 
     resources_str = ", ".join(resources_list) if resources_list else "the materials"

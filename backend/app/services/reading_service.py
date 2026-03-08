@@ -1,5 +1,4 @@
-import logging
-import json
+import orjson
 import uuid
 from app.repositories.reading_repository import ReadingRepository
 from app.models.reading import ReadingCreate, ReadingUpdate, ReadingInsightCreate
@@ -7,8 +6,9 @@ from app.entities.reading import Reading, ReadingInsight
 from app.entities.user import User
 
 from app.services.ai_service import AiService
+from app.core.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger("services.reading")
 
 SUGGESTED_ARTICLES = {
     "tech": [
@@ -58,7 +58,12 @@ class ReadingService:
 
     def create_reading(self, reading_in: ReadingCreate, user: User) -> Reading:
         reading = Reading(**reading_in.model_dump(), owner_id=user.id)
-        return self.repo.save_reading(reading)
+        saved = self.repo.save_reading(reading)
+        logger.info("reading.created", extra={
+            "user_id": str(user.id),
+            "reading_id": str(saved.id),
+        })
+        return saved
 
     def update_reading(self, id: uuid.UUID, reading_in: ReadingUpdate, user: User) -> Reading | None:
         reading = self.repo.get_reading_by_id(id)
@@ -80,7 +85,10 @@ class ReadingService:
             raise PermissionError("Not enough permissions")
 
         self.repo.delete_reading(reading)
-        logger.info(f"Reading deleted - User: {user.id} - Reading ID: {id}")
+        logger.info("reading.deleted", extra={
+            "user_id": str(user.id),
+            "reading_id": str(id),
+        })
         return True
 
     def get_suggestions(self, goal_types: str | None = None) -> dict:
@@ -102,26 +110,44 @@ class ReadingService:
 
     def get_insights(self, user: User, skip: int, limit: int) -> tuple[list[ReadingInsight], int]:
         insights, count = self.repo.get_insights_by_owner_id(user.id, skip, limit)
-        logger.debug(f"[INSIGHTS] User {user.id} — fetched {len(insights)} insights (total={count}, skip={skip}, limit={limit})")
+        logger.debug("reading.insights.fetched", extra={
+            "user_id": str(user.id),
+            "count": len(insights),
+            "total": count,
+        })
         return insights, count
 
     def create_insight(self, insight_in: ReadingInsightCreate, user: User) -> ReadingInsight:
         insight = ReadingInsight(**insight_in.model_dump(), owner_id=user.id)
         created_insight = self.repo.save_insight(insight)
-        logger.info(f"Reading insight created - User: {user.id} - Insight ID: {created_insight.id}")
+        logger.info("reading.insight.created", extra={
+            "user_id": str(user.id),
+            "insight_id": str(created_insight.id),
+            "title": insight_in.title[:50] if hasattr(insight_in, 'title') else "unknown",
+        })
         return created_insight
 
     def delete_insight(self, id: uuid.UUID, user: User) -> bool:
         insight = self.repo.get_insight_by_id(id)
         if not insight:
-            logger.warning(f"[INSIGHTS] User {user.id} — delete failed, insight {id} not found")
+            logger.warning("reading.insight.delete.not_found", extra={
+                "user_id": str(user.id),
+                "insight_id": str(id),
+            })
             return False
         if insight.owner_id != user.id:
-            logger.warning(f"[INSIGHTS] User {user.id} — delete blocked, insight {id} belongs to user {insight.owner_id}")
+            logger.warning("reading.insight.delete.permission_denied", extra={
+                "user_id": str(user.id),
+                "insight_id": str(id),
+                "owner_id": str(insight.owner_id),
+            })
             raise PermissionError("Not enough permissions")
 
         self.repo.delete_insight(insight)
-        logger.info(f"[INSIGHTS] User {user.id} — deleted insight {id}")
+        logger.info("reading.insight.deleted", extra={
+            "user_id": str(user.id),
+            "insight_id": str(id),
+        })
         return True
     async def generate_fresh_insights(self, user: User) -> list[ReadingInsight]:
         """
@@ -159,7 +185,11 @@ class ReadingService:
 
         if not industries: industries.add("productivity")
 
-        logger.info(f"[INSIGHTS] Generating insights for User {user.id} - Goals: {len(goals_data)}, Industries: {list(industries)}")
+        logger.info("reading.insights.generating", extra={
+            "user_id": str(user.id),
+            "goal_count": len(goals_data),
+            "industries": list(industries),
+        })
         
         raw_insights = await self.ai.generate_insights(
             goals=goals_data,
@@ -174,12 +204,15 @@ class ReadingService:
                 title=item.get("title", "Untitled"),
                 url=item.get("url") or "",
                 content_summary=item.get("summary", ""),
-                key_takeaways=json.dumps([item.get("keyTakeaway", "")]),
-                actionable_advice=json.dumps([item.get("actionItem", "")]),
+                key_takeaways=orjson.dumps([item.get("keyTakeaway", "")]).decode("utf-8"),
+                actionable_advice=orjson.dumps([item.get("actionItem", "")]).decode("utf-8"),
                 read_time_minutes=None
             )
             saved = self.repo.save_insight(insight)
             saved_insights.append(saved)
         
-        logger.info(f"[INSIGHTS] Persisted {len(saved_insights)} new insights for User {user.id}")
+        logger.info("reading.insights.persisted", extra={
+            "user_id": str(user.id),
+            "count": len(saved_insights),
+        })
         return saved_insights

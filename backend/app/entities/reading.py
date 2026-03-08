@@ -35,6 +35,12 @@ class ReadingInsightBase(SQLModel):
     key_takeaways: str | None = Field(default=None)  # JSON string array
     actionable_advice: str | None = Field(default=None)  # JSON string array
     read_time_minutes: int | None = Field(default=None)
+    
+    # Intelligence Feed Contextual Fields
+    hook: str | None = Field(default=None)
+    before: str | None = Field(default=None)
+    after: str | None = Field(default=None)
+    why_it_matters: str | None = Field(default=None)
 
 class ReadingInsight(ReadingInsightBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)

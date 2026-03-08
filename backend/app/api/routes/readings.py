@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 
 from app.api.deps import CurrentUser, ReadingServiceDep
+from app.core.logging import get_logger
 from app.models.reading import (
     ReadingCreate,
     ReadingPublic,
@@ -14,6 +15,8 @@ from app.models.reading import (
     ReadingInsightsPublic,
 )
 from app.models.core import Message
+
+logger = get_logger("routes.readings")
 
 router = APIRouter(prefix="/readings", tags=["readings"])
 

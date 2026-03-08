@@ -2,6 +2,9 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Filter, ChevronLeft, ChevronRight, SortAsc } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Goals');
 import GoalCard from '@/components/GoalCard';
 import AddGoalModal from '@/components/AddGoalModal';
 import NudgePanel from '@/components/NudgePanel';
@@ -62,13 +65,13 @@ export default function GoalsPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowFilters(!showFilters)}
+            onClick={() => { log.info('goals.filters.toggled', { visible: !showFilters }); setShowFilters(!showFilters); }}
             className="forge-btn-ghost flex items-center gap-1.5 text-sm"
           >
             <Filter size={11} />
             <span className="hidden sm:inline">Filter</span>
           </button>
-          <button onClick={() => setAddModalOpen(true)} className="forge-btn-primary flex items-center gap-2">
+          <button onClick={() => { log.info('goals.new_goal.clicked'); setAddModalOpen(true); }} className="forge-btn-primary flex items-center gap-2">
             <Plus size={14} strokeWidth={2.5} />
             <span className="hidden sm:inline">New Goal</span>
             <span className="sm:hidden">+</span>
@@ -108,7 +111,12 @@ export default function GoalsPage() {
                     <select
                       className="forge-input text-sm py-1"
                       value={filterType}
-                      onChange={(e) => { setFilterType(e.target.value as GoalType | 'all'); setPage(0); }}
+                      onChange={(e) => {
+                        const val = e.target.value as GoalType | 'all';
+                        log.info('goals.filter_type.changed', { type: val });
+                        setFilterType(val);
+                        setPage(0);
+                      }}
                     >
                       <option value="all">All Types</option>
                       <option value="learn">📚 Learning</option>
@@ -122,7 +130,12 @@ export default function GoalsPage() {
                     <select
                       className="forge-input text-sm py-1"
                       value={filterStatus}
-                      onChange={(e) => { setFilterStatus(e.target.value as GoalStatus | 'all'); setPage(0); }}
+                      onChange={(e) => {
+                        const val = e.target.value as GoalStatus | 'all';
+                        log.info('goals.filter_status.changed', { status: val });
+                        setFilterStatus(val);
+                        setPage(0);
+                      }}
                     >
                       <option value="all">All Statuses</option>
                       <option value="on-track">✓ On Track</option>
@@ -135,7 +148,12 @@ export default function GoalsPage() {
                     <select
                       className="forge-input text-sm py-1"
                       value={sortBy}
-                      onChange={(e) => { setSortBy(e.target.value as SortKey); setPage(0); }}
+                      onChange={(e) => {
+                        const val = e.target.value as SortKey;
+                        log.info('goals.sort.changed', { sortBy: val });
+                        setSortBy(val);
+                        setPage(0);
+                      }}
                     >
                       <option value="newest">Newest First</option>
                       <option value="priority">Priority</option>
@@ -231,7 +249,10 @@ export default function GoalsPage() {
                     ))}
                   </div>
                   <button
-                    onClick={() => setPage(Math.min(totalPages - 1, currentPage + 1))}
+                    onClick={() => {
+                      log.debug('goals.pagination.next', { nextPage: currentPage + 1 });
+                      setPage(Math.min(totalPages - 1, currentPage + 1));
+                    }}
                     disabled={currentPage >= totalPages - 1}
                     className="flex items-center gap-1 font-mono text-sm uppercase tracking-wider text-forge-dim hover:text-forge-amber disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >

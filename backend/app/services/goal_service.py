@@ -1,13 +1,13 @@
 import uuid
-import json
-import logging
+import orjson
 from app.repositories.goal_repository import GoalRepository
 from app.models.goal import GoalCreate, GoalUpdate
 from app.entities.goal import Goal
 from app.entities.user import User
 from app.core.config import settings
+from app.core.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger("services.goal")
 
 class GoalService:
     def __init__(self, repo: GoalRepository):
@@ -40,8 +40,8 @@ class GoalService:
             if field in data and data[field] is not None:
                 if isinstance(data[field], str):
                     try:
-                        json.loads(data[field])
-                    except json.JSONDecodeError:
+                        orjson.loads(data[field])
+                    except orjson.JSONDecodeError:
                         raise ValueError(f"Invalid JSON in {field}")
                 elif not isinstance(data[field], (dict, list)):
                     raise ValueError(f"{field} must be valid JSON")
@@ -65,8 +65,12 @@ class GoalService:
         # ── Enforce max 3 active goals ──
         active_count = self.repo.count_active_goals(owner_id)
         if active_count >= settings.MAX_ACTIVE_GOALS:
-            logger.warning(f"Goal limit hit — User: {owner_id} already has {active_count} active goals")
-            raise ValueError("Focus on one thing at a time")
+            logger.warning("goal.create.limit_hit", extra={
+                "user_id": str(owner_id),
+                "active_count": active_count,
+                "max_allowed": settings.MAX_ACTIVE_GOALS,
+            })
+            raise ValueError(f"You can only have up to {settings.MAX_ACTIVE_GOALS} active goals. Please complete or pause existing goals to add more.")
 
         goal_data = goal_in.model_dump()
         self.validate_goal_data(goal_data)
@@ -74,11 +78,15 @@ class GoalService:
         json_fields = ['subtopics', 'resources', 'topics', 'capstone']
         for field in json_fields:
             if field in goal_data and goal_data[field] is not None and isinstance(goal_data[field], (dict, list)):
-                goal_data[field] = json.dumps(goal_data[field])
+                goal_data[field] = orjson.dumps(goal_data[field]).decode("utf-8")
         
         goal = Goal(**goal_data, owner_id=owner_id)
         created_goal = self.repo.save(goal)
-        logger.info(f"Goal created — User: {owner_id} — Goal ID: {goal.id} — Type: {goal.type}")
+        logger.info("goal.created", extra={
+            "user_id": str(owner_id),
+            "goal_id": str(goal.id),
+            "type": goal.type,
+        })
         return created_goal
 
     def update(self, id: uuid.UUID, goal_in: GoalUpdate, user: User) -> Goal | None:
@@ -92,7 +100,7 @@ class GoalService:
         json_fields = ['subtopics', 'resources', 'topics', 'capstone']
         for field in json_fields:
             if field in goal_data and goal_data[field] is not None and isinstance(goal_data[field], (dict, list)):
-                goal_data[field] = json.dumps(goal_data[field])
+                goal_data[field] = orjson.dumps(goal_data[field]).decode("utf-8")
         
         for field, value in goal_data.items():
             setattr(goal, field, value)
@@ -105,7 +113,10 @@ class GoalService:
             return False
             
         self.repo.delete(goal)
-        logger.info(f"Goal deleted — User: {user.id} — Goal ID: {id}")
+        logger.info("goal.deleted", extra={
+            "user_id": str(user.id),
+            "goal_id": str(id),
+        })
         return True
 
     def toggle_pause(self, id: uuid.UUID, user: User) -> Goal | None:
@@ -117,8 +128,10 @@ class GoalService:
         previous_status = goal.status
         goal.status = 'on-track' if goal.status == 'paused' else 'paused'
         saved = self.repo.save(goal)
-        logger.info(
-            f"Goal pause toggled — User: {user.id} — Goal ID: {id} — "
-            f"{previous_status} → {goal.status}"
-        )
+        logger.info("goal.pause_toggled", extra={
+            "user_id": str(user.id),
+            "goal_id": str(id),
+            "from_status": previous_status,
+            "to_status": goal.status,
+        })
         return saved

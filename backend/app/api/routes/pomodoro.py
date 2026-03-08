@@ -4,12 +4,15 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 
 from app.api.deps import CurrentUser, PomodoroServiceDep
+from app.core.logging import get_logger
 from app.models.pomodoro import (
     PomodoroSessionCreate,
     PomodoroSessionPublic,
     PomodoroSessionUpdate,
     PomodoroSessionsPublic,
 )
+
+logger = get_logger("routes.pomodoro")
 
 router = APIRouter(prefix="/pomodoro", tags=["pomodoro"])
 

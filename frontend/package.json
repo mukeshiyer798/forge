@@ -11,6 +11,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@clerk/react": "^6.0.1",
     "@google/genai": "^1.42.0",
     "@radix-ui/react-avatar": "^1.1.0",
     "@radix-ui/react-dialog": "^1.1.0",
@@ -31,7 +32,9 @@
     "react": "^18.3.1",
     "react-confetti": "^6.1.0",
     "react-dom": "^18.3.1",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^6.26.0",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^2.4.0",
     "zustand": "^4.5.4"
   },

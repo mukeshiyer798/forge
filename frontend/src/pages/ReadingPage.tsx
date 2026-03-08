@@ -5,6 +5,9 @@ import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 import type { GoalResource, AIInsight } from '@/types';
 import { apiRequest } from '@/lib/api';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Reading');
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -21,17 +24,17 @@ interface MindsetEntry {
 
 const INSIGHT_TYPE_LABELS: Record<string, { label: string; emoji: string; color: string; bg: string }> = {
   industry_move: { label: 'Industry Move', emoji: '🏢', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-  skill_insight: { label: 'Skill Insight', emoji: '🎯', color: 'text-green-400', bg: 'bg-green-500/10' },
+  skill_insight: { label: 'Skill Insight', emoji: '🎯', color: 'text-forge-amber dark:text-green-400', bg: 'bg-amber-500/10 border border-amber-500/30 dark:border-transparent dark:bg-green-500/10' },
   career_intel: { label: 'Career Intel', emoji: '📊', color: 'text-purple-400', bg: 'bg-purple-500/10' },
   tool_discovery: { label: 'Tool', emoji: '🔧', color: 'text-amber-400', bg: 'bg-amber-500/10' },
   learning_resource: { label: 'Resource', emoji: '📚', color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
 };
 
 const FRESHNESS_COLORS: Record<string, string> = {
-  'this week': 'text-green-400 border-green-700 bg-green-500/5',
-  'this month': 'text-blue-400 border-blue-700 bg-blue-500/5',
-  'last 3 months': 'text-forge-dim border-forge-border',
-  recent: 'text-forge-dim border-forge-border',
+  'this week': 'text-green-800 border-green-700 bg-green-500/10 dark:text-green-400 dark:bg-green-500/5',
+  'this month': 'text-blue-800 border-blue-700 bg-blue-500/10 dark:text-blue-400 dark:bg-blue-500/5',
+  'last 3 months': 'text-forge-dim border-forge-border bg-forge-surface2 dark:bg-transparent',
+  recent: 'text-forge-dim border-forge-border bg-forge-surface2 dark:bg-transparent',
 };
 
 const MINDSET_CATEGORIES: Record<string, { label: string; color: string; bg: string }> = {
@@ -67,7 +70,7 @@ function InsightCard({ item, index }: { item: AIInsight; index: number }) {
               {item.freshness}
             </span>
             {item.category && (
-              <span className="font-mono text-[10px] text-forge-muted uppercase tracking-wider border border-forge-border px-1.5 py-0">
+              <span className="font-mono text-[10px] text-forge-dim uppercase tracking-wider border border-forge-border bg-forge-surface2 dark:bg-transparent px-1.5 py-0">
                 {item.category}
               </span>
             )}
@@ -81,16 +84,20 @@ function InsightCard({ item, index }: { item: AIInsight; index: number }) {
 
         {/* Hook teaser */}
         {item.hook ? (
-          <div className="border-l-2 border-forge-amber pl-3 bg-amber-500/5 py-1.5 pr-3 mb-2">
+          <div className="border-l-2 border-forge-amber pl-3 bg-forge-surface2 dark:bg-amber-500/5 py-1.5 pr-3 mb-2">
             <p className="text-sm text-forge-text font-body font-semibold leading-relaxed">{item.hook}</p>
           </div>
         ) : item.keyTakeaway ? (
-          <div className="border-l-2 border-forge-amber pl-3 bg-amber-500/5 py-1.5 pr-3 mb-2">
+          <div className="border-l-2 border-forge-amber pl-3 bg-forge-surface2 dark:bg-amber-500/5 py-1.5 pr-3 mb-2">
             <p className="text-sm text-forge-text font-body font-semibold leading-relaxed">{item.keyTakeaway}</p>
           </div>
         ) : null}
 
-        <button onClick={() => setExpanded(!expanded)}
+        <button onClick={() => {
+          const newState = !expanded;
+          log.debug('reading.insight_card.toggled', { title: item.title, expanded: newState });
+          setExpanded(newState);
+        }}
           className="flex items-center gap-1 font-mono text-[13px] uppercase tracking-wider text-forge-amber hover:text-forge-text transition-colors">
           {expanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
           {expanded ? 'Less' : 'Details'}
@@ -130,9 +137,9 @@ function InsightCard({ item, index }: { item: AIInsight; index: number }) {
                 </div>
               )}
               {item.url && (
-                <a href={item.url} target="_blank" rel="noopener noreferrer"
+                <a href={item.url.startsWith('http') ? item.url : `https://www.google.com/search?q=${encodeURIComponent(item.url)}`} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 font-mono text-sm text-forge-amber hover:text-forge-text hover:underline mt-2">
-                  Source <ExternalLink size={9} />
+                  {item.url.startsWith('http') ? 'Source' : 'Search'} <ExternalLink size={9} />
                 </a>
               )}
             </motion.div>
@@ -302,12 +309,14 @@ export default function ReadingPage() {
   const handleGetInsights = async () => {
     setError('');
     setLoadingInsights(true);
+    log.info('reading.get_insights.started');
     try {
       const res = await apiRequest<{ data: any[]; count: number }>('/ai/intelligence-feed', {
         method: 'POST',
       });
 
       if (res && res.data && res.data.length > 0) {
+        log.info('reading.get_insights.success', { count: res.data.length });
         res.data.forEach((item: any) => {
           addReadingInsight({
             title: item.title ?? 'Untitled',
@@ -330,6 +339,7 @@ export default function ReadingPage() {
         setError('No feed items generated. Ensure goals exist and API key is set.');
       }
     } catch (err) {
+      log.error('reading.get_insights.failed', {}, err);
       setError(`${err instanceof Error ? err.message : 'Unknown Error'}`);
     } finally {
       setLoadingInsights(false);
@@ -340,11 +350,13 @@ export default function ReadingPage() {
     setError('');
     setPromptCopied(false);
     setLoadingMindset(true);
+    log.info('reading.get_frameworks.started');
     try {
       const result = await apiRequest<{ data: any[]; count: number }>('/ai/frameworks', {
         method: 'POST',
       });
       if (result && result.data && result.data.length > 0) {
+        log.info('reading.get_frameworks.success', { count: result.data.length });
         setMindsetEntries(result.data.map((item: any, i: number) => ({
           id: item.id ?? `f-${i}`,
           title: item.frameworkName ?? 'Untitled',
@@ -408,7 +420,10 @@ export default function ReadingPage() {
             </div>
             <div className="flex items-center gap-2">
               {readingInsights.length > 0 && (
-                <button onClick={() => readingInsights.forEach(i => deleteReadingInsight(i.id))}
+                <button onClick={() => {
+                  log.info('reading.clear_insights.clicked', { count: readingInsights.length });
+                  readingInsights.forEach(i => deleteReadingInsight(i.id));
+                }}
                   className="forge-btn-ghost flex items-center gap-1 text-sm text-forge-muted">
                   <Trash2 size={11} /> Clear
                 </button>

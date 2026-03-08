@@ -139,7 +139,7 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.06, ease: [0.16, 1, 0.3, 1] }}
       whileHover={{ y: -3 }}
-      className="forge-card group cursor-default"
+      className="forge-card group cursor-default border-forge-border"
     >
       <div className="p-6">
         {/* HEADER: priority badge */}

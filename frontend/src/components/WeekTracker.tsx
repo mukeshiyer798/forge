@@ -63,7 +63,7 @@ export default function WeekTracker() {
           </div>
           <div className="text-right">
             <span className="font-display text-3xl text-forge-amber">{completedCount}</span>
-            <span className="font-mono text-sm text-forge-dim">/7</span>
+            <span className="font-mono text-sm text-forge-amber dark:text-forge-dim">/7</span>
           </div>
         </div>
 
@@ -87,10 +87,10 @@ export default function WeekTracker() {
                     done
                       ? 'bg-forge-amber border-forge-amber text-forge-bg animate-pulse-glow'
                       : isToday
-                        ? 'border-forge-dim text-forge-dim'
+                        ? 'border-forge-dim text-forge-dim bg-forge-surface2 dark:bg-transparent'
                         : isFuture
-                          ? 'border-forge-border text-forge-muted opacity-30'
-                          : 'border-forge-border text-forge-muted'
+                          ? 'border-forge-border text-forge-muted opacity-30 bg-forge-surface2 dark:bg-transparent'
+                          : 'border-forge-border text-forge-muted bg-forge-surface2 dark:bg-transparent'
                   )}
                 >
                   {done ? (

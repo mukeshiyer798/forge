@@ -6,6 +6,9 @@ from fastapi import APIRouter, HTTPException
 from app.api.deps import CurrentUser, ItemServiceDep
 from app.models.item import ItemCreate, ItemPublic, ItemsPublic, ItemUpdate
 from app.models.core import Message
+from app.core.logging import get_logger
+
+logger = get_logger("routes.items")
 
 router = APIRouter(prefix="/items", tags=["items"])
 

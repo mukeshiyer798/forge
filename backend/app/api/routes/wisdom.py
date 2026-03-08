@@ -1,6 +1,9 @@
 from fastapi import APIRouter
 from app.api.deps import CurrentUser, WisdomServiceDep
 from app.models.wisdom import WisdomsPublic
+from app.core.logging import get_logger
+
+logger = get_logger("routes.wisdom")
 
 router = APIRouter(prefix="/wisdom", tags=["wisdom"])
 

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Wand2, ClipboardCopy, Check, ChevronRight, ArrowLeft, Plus, Trash2, Loader2, Sparkles } from 'lucide-react';
+import { X, Wand2, ClipboardCopy, Check, ChevronRight, ArrowLeft, Plus, Trash2, Loader2, Sparkles, ExternalLink, Eye, EyeOff } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { generateId } from '@/lib/utils';
 import { buildForgeCoachPrompt, formatGoalsForPrompt } from '@/prompts/forge-coach-roadmap';
@@ -11,6 +11,9 @@ import { useToast } from '@/lib/toast';
 import { callGemini, hasGeminiKey } from '@/lib/gemini';
 import { getCurrentUser } from '@/lib/api';
 import { mapBackendUserToUser } from '@/store/useAppStore';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('GoalModal');
 
 interface AddGoalModalProps {
   open: boolean;
@@ -118,7 +121,9 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
   const [learnerPreferredResources, setLearnerPreferredResources] = useState('');
   const [dailyTaskRequirement, setDailyTaskRequirement] = useState('');
   const [geminiLoading, setGeminiLoading] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
   const [inlineApiKey, setInlineApiKey] = useState('');
+  const [inlineKeyStatus, setInlineKeyStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const [aiJson, setAiJson] = useState('');
   const [copied, setCopied] = useState(false);
@@ -135,11 +140,13 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
     setLearnerPreferredResources(''); setDailyTaskRequirement('');
     setAiJson(''); setCopied(false); setImportError(''); setParsedGoalsForReview(null);
     setGeminiLoading(false);
+    setInlineKeyStatus('idle');
   };
 
   const handleSaveInlineKey = async () => {
     if (!inlineApiKey.trim()) return;
     setGeminiLoading(true);
+    log.info('goal_modal.save_key.started');
     try {
       const ok = await callGemini(
         "Verify this key. Return only JSON: {\"ok\": true}",
@@ -152,10 +159,14 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
         if (updatedUser) {
           useAppStore.getState().updateUser(mapBackendUserToUser(updatedUser));
           setInlineApiKey('');
+          setInlineKeyStatus('success');
+          log.info('goal_modal.save_key.success');
           toast({ title: 'Key active', description: 'Your access code is saved.', tone: 'success' });
         }
       }
     } catch (e) {
+      log.error('goal_modal.save_key.failed', {}, e);
+      setInlineKeyStatus('error');
       toast({ title: 'Invalid key', description: 'Could not verify the access code.', tone: 'error' });
     } finally {
       setGeminiLoading(false);
@@ -196,6 +207,11 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
     if (hasGeminiKey() || keyToUse) {
       setGeminiLoading(true);
       setImportError('');
+      log.info('goal_modal.roadmap_gen.started', {
+        hasGlobalKey: hasGeminiKey(),
+        hasInlineKey: !!keyToUse,
+        goal: learnerGoal.slice(0, 50)
+      });
       try {
         const result = await callGemini<{ goals?: Array<Record<string, unknown>>; phaseRoadmap?: Record<string, string[]> }>(
           prompt,
@@ -205,6 +221,7 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
         if (result) {
           const goalsArray = result.goals || (Array.isArray(result) ? result as unknown as Array<Record<string, unknown>> : []);
           if (goalsArray.length > 0) {
+            log.info('goal_modal.roadmap_gen.success', { count: goalsArray.length });
             const mapped = goalsArray.map((raw) => mapForgeCoachGoalToGoal(raw, fallbackDeadline));
             setParsedGoalsForReview(mapped);
             setReviewSource('ai-prompt');
@@ -227,6 +244,7 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
         }
         setImportError('AI returned no goals — prompt copied, paste into any AI.');
       } catch (err) {
+        log.error('goal_modal.roadmap_gen.failed', {}, err);
         setImportError(`AI error: ${err instanceof Error ? err.message : 'Unknown'} — prompt copied.`);
       }
       setGeminiLoading(false);
@@ -328,6 +346,10 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
       topics: (g.topics || []).filter(t => (t.taskNumber || 0) <= 5)
     }));
 
+    log.info('goal_modal.confirm_create.clicked', {
+      source: reviewSource,
+      count: goalsToCreate.length
+    });
     addGoals(goalsToCreate as Goal[]);
     toast({
       title: 'Goals created',
@@ -479,31 +501,56 @@ export default function AddGoalModal({ open, onClose }: AddGoalModalProps) {
                         </span>
                       </div>
                       <p className="font-body text-sm text-forge-dim leading-relaxed mb-4">
-                        Paste a free <strong className="text-forge-text">access code</strong> to generate personalized study plans in one click. Get one at openrouter.ai/keys — it takes 30 seconds.
+                        Paste a free <strong className="text-forge-text">access code</strong> to generate personalized study plans in one click.
                       </p>
 
                       <div className="space-y-3">
                         <div className="flex flex-col gap-1.5">
                           <label className="font-mono text-[13px] uppercase tracking-widest text-forge-amber">Paste Access Code</label>
                           <div className="flex gap-2">
-                            <input
-                              type="password"
-                              className="forge-input h-9 py-0 text-xs"
-                              placeholder="sk-or-v1-..."
-                              value={inlineApiKey}
-                              onChange={e => setInlineApiKey(e.target.value)}
-                              onKeyDown={e => e.key === 'Enter' && handleSaveInlineKey()}
-                            />
-                            <a
-                              href="https://openrouter.ai/keys"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="h-9 flex items-center justify-center border border-forge-border px-3 font-mono text-[13px] text-forge-muted hover:text-forge-amber transition-colors uppercase"
+                            <div className="relative flex-1">
+                              <input
+                                type={showApiKey ? "text" : "password"}
+                                className="forge-input h-9 py-0 pl-3 pr-10 text-xs w-full"
+                                placeholder="sk-or-v1-..."
+                                value={inlineApiKey}
+                                onChange={e => setInlineApiKey(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleSaveInlineKey()}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowApiKey(!showApiKey)}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-forge-muted hover:text-forge-text focus:outline-none p-1 rounded transition-colors"
+                              >
+                                {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleSaveInlineKey}
+                              disabled={!inlineApiKey.trim() || geminiLoading}
+                              className="h-9 flex items-center justify-center gap-2 border border-forge-amber/50 px-3 font-condensed font-bold text-[13px] text-forge-amber hover:bg-forge-amber/10 transition-colors uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap min-w-[100px]"
                             >
-                              Get Key
-                            </a>
+                              {geminiLoading ? <Loader2 size={14} className="animate-spin" /> : 'Save Key'}
+                            </button>
                           </div>
                         </div>
+
+                        <a
+                          href="https://openrouter.ai/keys"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 font-mono text-xs text-forge-amber hover:text-forge-text transition-colors"
+                        >
+                          Get free API key <ExternalLink size={11} />
+                        </a>
+
+                        {inlineKeyStatus === 'success' && (
+                          <p className="font-mono text-xs text-green-400 flex items-center gap-1"><Check size={12} /> Key saved and verified!</p>
+                        )}
+                        {inlineKeyStatus === 'error' && (
+                          <p className="font-mono text-xs text-red-400">✗ Could not verify that key. Please check and try again.</p>
+                        )}
 
                         <div className="flex items-center gap-4 pt-1">
                           <p className="font-mono text-[13px] text-forge-muted">

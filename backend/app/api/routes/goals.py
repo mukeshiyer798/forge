@@ -6,6 +6,9 @@ from fastapi import APIRouter, HTTPException
 from app.api.deps import CurrentUser, GoalServiceDep
 from app.models.goal import GoalCreate, GoalPublic, GoalsPublic, GoalUpdate
 from app.models.core import Message
+from app.core.logging import get_logger
+
+logger = get_logger("routes.goals")
 
 router = APIRouter(prefix="/goals", tags=["goals"])
 
