@@ -59,8 +59,11 @@ def get_current_user(session: SessionDep, token: TokenDep) -> User:
     try:
         # Clerk JWTs are RS256 and signed by Clerk's JWKS or Public Key.
         
-        # We'll use the Public Key provided for speed and reliability.
-        pk_pem = """-----BEGIN PUBLIC KEY-----
+        # Use provided Public Key from settings if available, otherwise fallback to hardcoded dev key
+        pk_pem = settings.CLERK_PUBLIC_KEY
+        if not pk_pem:
+            logger.debug("auth.jwt.using_default_key")
+            pk_pem = """-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvyBtNQ7LmKxaNtGZJPPk
 qjmATer8hF/Z98EZuNETWOuLyifpRC3kzLaEf7y3UwctK5MaENxyWlA9M5tdcfTN
 WmkD9kDbgQ5yxn0UAPtcCGb1P508hF/KVJgvT2Wfx5fuuO1Cs4IDs71NrIb7b9Kv
@@ -72,6 +75,12 @@ xQIDAQAB
         
         # 1. Verify and Decode Token
         try:
+            # Clean up the key string in case it has extra whitespace/newlines from env vars
+            pk_pem = pk_pem.strip()
+            if not pk_pem.startswith("-----BEGIN"):
+                # Handle cases where user might provide just the base64 string
+                pk_pem = f"-----BEGIN PUBLIC KEY-----\n{pk_pem}\n-----END PUBLIC KEY-----"
+
             session_claims = jwt.decode(
                 token,
                 pk_pem,
@@ -79,11 +88,22 @@ xQIDAQAB
                 # Standard Clerk claims
                 options={"verify_exp": True, "verify_aud": False}, 
             )
-        except Exception as jwt_err:
-            logger.warning("auth.jwt.decode_failed", extra={"error": str(jwt_err)})
+            logger.debug("auth.jwt.decoded_success", extra={"keys": list(session_claims.keys())})
+        except jwt.ExpiredSignatureError:
+            logger.warning("auth.jwt.token_expired")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or expired session token",
+                detail="Session token has expired",
+            )
+        except Exception as jwt_err:
+            logger.warning("auth.jwt.decode_failed", extra={
+                "error": str(jwt_err),
+                "key_preview": pk_pem[:30] + "..." if pk_pem else "None",
+                "token_preview": token[:20] + "..." if token else "None"
+            })
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Invalid session token: {str(jwt_err)}",
             )
 
         if not session_claims:
@@ -94,6 +114,7 @@ xQIDAQAB
             )
 
         clerk_id = session_claims.get("sub")
+        # Clerk tokens typically have 'email' or we can get it from the user API
         email = session_claims.get("email") or session_claims.get("email_address")
 
         # Fallback: Fetch email from Clerk API if missing from JWT
@@ -132,14 +153,16 @@ xQIDAQAB
                 except Exception as fetch_err:
                     logger.error("auth.clerk.fetch_exception", extra={"error": str(fetch_err)})
 
-    except (SDKError, Exception) as e:
-        logger.warning("auth.clerk.verification_failed", extra={
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning("auth.clerk.generic_failure", extra={
             "error_type": type(e).__name__,
             "error": str(e)[:200],
         })
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate Clerk session",
+            detail=f"Authentication failed: {type(e).__name__}",
         )
 
     # 1. Try to find user by clerk_id
@@ -179,7 +202,7 @@ xQIDAQAB
         user = User(
             email=email,
             clerk_id=clerk_id,
-            full_name=session_claims.get("name") or "New User",
+            full_name=session_claims.get("name") or session_claims.get("full_name") or "New User",
             is_active=True,
             is_superuser=False,
             hashed_password="CLERK_AUTH_MANAGED"
@@ -193,11 +216,12 @@ xQIDAQAB
             session.rollback()
             logger.error("auth.user.provisioning_db_failed", extra={
                 "error": str(db_err),
-                "clerk_id": clerk_id
+                "clerk_id": clerk_id,
+                "email": email
             })
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create user account"
+                detail=f"Failed to create user account: {str(db_err)}"
             )
 
     if not user.is_active:
