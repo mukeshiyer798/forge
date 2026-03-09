@@ -68,7 +68,17 @@ if settings.all_cors_origins:
         allow_origins=origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type", "Accept", "Idempotency-Key", "x-session-id"],
+        allow_headers=[
+            "Content-Type",
+            "Authorization",
+            "Accept",
+            "Idempotency-Key",
+            "x-session-id",
+            "x-request-id",
+            "Accept-Language",
+            "Range",
+            "Origin",
+        ],
         expose_headers=["x-request-id"],
     )
 
@@ -93,7 +103,17 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+@app.get("/", tags=["system"])
+def root() -> dict[str, str]:
+    """Root endpoint to handle default health checks."""
+    return {
+        "message": "Welcome to the Forge API",
+        "status": "ok",
+        "version": settings.APP_VERSION
+    }
+
 @app.get("/health", tags=["system"])
+@app.get("/healthz", tags=["system"])
 def health_check() -> dict[str, str]:
     """Health check endpoint for deployment monitoring."""
     return {
