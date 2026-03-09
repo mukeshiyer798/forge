@@ -67,23 +67,17 @@ if settings.all_cors_origins:
         CORSMiddleware,
         allow_origins=origins,
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=[
-            "Content-Type",
-            "Authorization",
-            "Accept",
-            "Idempotency-Key",
-            "x-session-id",
-            "x-request-id",
-            "Accept-Language",
-            "Range",
-            "Origin",
-        ],
+        allow_methods=["*"],
+        allow_headers=["*"],
         expose_headers=["x-request-id"],
     )
 
 app.add_middleware(IdempotencyMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
+
+@app.get("/version", tags=["system"])
+def get_version() -> dict[str, str]:
+    return {"version": settings.APP_VERSION, "environment": settings.ENVIRONMENT}
 
 from fastapi import HTTPException
 from fastapi.responses import ORJSONResponse
