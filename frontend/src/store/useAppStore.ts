@@ -262,9 +262,16 @@ export const useAppStore = create<AppState>()(
       // before setting the new user. This prevents RBAC leaks where
       // a new user would see the old user's persisted goals.
       login: (user) => {
-        // PRODUCTION-GRADE: Only wipe localStorage if a DIFFERENT user is logging in
-        // This prevents the persist middleware from overwriting freshly-fetched goals
         const prevUserId = get().user?.id;
+
+        // If it's the SAME user, just update the user object.
+        // DO NOT wipe the goals/state array, otherwise it causes a UI flash/refresh.
+        if (prevUserId === user.id) {
+          set({ user, isAuthenticated: true });
+          return;
+        }
+
+        // PRODUCTION-GRADE: Only wipe localStorage if a DIFFERENT user is logging in
         if (prevUserId && prevUserId !== user.id) {
           try { localStorage.removeItem('forge-storage'); } catch { /* ignore */ }
           log.info('auth.user_switch_clear', { prevUserId, newUserId: user.id });

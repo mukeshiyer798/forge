@@ -32,6 +32,7 @@ export default function App() {
   const { user: clerkUser, isLoaded: isUserLoaded } = useUser();
   const { activeView, login, logout, isAuthenticated } = useAppStore();
   const [provisioning, setProvisioning] = useState(false);
+  const [syncedClerkId, setSyncedClerkId] = useState<string | null>(null);
 
   useEffect(() => {
     setClerkTokenProvider(getToken);
@@ -42,7 +43,12 @@ export default function App() {
 
     if (!isSignedIn) {
       logout();
+      setSyncedClerkId(null);
       return;
+    }
+
+    if (syncedClerkId === clerkUser?.id) {
+      return; // Already synced for this session, skip redundant backend calls
     }
 
     // Sync with backend
@@ -52,21 +58,26 @@ export default function App() {
       .then((user) => {
         log.info('identity.sync.success', { userId: user.id });
         login(mapBackendUserToUser(user));
-        useAppStore.getState().fetchGoalsFromBackend();
-        useAppStore.getState().fetchReadingInsightsFromBackend();
-        useAppStore.getState().fetchActivePomodoroFromBackend();
+
+        // Fire data fetches without blocking the UI
+        Promise.all([
+          useAppStore.getState().fetchGoalsFromBackend(),
+          useAppStore.getState().fetchReadingInsightsFromBackend(),
+          useAppStore.getState().fetchActivePomodoroFromBackend(),
+        ]).catch((err: Error) => log.error('data.sync.failed', {}, err));
+
         useAppStore.getState().validateStreak();
+        setSyncedClerkId(clerkUser?.id || null);
       })
       .catch((err) => {
         log.error('identity.sync.failed', { clerkId: clerkUser?.id }, err);
-        // If backend fails to find/provision user, logout from Clerk too?
-        // For now, just logout from local store
         logout();
+        setSyncedClerkId(null);
       })
       .finally(() => {
         setProvisioning(false);
       });
-  }, [isSignedIn, isAuthLoaded, isUserLoaded, login, logout, clerkUser]);
+  }, [isSignedIn, isAuthLoaded, isUserLoaded, login, logout, clerkUser, syncedClerkId]);
 
   useEffect(() => {
     if (isSignedIn) {

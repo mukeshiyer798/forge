@@ -132,7 +132,7 @@ xQIDAQAB
                         "Content-Type": "application/json",
                     }
                     # Sync request to keep get_current_user synchronous
-                    with httpx.Client() as client:
+                    with httpx.Client(timeout=5.0) as client:
                         response = client.get(f"https://api.clerk.com/v1/users/{clerk_id}", headers=headers)
                         if response.status_code == 200:
                             clerk_data = response.json()
