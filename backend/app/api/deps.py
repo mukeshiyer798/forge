@@ -59,31 +59,29 @@ def get_current_user(session: SessionDep, token: TokenDep) -> User:
     try:
         # Clerk JWTs are RS256 and signed by Clerk's JWKS or Public Key.
         
-        # Use provided Public Key from settings if available, otherwise fallback to hardcoded dev key
-        pk_pem = settings.CLERK_PUBLIC_KEY
-        if not pk_pem:
-            logger.debug("auth.jwt.using_default_key")
-            pk_pem = """-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvyBtNQ7LmKxaNtGZJPPk
-qjmATer8hF/Z98EZuNETWOuLyifpRC3kzLaEf7y3UwctK5MaENxyWlA9M5tdcfTN
-WmkD9kDbgQ5yxn0UAPtcCGb1P508hF/KVJgvT2Wfx5fuuO1Cs4IDs71NrIb7b9Kv
-j3wN53l+0pw4nvQvHJKybXHEI/ws8zozzRpvy9dzmOiWqieZPd6gO4eoHeqy8Qoh
-2mCB6yVeuewu79YmojY2j5ZbhJpW+JEjuzCzug15sbn95muduVZyOuryb11dAMF8
-JLH2L92KxDqrG8bGx1IWmEjhiiCLzyCc206+Si9sKayttJmnJzD3FZuN03Rgvh6J
-xQIDAQAB
------END PUBLIC KEY-----"""
-        
-        # 1. Verify and Decode Token
+        # 1. Verify and Decode Token using cached JWKS
         try:
-            # Clean up the key string in case it has extra whitespace/newlines from env vars
-            pk_pem = pk_pem.strip()
-            if not pk_pem.startswith("-----BEGIN"):
-                # Handle cases where user might provide just the base64 string
-                pk_pem = f"-----BEGIN PUBLIC KEY-----\n{pk_pem}\n-----END PUBLIC KEY-----"
+            # Use provided URL from settings if available, otherwise typical Clerk format
+            # e.g. "https://clerk.yourdomain.com/.well-known/jwks.json" or "https://api.clerk.com/v1/jwks"
+            clerk_domain = settings.CLERK_PUBLISHABLE_KEY.replace('pk_test_', '').replace('pk_live_', '').split('$')[0] if settings.CLERK_PUBLISHABLE_KEY else ""
+            
+            # The standard frontend-facing JWKS URL for Clerk 
+            jwks_url = f"https://{clerk_domain}/.well-known/jwks.json" if clerk_domain else "https://api.clerk.com/v1/jwks"
+
+            from functools import lru_cache
+            from jwt import PyJWKClient
+
+            @lru_cache(maxsize=1)
+            def get_jwks_client(url: str):
+                return PyJWKClient(url, cache_keys=True)
+            
+            # Fetch the cached signing key for this specific token's header
+            jwks_client = get_jwks_client(jwks_url)
+            signing_key = jwks_client.get_signing_key_from_jwt(token)
 
             session_claims = jwt.decode(
                 token,
-                pk_pem,
+                signing_key.key,
                 algorithms=["RS256"],
                 # Standard Clerk claims
                 options={"verify_exp": True, "verify_aud": False}, 
@@ -98,7 +96,6 @@ xQIDAQAB
         except Exception as jwt_err:
             logger.warning("auth.jwt.decode_failed", extra={
                 "error": str(jwt_err),
-                "key_preview": pk_pem[:30] + "..." if pk_pem else "None",
                 "token_preview": token[:20] + "..." if token else "None"
             })
             raise HTTPException(

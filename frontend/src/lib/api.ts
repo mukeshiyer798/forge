@@ -5,6 +5,8 @@ import { getSessionId } from '@/lib/monitoring';
 const log = createLogger('API');
 
 let clerkTokenProvider: (() => Promise<string | null>) | null = null;
+let refreshPromise: Promise<string | null> | null = null;
+let cachedToken: string | null = null;
 
 export function setClerkTokenProvider(provider: () => Promise<string | null>) {
   clerkTokenProvider = provider;
@@ -32,9 +34,20 @@ export async function apiRequest<T>(
     ...(options.headers as Record<string, string>),
   };
 
-  // Inject Clerk Token
+  // Token Refresh Mutex: Prevents 401 cascades when multiple requests fire simultaneously
+  // and the token has expired, forcing them to wait for the single refresh to resolve.
   if (clerkTokenProvider) {
-    const token = await clerkTokenProvider();
+    if (!refreshPromise) {
+      refreshPromise = clerkTokenProvider()
+        .then((t) => {
+          cachedToken = t;
+          return t;
+        })
+        .finally(() => {
+          refreshPromise = null;
+        });
+    }
+    const token = await refreshPromise;
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }

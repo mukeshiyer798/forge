@@ -28,6 +28,16 @@ import os
 async def lifespan(app: FastAPI):
     logger.info("app.startup", extra={"environment": settings.ENVIRONMENT, "version": settings.APP_VERSION})
 
+    # Pre-warm connection pool to prevent cold-start latency
+    from app.core.db import engine
+    from sqlmodel import text
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("SELECT 1"))
+        logger.info("db.pool.pre_warmed")
+    except Exception as e:
+        logger.error("db.pool.pre_warm_failed", extra={"error": str(e)})
+
     # Database migrations and initial data are now handled by a pre-deploy script
     # to avoid race conditions with multiple worker processes.
 
