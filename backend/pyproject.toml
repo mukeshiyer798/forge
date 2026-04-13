@@ -23,7 +23,6 @@ dependencies = [
     "cryptography>=42.0.0",
     "sib-api-v3-sdk>=3.0.0",
     "orjson>=3.10.0",
-    "clerk-backend-api>=1.0.0",
     "python-json-logger>=2.0.0",
 ]
 

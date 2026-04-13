@@ -1,6 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutDashboard, Target, BookOpen, Settings, LogOut, Menu, X, BarChart3, Sun, Moon } from 'lucide-react';
-import { useClerk } from '@clerk/react';
 import { useAppStore, type ViewId } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
@@ -31,7 +30,6 @@ function useTheme() {
 
 function NavContent({ onClose }: { onClose?: () => void }) {
   const { user, streak, activeView, setActiveView, setMobileNavOpen, logout } = useAppStore();
-  const { signOut } = useClerk();
   const { isDark, toggle: toggleTheme } = useTheme();
 
   const handleNav = (id: ViewId) => {
@@ -75,7 +73,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
           {user?.avatarInitial ?? 'U'}
         </div>
         <div className="min-w-0">
-          <p className="font-body font-bold text-sm text-forge-text truncate">{user?.name ?? 'Warrior'}</p>
+          <p className="font-body font-bold text-sm text-forge-text truncate">{user?.name ?? 'User'}</p>
           <p className="font-mono text-[13px] text-forge-dim truncate">{user?.email ?? ''}</p>
         </div>
       </div>
@@ -118,8 +116,7 @@ function NavContent({ onClose }: { onClose?: () => void }) {
 
       {/* Logout */}
       <div className="px-3 pb-4 border-t border-forge-border pt-3">
-        <button onClick={async () => {
-          await signOut();
+        <button onClick={() => {
           logout();
           onClose?.();
         }} className="nav-link w-full text-left">

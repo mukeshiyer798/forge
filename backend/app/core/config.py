@@ -33,25 +33,6 @@ class Settings(BaseSettings):
         env_ignore_empty=True,
         extra="ignore",
     )
-    # --- JWT Findings and Deployment Status ---
-    # - [x] Implement additional logging and dynamic keys
-    # - [x] Identify root cause: Missing 'email' claim in JWT and pending deployment [/]
-    # - [/] Verify the fix (User action required: configure Clerk session + deploy)
-    #
-    # ### [Backend]
-    # - **`app/core/config.py`**: [DONE] Add `CLERK_PUBLIC_KEY` as an optional configuration setting.
-    # - **`app/api/deps.py`**:
-    #     - [DONE] Use `settings.CLERK_PUBLIC_KEY` if provided.
-    #     - [DONE] Add more detailed logging and handle missing JWT email claims by falling back to Clerk API.
-    # - **`app/main.py`**: [DONE] Add root route (`/`) and health check aliases to satisfy Render health checks and stop 404 spam.
-    #
-    # ## Action Required: Clerk Configuration
-    # The decoded JWT from your `curl` request is **missing the email claim**. The backend requires an email to create/identify your account.
-    #
-    # 1.  **Clerk Dashboard**: Go to **Sessions > Session Tokens > Edit**.
-    # 2.  Add `email` to the **Claims**. This makes the backend faster and more reliable.
-    # 3.  **Render**: Ensure `CLERK_SECRET_KEY` is correctly set so the backend can fetch the email if it's missing from the JWT.
-    # 4.  **Deploy**: Ensure ALL recent changes (including the root route fix in `main.py`) are pushed and deployed.
     # ------------------------------------------
     API_V1_STR: str = "/api/v1"
     # SECRET_KEY should be a long, secure random string.
@@ -87,10 +68,6 @@ class Settings(BaseSettings):
     OPENROUTER_API_KEY: str | None = None
     OPENROUTER_URL: str = "https://openrouter.ai/api/v1/chat/completions"
 
-    # ── Clerk config ──
-    CLERK_SECRET_KEY: str | None = None
-    CLERK_PUBLISHABLE_KEY: str | None = None
-    CLERK_PUBLIC_KEY: str | None = None
 
     # ── Mailgun config ──
     MAILGUN_API_KEY: str | None = None

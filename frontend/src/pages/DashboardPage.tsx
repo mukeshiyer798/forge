@@ -21,7 +21,7 @@ export default function DashboardPage() {
 
   const now = new Date();
   const period = now.getHours() < 12 ? 'Morning' : now.getHours() < 17 ? 'Afternoon' : 'Evening';
-  const displayName = user?.greetingPreference || user?.name?.split(' ')[0] || 'WARRIOR';
+  const displayName = user?.greetingPreference || user?.name?.split(' ')[0] || 'CHAMPION';
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const behindCount = goals.filter(g => g.status === 'behind' || g.status === 'at-risk').length;
   const recentGoals = goals.slice(0, 2);

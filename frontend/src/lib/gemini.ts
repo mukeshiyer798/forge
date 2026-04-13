@@ -2,7 +2,6 @@
  * AI API integration for FORGE.
  * All requests are now proxied securely through the backend.
  */
-import { getAccessToken } from '@/lib/auth';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 import { useAppStore } from '@/store/useAppStore';

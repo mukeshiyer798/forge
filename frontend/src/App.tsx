@@ -1,13 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useAuth, useUser, SignIn, SignUp } from '@clerk/react';
-import { useAppStore, mapBackendUserToUser } from '@/store/useAppStore';
-import { getCurrentUser, setClerkTokenProvider } from '@/lib/api';
+import { useAppStore } from '@/store/useAppStore';
 import DashboardPage from '@/pages/DashboardPage';
 import GoalsPage from '@/pages/GoalsPage';
 import ReadingPage from '@/pages/ReadingPage';
 import SettingsPage from '@/pages/SettingsPage';
 import ExecutiveDashboard from '@/pages/ExecutiveDashboard';
+import AuthPage from '@/pages/AuthPage';
 import Sidebar from '@/components/Sidebar';
 import StreakCelebration from '@/components/StreakCelebration';
 import ReloadMessage from '@/components/ReloadMessage';
@@ -28,64 +27,21 @@ const PAGE_MAP = {
 };
 
 export default function App() {
-  const { isSignedIn, isLoaded: isAuthLoaded, getToken } = useAuth();
-  const { user: clerkUser, isLoaded: isUserLoaded } = useUser();
-  const { activeView, login, logout, isAuthenticated } = useAppStore();
-  const [provisioning, setProvisioning] = useState(false);
-  const [syncedClerkId, setSyncedClerkId] = useState<string | null>(null);
+  const { activeView, isAuthenticated, goalsLoaded, initializeAuth } = useAppStore();
 
   useEffect(() => {
-    setClerkTokenProvider(getToken);
-  }, [getToken]);
+    // Check for existing session on mount
+    initializeAuth();
+  }, [initializeAuth]);
 
   useEffect(() => {
-    if (!isAuthLoaded || !isUserLoaded) return;
-
-    if (!isSignedIn) {
-      logout();
-      setSyncedClerkId(null);
-      return;
-    }
-
-    if (syncedClerkId === clerkUser?.id) {
-      return; // Already synced for this session, skip redundant backend calls
-    }
-
-    // Sync with backend
-    setProvisioning(true);
-    log.info('identity.sync.started', { clerkId: clerkUser?.id });
-    getCurrentUser()
-      .then((user) => {
-        log.info('identity.sync.success', { userId: user.id });
-        login(mapBackendUserToUser(user));
-
-        // Fire data fetches without blocking the UI
-        Promise.all([
-          useAppStore.getState().fetchGoalsFromBackend(),
-          useAppStore.getState().fetchReadingInsightsFromBackend(),
-          useAppStore.getState().fetchActivePomodoroFromBackend(),
-        ]).catch((err: Error) => log.error('data.sync.failed', {}, err));
-
-        useAppStore.getState().validateStreak();
-        setSyncedClerkId(clerkUser?.id || null);
-      })
-      .catch((err) => {
-        log.error('identity.sync.failed', { clerkId: clerkUser?.id }, err);
-        logout();
-        setSyncedClerkId(null);
-      })
-      .finally(() => {
-        setProvisioning(false);
-      });
-  }, [isSignedIn, isAuthLoaded, isUserLoaded, login, logout, clerkUser, syncedClerkId]);
-
-  useEffect(() => {
-    if (isSignedIn) {
+    if (isAuthenticated) {
       log.info('navigation.view_changed', { view: activeView });
     }
-  }, [activeView, isSignedIn]);
+  }, [activeView, isAuthenticated]);
 
-  if (!isAuthLoaded || !isUserLoaded || provisioning) {
+  // Loading state for initial session recovery
+  if (!goalsLoaded && useAppStore.getState().user === null && localStorage.getItem('forge_token')) {
     return (
       <div className="min-h-screen bg-forge-bg flex items-center justify-center">
         <span className="font-mono text-forge-dim text-sm uppercase tracking-widest animate-pulse">
@@ -95,37 +51,8 @@ export default function App() {
     );
   }
 
-  if (!isSignedIn) {
-    return (
-      <div className="min-h-screen bg-forge-bg flex items-center justify-center p-4">
-        <SignIn appearance={{
-          elements: {
-            card: "bg-forge-surface border border-forge-border shadow-2xl",
-            headerTitle: "text-forge-text font-display tracking-widest uppercase",
-            headerSubtitle: "text-forge-dim uppercase tracking-[0.1em] font-mono text-xs",
-            socialButtonsBlockButton: "bg-forge-surface2 border-forge-border text-forge-text hover:bg-forge-surface3",
-            formFieldLabel: "text-forge-dim uppercase tracking-wider font-condensed text-xs mb-1",
-            formFieldInput: "bg-forge-surface2 border-forge-border text-forge-text focus:border-forge-amber",
-            formButtonPrimary: "bg-forge-amber hover:bg-forge-amber/90 text-forge-bg font-condensed uppercase tracking-widest",
-            footerActionText: "text-forge-dim",
-            footerActionLink: "text-forge-amber hover:text-forge-amber/80",
-            dividerText: "text-forge-muted uppercase tracking-widest text-[10px]",
-            dividerLine: "bg-forge-border"
-          }
-        }} />
-      </div>
-    );
-  }
-
-  // Fallback if local state hasn't caught up yet
   if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-forge-bg flex items-center justify-center">
-        <span className="font-mono text-forge-dim text-sm uppercase tracking-widest animate-pulse">
-          Finalizing...
-        </span>
-      </div>
-    );
+    return <AuthPage />;
   }
 
   const ActivePage = PAGE_MAP[activeView as keyof typeof PAGE_MAP] ?? DashboardPage;

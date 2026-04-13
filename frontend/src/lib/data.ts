@@ -113,8 +113,6 @@ But here's the thing — champions aren't people who never fall down. They're pe
 
 Every single person you admire has had their version of this moment. The crossroads. The choice.
 
-David Goggins didn't become who he is by skipping Day 3.
-
 Are you coming back?
 
 → Restart your streak — right now
@@ -130,7 +128,7 @@ Are you coming back?
 
 Seven days of silence.
 
-You know what David Goggins calls someone who quits after one week?
+You know what winners call someone who quits after one week?
 
 Average.
 
@@ -154,9 +152,7 @@ That's all. Ten minutes. Tonight.
 
 We'll be here when you're ready to stop playing small.
 
-— Forge 🔥
-
-P.S. — "The most important conversation you'll ever have is the one you have with yourself." Make it count tonight.`
+— Forge 🔥`
   }
 ];
 

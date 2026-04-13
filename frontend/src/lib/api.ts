@@ -1,15 +1,25 @@
-// Clerk Token Injection Logic
+// JWT Token Management
 import { createLogger } from '@/lib/logger';
 import { getSessionId } from '@/lib/monitoring';
 
 const log = createLogger('API');
 
-let clerkTokenProvider: (() => Promise<string | null>) | null = null;
-let refreshPromise: Promise<string | null> | null = null;
-let cachedToken: string | null = null;
+const TOKEN_KEY = 'forge_token';
 
-export function setClerkTokenProvider(provider: () => Promise<string | null>) {
-  clerkTokenProvider = provider;
+export function setApiToken(token: string | null) {
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(TOKEN_KEY);
+  }
+}
+
+export function getApiToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function clearApiToken() {
+  localStorage.removeItem(TOKEN_KEY);
 }
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -34,23 +44,10 @@ export async function apiRequest<T>(
     ...(options.headers as Record<string, string>),
   };
 
-  // Token Refresh Mutex: Prevents 401 cascades when multiple requests fire simultaneously
-  // and the token has expired, forcing them to wait for the single refresh to resolve.
-  if (clerkTokenProvider) {
-    if (!refreshPromise) {
-      refreshPromise = clerkTokenProvider()
-        .then((t) => {
-          cachedToken = t;
-          return t;
-        })
-        .finally(() => {
-          refreshPromise = null;
-        });
-    }
-    const token = await refreshPromise;
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+  // Local JWT Injection
+  const token = getApiToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   // 1. Idempotency Key Injection
@@ -133,6 +130,37 @@ export interface UserPublic {
 
 export async function getCurrentUser(): Promise<UserPublic> {
   return apiRequest<UserPublic>('/users/me');
+}
+
+export interface Token {
+  access_token: string;
+  token_type: string;
+}
+
+export async function loginApi(data: FormData | Record<string, string>): Promise<Token> {
+  // OAuth2PasswordRequestForm expects x-www-form-urlencoded
+  const body = data instanceof FormData
+    ? data
+    : new URLSearchParams(data);
+
+  const response = await fetch(`${API_BASE}/api/v1/login/access-token`, {
+    method: 'POST',
+    body: body,
+  });
+
+  if (!response.ok) {
+    const detail = (await response.json()).detail || 'Login failed';
+    throw { detail, status: response.status };
+  }
+
+  return response.json();
+}
+
+export async function registerApi(data: Record<string, unknown>): Promise<UserPublic> {
+  return apiRequest<UserPublic>('/users/signup', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
 // ── Goals API ──────────────────────────────────────────────

@@ -149,7 +149,6 @@ services:
       dockerfile: frontend/Dockerfile
       args:
         - VITE_API_URL=https://api.${DOMAIN?Variable not set}
-        - VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}
         - NODE_ENV=production
     labels:
       - traefik.enable=true

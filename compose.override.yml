@@ -93,7 +93,6 @@ services:
       dockerfile: frontend/Dockerfile
       args:
         - VITE_API_URL=http://localhost:8000
-        - VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}
         - NODE_ENV=development
 
   grafana:

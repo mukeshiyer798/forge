@@ -5,7 +5,12 @@ from app.models import User, UserCreate
 from app.services.user_service import UserService
 from app.repositories.user_repository import UserRepository
 
-engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+engine = create_engine(
+    str(settings.SQLALCHEMY_DATABASE_URI),
+    pool_size=20,
+    max_overflow=10,
+    pool_pre_ping=True,
+)
 
 
 # make sure all SQLModel models are imported (app.models) before initializing DB

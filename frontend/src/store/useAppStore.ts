@@ -5,7 +5,6 @@ const log = createLogger('Store');
 import { persist } from 'zustand/middleware';
 import type { User, Goal, GoalStatus, GoalType, PomodoroSession, SubTopic, GoalTopic, GoalCapstone, AIInsight } from '@/types';
 import { generateId, getTodayIndex, calcGoalProgress } from '@/lib/utils';
-import { clearAccessToken } from '@/lib/auth';
 import {
   fetchGoals,
   createGoalApi,
@@ -20,6 +19,12 @@ import {
   togglePauseGoalApi,
   fetchActivePomodoroSessionApi,
   type GoalPublicBackend,
+  setApiToken,
+  getApiToken,
+  clearApiToken,
+  loginApi,
+  registerApi,
+  getCurrentUser,
 } from '@/lib/api';
 
 export type ViewId = 'dashboard' | 'goals' | 'reading' | 'executive' | 'settings';
@@ -141,10 +146,11 @@ interface AppState {
   setStreakEvent: (e: 'increase' | 'reset' | 'start' | null) => void;
 
   // Actions
-  login: (user: User) => void;
+  login: (credentials: Record<string, string>) => Promise<void>;
   logout: () => void;
-  signup: (name: string, email: string, nudge: User['nudgePreference']) => void;
+  signup: (data: { name: string; email: string; password?: string }) => Promise<void>;
   updateUser: (user: User) => void;
+  initializeAuth: () => Promise<void>;
 
   // Goal actions (sync to backend)
   fetchGoalsFromBackend: (page?: number) => Promise<void>;
@@ -258,48 +264,36 @@ export const useAppStore = create<AppState>()(
       streakEvent: null,
       setStreakEvent: (e: 'increase' | 'reset' | 'start' | null) => set({ streakEvent: e }),
 
-      // CRITICAL FIX: Login clears all previous user-specific state
-      // before setting the new user. This prevents RBAC leaks where
-      // a new user would see the old user's persisted goals.
-      login: (user) => {
-        const prevUserId = get().user?.id;
+      // Async Login: Calls backend, stores token, and fetches user profile
+      login: async (credentials) => {
+        try {
+          const { access_token } = await loginApi(credentials);
+          setApiToken(access_token);
 
-        // If it's the SAME user, just update the user object.
-        // DO NOT wipe the goals/state array, otherwise it causes a UI flash/refresh.
-        if (prevUserId === user.id) {
+          const backendUser = await getCurrentUser();
+          const user = mapBackendUserToUser(backendUser);
+
+          const prevUserId = get().user?.id;
+          if (prevUserId && prevUserId !== user.id) {
+            try { localStorage.removeItem('forge-storage'); } catch { /* ignore */ }
+          }
+
           set({ user, isAuthenticated: true });
-          return;
-        }
+          log.info('auth.login_success', { userId: user.id });
 
-        // PRODUCTION-GRADE: Only wipe localStorage if a DIFFERENT user is logging in
-        if (prevUserId && prevUserId !== user.id) {
-          try { localStorage.removeItem('forge-storage'); } catch { /* ignore */ }
-          log.info('auth.user_switch_clear', { prevUserId, newUserId: user.id });
+          // Trigger data fetch after successful login
+          get().fetchGoalsFromBackend();
+          get().fetchReadingInsightsFromBackend();
+        } catch (err: any) {
+          log.error('auth.login_failed', {}, err);
+          throw err;
         }
-        log.info('auth.login_success', { userId: user.id });
-        set({
-          user,
-          isAuthenticated: true,
-          // Clear user-specific data — will be fetched from backend
-          goals: [],
-          goalsLoaded: false,
-          goalsPage: 0,
-          goalsTotalCount: 0,
-          readingInsights: [],
-          streak: 0,
-          weekData: { ...INITIAL_WEEK_DATA, weekStart: getCurrentWeekStart() },
-          pomodoroSessions: [],
-          nudgeDismissed: false,
-          celebrateVisible: false,
-        });
       },
 
       updateUser: (user) => set({ user }),
 
-      // CRITICAL FIX: Logout clears ALL user-specific state
       logout: () => {
-        clearAccessToken();
-        // PRODUCTION-GRADE: Wipe localStorage to prevent data leaks
+        clearApiToken();
         try { localStorage.removeItem('forge-storage'); } catch { /* ignore */ }
         log.info('auth.logout');
         set({
@@ -320,27 +314,41 @@ export const useAppStore = create<AppState>()(
         });
       },
 
-      signup: (name, email, nudge) => {
-        const user: User = {
-          id: generateId(),
-          name,
-          email,
-          nudgePreference: nudge,
-          avatarInitial: name.charAt(0).toUpperCase(),
-        };
-        set({
-          user,
-          isAuthenticated: true,
-          goals: [],
-          goalsLoaded: false,
-          goalsPage: 0,
-          goalsTotalCount: 0,
-          readingInsights: [],
-          streak: 0,
-          weekData: { ...INITIAL_WEEK_DATA, weekStart: getCurrentWeekStart() },
-          pomodoroSessions: [],
-          activePomodoro: null,
-        });
+      signup: async (data) => {
+        try {
+          // 1. Register user
+          await registerApi({
+            email: data.email,
+            password: data.password,
+            full_name: data.name,
+          });
+
+          // 2. Auto-login after registration
+          await get().login({ username: data.email, password: data.password || '' });
+          log.info('auth.signup_success', { email: data.email });
+        } catch (err: any) {
+          log.error('auth.signup_failed', { email: data.email }, err);
+          throw err;
+        }
+      },
+
+      // Recovery: Check if we have a valid token and fetch user on load
+      initializeAuth: async () => {
+        const token = getApiToken();
+        if (!token) {
+          set({ isAuthenticated: false, goalsLoaded: true });
+          return;
+        }
+
+        try {
+          const backendUser = await getCurrentUser();
+          set({ user: mapBackendUserToUser(backendUser), isAuthenticated: true });
+          get().fetchGoalsFromBackend();
+          get().fetchReadingInsightsFromBackend();
+        } catch (err) {
+          log.warn('auth.recovery_failed', { token: !!token });
+          get().logout();
+        }
       },
 
       // Fetch goals from backend (RBAC scoped — API only returns current user's goals)
