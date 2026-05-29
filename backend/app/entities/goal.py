@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
+import sqlalchemy as sa
 from sqlalchemy import DateTime, Column
 from sqlmodel import Field, Relationship, SQLModel
 from app.core.security import EncryptedString
@@ -32,6 +33,9 @@ class Goal(GoalBase, table=True):
     owner_id: uuid.UUID = Field(foreign_key="user.id", nullable=False, ondelete="CASCADE")
     created_at: datetime | None = Field(default_factory=get_datetime_utc, sa_type=DateTime(timezone=True))
     last_logged_at: datetime | None = Field(default_factory=get_datetime_utc, sa_type=DateTime(timezone=True))
+    # ── Public sharing ──
+    is_public: bool = Field(default=False)
+    share_token: uuid.UUID | None = Field(default=None, sa_column=Column(sa.Uuid(), unique=True, nullable=True))
     owner: "User" = Relationship(back_populates="goals")
     pomodoro_sessions: list["PomodoroSession"] = Relationship(back_populates="goal")
     spaced_repetition_items: list["SpacedRepetitionItem"] = Relationship(back_populates="goal")

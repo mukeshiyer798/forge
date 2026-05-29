@@ -1,6 +1,7 @@
 import uuid
 from sqlmodel import Session, select, func, col
 from app.entities.goal import Goal
+from app.entities.pomodoro import PomodoroSession
 
 class GoalRepository:
     def __init__(self, session: Session):
@@ -37,6 +38,23 @@ class GoalRepository:
             .where(Goal.owner_id == owner_id, Goal.status.not_in(excluded_statuses))  # type: ignore[union-attr]
         )
         return self.session.exec(statement).one()
+
+    def get_by_share_token(self, share_token: uuid.UUID) -> Goal | None:
+        statement = select(Goal).where(Goal.share_token == share_token, Goal.is_public == True)  # noqa: E712
+        return self.session.exec(statement).first()
+
+    def get_total_focus_minutes(self, goal_id: uuid.UUID) -> int:
+        """Sum completed focus pomodoro minutes for a goal."""
+        statement = (
+            select(func.sum(PomodoroSession.duration))
+            .where(
+                PomodoroSession.goal_id == goal_id,
+                PomodoroSession.completed == True,  # noqa: E712
+                PomodoroSession.session_type == 'focus',
+            )
+        )
+        result = self.session.exec(statement).one()
+        return result or 0
 
     def delete(self, goal: Goal) -> None:
         self.session.delete(goal)

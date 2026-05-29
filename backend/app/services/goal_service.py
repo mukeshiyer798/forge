@@ -1,7 +1,7 @@
 import uuid
 import orjson
 from app.repositories.goal_repository import GoalRepository
-from app.models.goal import GoalCreate, GoalUpdate
+from app.models.goal import GoalCreate, GoalUpdate, GoalSharePublic
 from app.entities.goal import Goal
 from app.entities.user import User
 from app.core.config import settings
@@ -118,6 +118,58 @@ class GoalService:
             "goal_id": str(id),
         })
         return True
+
+    def toggle_share(self, id: uuid.UUID, user: User) -> Goal | None:
+        """Enable or disable public sharing for a goal. Generates a stable share_token on first enable."""
+        goal = self.get_goal(id, user)
+        if not goal:
+            return None
+
+        if goal.is_public:
+            # Disable sharing — clear the token
+            goal.is_public = False
+            goal.share_token = None
+        else:
+            # Enable sharing — generate token once
+            if not goal.share_token:
+                goal.share_token = uuid.uuid4()
+            goal.is_public = True
+
+        saved = self.repo.save(goal)
+        logger.info("goal.share_toggled", extra={
+            "user_id": str(user.id),
+            "goal_id": str(id),
+            "is_public": goal.is_public,
+        })
+        return saved
+
+    def get_public_goal(self, share_token: uuid.UUID) -> GoalSharePublic | None:
+        """Return a curated public snapshot. No auth required."""
+        goal = self.repo.get_by_share_token(share_token)
+        if not goal:
+            return None
+
+        focus_minutes = self.repo.get_total_focus_minutes(goal.id)
+        owner_name: str | None = None
+        if goal.owner and goal.owner.full_name:
+            owner_name = goal.owner.full_name
+
+        return GoalSharePublic(
+            id=goal.id,
+            name=goal.name,
+            type=goal.type,
+            description=goal.description,
+            status=goal.status,
+            progress=goal.progress,
+            target_date=goal.target_date,
+            topics=goal.topics,
+            capstone=goal.capstone,
+            subtopics=goal.subtopics,
+            created_at=goal.created_at,
+            last_logged_at=goal.last_logged_at,
+            owner_name=owner_name,
+            total_focus_minutes=focus_minutes,
+        )
 
     def toggle_pause(self, id: uuid.UUID, user: User) -> Goal | None:
         """Toggle a goal between 'paused' and 'on-track'."""

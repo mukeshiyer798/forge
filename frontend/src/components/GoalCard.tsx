@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Trash2, Check, Timer, Lock, ChevronLeft, ChevronRight, Pause, Play, Plus } from 'lucide-react';
+import { Trash2, Check, Timer, Lock, ChevronLeft, ChevronRight, Pause, Play, Plus, Share2 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import type { Goal, GoalTopic } from '@/types';
 import { cn, formatDueDate, generateId } from '@/lib/utils';
 import TaskPopup from './TaskPopup';
 import NextPhasePrompt from './NextPhasePrompt';
+import ShareGoalModal from './ShareGoalModal';
 
 const TYPE_STYLES: Record<Goal['type'], { bg: string; text: string; label: string }> = {
   learn: { bg: 'bg-blue-500/10', text: 'text-blue-400', label: '📚 Learning' },
@@ -88,6 +89,7 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
   const sortedTopics = hasFullStructure ? [...goal.topics!].sort((a, b) => a.taskNumber - b.taskNumber) : [];
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [nextPhaseOpen, setNextPhaseOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
   const [viewPhase, setViewPhase] = useState<number | null>(null); // null = auto (current active phase)
 
   const totalPhases = Math.ceil(sortedTopics.length / PHASE_SIZE) || 1;
@@ -165,6 +167,16 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
                 <Timer size={13} />
               </button>
             )}
+            <button
+              onClick={() => setShareModalOpen(true)}
+              className={cn(
+                'transition-opacity text-forge-muted hover:text-forge-amber ml-1',
+                goal.isPublic ? 'opacity-100 text-green-400' : 'opacity-0 group-hover:opacity-100'
+              )}
+              title={goal.isPublic ? 'Shared publicly — click to manage' : 'Share goal'}
+            >
+              <Share2 size={13} />
+            </button>
             <button
               onClick={() => togglePauseGoal(goal.id)}
               className="opacity-0 group-hover:opacity-100 transition-opacity text-forge-muted hover:text-amber-400 ml-1"
@@ -398,6 +410,11 @@ export default function GoalCard({ goal, index }: GoalCardProps) {
         currentPhase={totalPhases}
         completedTopicNames={completedTopicNames}
         nextPhaseTopics={nextPhaseTopicNames}
+      />
+      <ShareGoalModal
+        goal={goal}
+        open={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
       />
     </motion.div >
   );

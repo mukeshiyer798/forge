@@ -29,7 +29,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 COPY ./backend/scripts /app/backend/scripts
 # Normalize line endings (fixes exit 255 when scripts have CRLF on Windows)
-RUN sed -i 's/\r$//' /app/backend/scripts/prestart.sh
+RUN sed -i 's/\r$//' /app/backend/scripts/prestart.sh && \
+    sed -i 's/\r$//' /app/backend/scripts/start-production.sh && \
+    chmod +x /app/backend/scripts/start-production.sh
 
 COPY ./backend/pyproject.toml ./backend/alembic.ini /app/backend/
 

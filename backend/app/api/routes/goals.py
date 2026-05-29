@@ -4,7 +4,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 
 from app.api.deps import CurrentUser, GoalServiceDep
-from app.models.goal import GoalCreate, GoalPublic, GoalsPublic, GoalUpdate
+from app.models.goal import GoalCreate, GoalPublic, GoalsPublic, GoalUpdate, GoalSharePublic
 from app.models.core import Message
 from app.core.logging import get_logger
 
@@ -95,6 +95,26 @@ def delete_goal(
         raise HTTPException(status_code=404, detail="Goal not found")
     
     return Message(message="Goal deleted successfully")
+
+
+@router.patch("/{id}/share", response_model=GoalPublic)
+def toggle_share_goal(
+    goal_service: GoalServiceDep, current_user: CurrentUser, id: uuid.UUID
+) -> Any:
+    """
+    Toggle public sharing for a goal.
+    - First call: generates a share_token and sets is_public=True.
+    - Second call: clears is_public and share_token (revokes the link).
+    """
+    try:
+        goal = goal_service.toggle_share(id=id, user=current_user)
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+
+    return goal
 
 
 @router.patch("/{id}/pause", response_model=GoalPublic)

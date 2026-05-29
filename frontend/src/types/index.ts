@@ -80,6 +80,9 @@ export interface Goal {
   dailyTaskRequirement?: number;
   /** User ID who owns this goal */
   userId?: string;
+  /** Public sharing */
+  isPublic?: boolean;
+  shareToken?: string | null;
 }
 
 export interface User {

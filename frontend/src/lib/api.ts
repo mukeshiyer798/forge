@@ -141,6 +141,25 @@ export interface GoalPublicBackend {
   future_look: string | null;
   created_at: string | null;
   last_logged_at: string | null;
+  is_public: boolean;
+  share_token: string | null;
+}
+
+export interface GoalSharePublic {
+  id: string;
+  name: string;
+  type: string;
+  description: string | null;
+  status: string;
+  progress: number;
+  target_date: string | null;
+  topics: string | null;
+  capstone: string | null;
+  subtopics: string | null;
+  created_at: string | null;
+  last_logged_at: string | null;
+  owner_name: string | null;
+  total_focus_minutes: number;
 }
 
 export interface GoalsPublicResponse {
@@ -193,6 +212,22 @@ export async function togglePauseGoalApi(id: string): Promise<GoalPublicBackend>
   return apiRequest<GoalPublicBackend>(`/goals/${id}/pause`, {
     method: 'PATCH',
   });
+}
+
+export async function toggleShareGoalApi(id: string): Promise<GoalPublicBackend> {
+  return apiRequest<GoalPublicBackend>(`/goals/${id}/share`, {
+    method: 'PATCH',
+  });
+}
+
+export async function fetchPublicGoal(shareToken: string): Promise<GoalSharePublic> {
+  const url = `${API_BASE}/api/v1/public/goals/${shareToken}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw { detail: json.detail ?? res.statusText, status: res.status };
+  }
+  return res.json() as Promise<GoalSharePublic>;
 }
 
 

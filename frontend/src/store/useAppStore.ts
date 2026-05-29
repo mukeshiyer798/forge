@@ -18,6 +18,7 @@ import {
   createReadingInsightApi,
   deleteReadingInsightApi,
   togglePauseGoalApi,
+  toggleShareGoalApi,
   fetchActivePomodoroSessionApi,
   type GoalPublicBackend,
 } from '@/lib/api';
@@ -85,6 +86,8 @@ function mapBackendGoalToGoal(bg: GoalPublicBackend): Goal {
     capstone,
     dailyTaskRequirement: bg.daily_task_requirement ?? undefined,
     userId: bg.owner_id,
+    isPublic: bg.is_public ?? false,
+    shareToken: bg.share_token ?? null,
   };
 }
 
@@ -166,6 +169,7 @@ interface AppState {
   deleteTopic: (goalId: string, topicId: string) => void;
   deleteGoal: (goalId: string) => void;
   togglePauseGoal: (goalId: string) => void;
+  toggleShareGoal: (goalId: string) => Promise<Goal>;
 
   // Reading
   readingInsights: AIInsight[];
@@ -833,6 +837,15 @@ export const useAppStore = create<AppState>()(
             goals: state.goals.map((g) => g.id === goalId ? mapBackendGoalToGoal(backendGoal) : g)
           }));
         }).catch(err => console.error('Failed to toggle pause:', err));
+      },
+
+      toggleShareGoal: async (goalId) => {
+        const backendGoal = await toggleShareGoalApi(goalId);
+        const mapped = mapBackendGoalToGoal(backendGoal);
+        set((state) => ({
+          goals: state.goals.map((g) => g.id === goalId ? mapped : g)
+        }));
+        return mapped;
       },
 
       toggleDay: (dayIndex) => {

@@ -26,7 +26,29 @@ class GoalPublic(GoalBase):
     owner_id: uuid.UUID
     created_at: datetime | None = None
     last_logged_at: datetime | None = None
+    is_public: bool = False
+    share_token: uuid.UUID | None = None
 
 class GoalsPublic(SQLModel):
     data: list[GoalPublic]
     count: int
+
+# ── Public (unauthenticated) share response ──────────────────
+class GoalSharePublic(SQLModel):
+    """Read-only snapshot returned at /public/goals/{share_token}. No auth required."""
+    id: uuid.UUID
+    name: str
+    type: str
+    description: str | None = None
+    status: str
+    progress: int
+    target_date: str | None = None
+    topics: str | None = None          # JSON string — same as GoalPublic
+    capstone: str | None = None        # JSON string
+    subtopics: str | None = None       # JSON string (legacy)
+    created_at: datetime | None = None
+    last_logged_at: datetime | None = None
+    # Owner identity (shown if full_name is set)
+    owner_name: str | None = None
+    # Focus stats
+    total_focus_minutes: int = 0

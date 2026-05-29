@@ -5,6 +5,7 @@ from app.api.routes import (
     items,
     login,
     private,
+    public,
     users,
     utils,
     goals,
@@ -18,6 +19,7 @@ from app.api.routes import (
 from app.core.config import settings
 
 api_router = APIRouter()
+api_router.include_router(public.router)
 api_router.include_router(users.router)
 api_router.include_router(utils.router)
 api_router.include_router(items.router)
